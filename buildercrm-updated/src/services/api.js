@@ -1,5 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false" || window.location.hostname.includes("github.io") || window.location.hostname.includes("localhost") === false;
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true" || (window.location.hostname.includes("github.io") && import.meta.env.VITE_USE_MOCK !== "false");
 
 // ─── HTTP REQUEST UTILITY ──────────────────────────────────────
 async function req(method, path, body, customHeaders = {}) {

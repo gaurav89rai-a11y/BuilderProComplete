@@ -19,11 +19,44 @@ builder.Services.AddSwaggerGen(c => {
     c.SwaggerDoc("v1", new() { Title = "BuilderPro API", Version = "v1", Description = "Real Estate ERP Platform API" });
 });
 
-// Database - use local SQL Server
+// Database - use local SQL Server (with auto-discovery and self-healing)
+string workingConnectionString = null;
+var connectionStringsToTry = new List<string> {
+    builder.Configuration.GetConnectionString("DefaultConnection"),
+    "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
+    "Server=.\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
+    "Server=(localdb)\\MSSQLLocalDB;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
+    "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;"
+};
+
+foreach (var connStr in connectionStringsToTry)
+{
+    if (string.IsNullOrEmpty(connStr)) continue;
+    try
+    {
+        using (var connection = new Microsoft.Data.SqlClient.SqlConnection(connStr))
+        {
+            connection.Open();
+            workingConnectionString = connStr;
+            Console.WriteLine($"✅ Database connection test succeeded: {connStr}");
+            break;
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"ℹ️ Database connection test failed for candidate: {connStr} ({ex.Message.Split('\n')[0].Trim()})");
+    }
+}
+
+if (workingConnectionString == null)
+{
+    workingConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    Console.WriteLine($"⚠️ No local SQL Server instances responded. Falling back to default: {workingConnectionString}");
+}
+
 builder.Services.AddDbContext<BuilderProDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(workingConnectionString);
 });
 
 // Dependency Injection Scopes
