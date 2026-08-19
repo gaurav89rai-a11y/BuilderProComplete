@@ -12,7 +12,7 @@ export function TopBar({mod, theme, toggleTheme, user}) {
       height:58,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
       <div>
         <div style={{color:C.txt,fontSize:15,fontWeight:700}}>{LABELS[mod]}</div>
-        <div style={{color:C.mute,fontSize:10}}>Matrix Group ERP Platform · v2.4.1</div>
+        <div style={{color:C.mute,fontSize:10}}>Abhay Buildcon ERP Platform · v2.4.1</div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:8,background:C.raise,

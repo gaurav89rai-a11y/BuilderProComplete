@@ -52,8 +52,8 @@ export function Sidebar({active, setActive, col, setCol, user, usersList, onSele
           </div>
           {!col && (
             <div style={{display: "flex", flexDirection: "column"}}>
-              <span style={{color: C.txt, fontWeight: 800, fontSize: 13, letterSpacing: 0.5, lineHeight: 1.2}}>Matrix</span>
-              <span style={{color: C.gold, fontWeight: 700, fontSize: 10, letterSpacing: 1.2, textTransform: "uppercase", lineHeight: 1}}>Group</span>
+              <span style={{color: C.txt, fontWeight: 800, fontSize: 13, letterSpacing: 0.5, lineHeight: 1.2}}>Abhay</span>
+              <span style={{color: C.gold, fontWeight: 700, fontSize: 10, letterSpacing: 1.2, textTransform: "uppercase", lineHeight: 1}}>Buildcon</span>
             </div>
           )}
         </div>

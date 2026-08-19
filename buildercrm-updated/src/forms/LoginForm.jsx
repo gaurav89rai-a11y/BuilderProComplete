@@ -55,8 +55,8 @@ export function LoginForm({ onLogin }) {
               <img src="/logo.png" style={{width: "100%", height: "100%", objectFit: "contain"}} />
             </div>
             <div style={{textAlign: "left"}}>
-              <div style={{color: C.txt, fontSize: 20, fontWeight: 800, letterSpacing: 0.5, lineHeight: 1.2}}>Matrix</div>
-              <div style={{color: C.gold, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", lineHeight: 1}}>Group</div>
+              <div style={{color: C.txt, fontSize: 20, fontWeight: 800, letterSpacing: 0.5, lineHeight: 1.2}}>Abhay</div>
+              <div style={{color: C.gold, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", lineHeight: 1}}>Buildcon</div>
             </div>
           </div>
           <p style={{ color: C.sub, fontSize: 12, marginTop: 4, marginBottom: 0 }}>ERP & CRM Management Portal</p>

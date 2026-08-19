@@ -68,7 +68,7 @@ function PlaceholderView({ featureName, icon: Icon }) {
       <div>
         <div style={{ color: C.txt, fontSize: 20, fontWeight: 800 }}>{featureName} Dashboard</div>
         <div style={{ color: C.sub, fontSize: 13, marginTop: 8, maxWidth: 420, lineHeight: 1.6 }}>
-          This feature is currently under active development. Our engineering team is integrating it with the Matrix Group core ERP module. Check back soon for real-time updates!
+          This feature is currently under active development. Our engineering team is integrating it with the Abhay Buildcon core ERP module. Check back soon for real-time updates!
         </div>
       </div>
       <div style={{ background: C.raise, border: `1px solid ${C.bord}`, borderRadius: 10, padding: "10px 20px", display: "flex", alignItems: "center", gap: 8, color: C.mute, fontSize: 11, fontWeight: 600 }}>
