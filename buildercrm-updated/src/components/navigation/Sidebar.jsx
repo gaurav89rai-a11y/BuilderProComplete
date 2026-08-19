@@ -47,8 +47,8 @@ export function Sidebar({active, setActive, col, setCol, user, usersList, onSele
       <div style={{padding:col?"15px 10px":"15px 18px",borderBottom:`1px solid ${C.bord}`,
         display:"flex",alignItems:"center",justifyContent:col?"center":"space-between",height:58}}>
         <div style={{display: "flex", alignItems: "center", gap: 8}}>
-          <div style={{width: 28, height: 28, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center"}}>
-            <img src="/logo.png" style={{width: "100%", height: "100%", objectFit: "contain"}} />
+          <div style={{width: 28, height: 28, overflow: "hidden", flexShrink: 0, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center"}}>
+            <img src="/logo.png" style={{width: "100%", height: "180%", objectFit: "cover", objectPosition: "top"}} />
           </div>
           {!col && (
             <div style={{display: "flex", flexDirection: "column"}}>

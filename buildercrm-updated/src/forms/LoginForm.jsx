@@ -50,13 +50,9 @@ export function LoginForm({ onLogin }) {
         padding: 32, boxShadow: "0 12px 48px rgba(0,0,0,0.6)", boxSizing: "border-box"
       }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
-            <div style={{width: 42, height: 42, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center"}}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{width: 200, height: 160, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center"}}>
               <img src="/logo.png" style={{width: "100%", height: "100%", objectFit: "contain"}} />
-            </div>
-            <div style={{textAlign: "left"}}>
-              <div style={{color: C.txt, fontSize: 20, fontWeight: 800, letterSpacing: 0.5, lineHeight: 1.2}}>Abhay</div>
-              <div style={{color: C.gold, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", lineHeight: 1}}>Buildcon</div>
             </div>
           </div>
           <p style={{ color: C.sub, fontSize: 12, marginTop: 4, marginBottom: 0 }}>ERP & CRM Management Portal</p>
