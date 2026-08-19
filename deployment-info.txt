@@ -1,0 +1,12 @@
+﻿BUILDERPRO DEPLOYMENT INFO
+===========================
+Date: 2026-07-03 13:49:14
+
+FRONTEND URL : https://green-river-07d41e310.7.azurestaticapps.net
+BACKEND URL  : https://vgi-builderpro-api.azurewebsites.net
+SWAGGER DOCS : https://vgi-builderpro-api.azurewebsites.net/swagger
+SQL SERVER   : vgi-builderproserver.database.windows.net
+DATABASE     : BuilderProDB
+SQL USER     : builderadmin
+SQL PASSWORD : BuilderPro@2026!
+RESOURCE GRP : vgi-builderpro-rg

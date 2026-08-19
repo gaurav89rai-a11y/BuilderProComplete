@@ -1,0 +1,5 @@
+{
+  "terminal.integrated.env.windows": {
+    "PATH": "${workspaceFolder}\\.node\\node-v20.19.5-win-x64;${env:PATH}"
+  }
+}

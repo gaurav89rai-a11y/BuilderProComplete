@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-backend",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/BuilderProAPI/BuilderProAPI.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "run-backend",
+      "type": "shell",
+      "command": "dotnet run",
+      "options": {
+        "cwd": "${workspaceFolder}/BuilderProAPI"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "run-frontend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/buildercrm-updated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Full Stack (Tasks)",
+      "dependsOn": [
+        "run-backend",
+        "run-frontend"
+      ],
+      "group": {
+        "kind": "run",
+        "isDefault": true
+      }
+    }
+  ]
+}
