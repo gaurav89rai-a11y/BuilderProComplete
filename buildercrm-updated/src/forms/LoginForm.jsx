@@ -43,16 +43,40 @@ export function LoginForm({ onLogin }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.bg} 0%, #0c152a 100%)`, padding: 20, fontFamily: "inherit"
+      background: `linear-gradient(135deg, ${C.bg} 0%, #0c152a 100%)`, padding: 12, fontFamily: "inherit"
     }}>
-      <div style={{
+      <style>{`
+        @media (max-width: 480px) {
+          .login-card {
+            padding: 24px 18px !important;
+            border-radius: 12px !important;
+            margin: 8px !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+          }
+          .login-title-primary {
+            font-size: 17px !important;
+          }
+          .login-title-secondary {
+            font-size: 11px !important;
+          }
+          .login-logo-box {
+            width: 36px !important;
+            height: 36px !important;
+          }
+        }
+      `}</style>
+      <div className="login-card" style={{
         background: C.card, border: `1px solid ${C.bord}`, borderRadius: 16, width: "100%", maxWidth: 420,
         padding: 32, boxShadow: "0 12px 48px rgba(0,0,0,0.6)", boxSizing: "border-box"
       }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 12 }}>
-            <div style={{width: 200, height: 160, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center"}}>
-              <img src="./logo.png" style={{width: "100%", height: "100%", objectFit: "contain"}} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+            <div className="login-logo-box" style={{width: 42, height: 42, overflow: "hidden", flexShrink: 0, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center"}}>
+              <img src="./logo.png" style={{width: "100%", height: "180%", objectFit: "cover", objectPosition: "top"}} />
+            </div>
+            <div style={{textAlign: "left"}}>
+              <div className="login-title-primary" style={{color: C.txt, fontSize: 20, fontWeight: 800, letterSpacing: 0.5, lineHeight: 1.2}}>Abhay</div>
+              <div className="login-title-secondary" style={{color: C.gold, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", lineHeight: 1}}>Buildcon</div>
             </div>
           </div>
           <p style={{ color: C.sub, fontSize: 12, marginTop: 4, marginBottom: 0 }}>ERP & CRM Management Portal</p>
