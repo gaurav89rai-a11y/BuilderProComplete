@@ -52,7 +52,7 @@ export function LoginForm({ onLogin }) {
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 12 }}>
             <div style={{width: 200, height: 160, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center"}}>
-              <img src="/logo.png" style={{width: "100%", height: "100%", objectFit: "contain"}} />
+              <img src="./logo.png" style={{width: "100%", height: "100%", objectFit: "contain"}} />
             </div>
           </div>
           <p style={{ color: C.sub, fontSize: 12, marginTop: 4, marginBottom: 0 }}>ERP & CRM Management Portal</p>
