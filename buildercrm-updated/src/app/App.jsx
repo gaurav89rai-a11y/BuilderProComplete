@@ -124,11 +124,24 @@ const MODULES = {
 /* ─── MAIN APP ───────────────────────────────────────────────────── */
 export default function App() {
   const [mod,setMod]=useState("dashboard");
-  const [col,setCol]=useState(false);
+  const [col,setCol]=useState(window.innerWidth <= 768);
   const [theme,setTheme]=useState(initialTheme);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState({ id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" });
   const [usersList, setUsersList] = useState([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCol(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const loadUsers = async () => {
     try {
@@ -204,10 +217,19 @@ export default function App() {
   const isAllowed = hasPermission(currentUser, mod);
   return (
     <div style={{display:"flex",height:"100vh",background:C.bg,overflow:"hidden",color:C.txt}}>
-      <Sidebar active={mod} setActive={setMod} col={col} setCol={setCol} user={currentUser} usersList={usersList} onSelectUser={handleUserChange} onLogout={handleLogout}/>
+      {isMobile && !col && (
+        <div 
+          onClick={() => setCol(true)} 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.5)", zIndex: 999, transition: "opacity 0.25s ease"
+          }}
+        />
+      )}
+      <Sidebar active={mod} setActive={setMod} col={col} setCol={setCol} user={currentUser} usersList={usersList} onSelectUser={handleUserChange} onLogout={handleLogout} isMobile={isMobile}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
-        <TopBar mod={mod} theme={theme} toggleTheme={toggleTheme} user={currentUser}/>
-        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:22}}>
+        <TopBar mod={mod} theme={theme} toggleTheme={toggleTheme} user={currentUser} sidebarCollapsed={col} setSidebarCollapsed={setCol} isMobile={isMobile}/>
+        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:isMobile ? 12 : 22}}>
           {isAllowed ? (
             <ModuleErrorBoundary moduleKey={mod}>
               <ActiveModule key={mod} activeModule={mod} currentUser={currentUser}/>

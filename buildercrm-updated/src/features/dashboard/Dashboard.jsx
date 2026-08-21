@@ -66,7 +66,7 @@ export function Dashboard() {
           </div>
         }
       />
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+      <div className="grid-4" style={{marginBottom:18}}>
         <Stat
           icon={Building2}
           label={proj ? "Construction Progress" : "Active Projects"}
@@ -78,7 +78,7 @@ export function Dashboard() {
         <Stat icon={Target} label="Active Leads" value={data.activeLeads||0} change={12} color={C.blue}/>
         <Stat icon={Users} label="Customers" value={data.totalCustomers||0} change={5} color={C.amb}/>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:14}}>
+      <div className="grid-2-1" style={{marginBottom:14}}>
         <div style={{background:C.card,border:`1px solid ${C.bord}`,borderRadius:14,padding:18}}>
           <STitle title="Revenue vs Target (₹ Cr)" sub={proj ? `${proj.name} — monthly performance` : "Monthly performance"}/>
           <ResponsiveContainer width="100%" height={200}>
@@ -122,7 +122,7 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+      <div className="grid-4" style={{marginBottom:14}}>
         {[
           {l:"Total Units",v:data.totalUnits||0,c:C.sub},
           {l:configs.systemSetting?.find(c => c.value === "SoldUnitStatus")?.label || "Sold",v:data.soldUnits||0,c:badgeColors[configs.systemSetting?.find(c => c.value === "SoldUnitStatus")?.label || "Sold"]?.c || C.red},
@@ -135,7 +135,7 @@ export function Dashboard() {
           </div>
         ))}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+      <div className="grid-2">
         <div style={{background:C.card,border:`1px solid ${C.bord}`,borderRadius:14,padding:18}}>
           <STitle title="Recent Leads" sub={proj ? proj.name : "All projects"}/>
           {(data.recentLeads||[]).length === 0 && (

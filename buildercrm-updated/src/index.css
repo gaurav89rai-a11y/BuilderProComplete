@@ -25,3 +25,55 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 select option { background: var(--raise); color: var(--txt); }
+
+/* Grid styles */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.grid-2-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Mobile responsive rules */
+@media (max-width: 768px) {
+  /* Collapse grids to single column */
+  .grid-4, .grid-2-1, .grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  /* Fallback override for other inline grids that get squished */
+  div[style*="display: grid"], div[style*="display:grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Title stacking */
+  .s-title-container {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+  
+  .s-title-action {
+    width: 100%;
+  }
+
+  .s-title-action > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  /* General mobile details page padding */
+  main {
+    padding: 12px !important;
+  }
+}

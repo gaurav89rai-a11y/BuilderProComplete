@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using System.Data;
-using Microsoft.Data.SqlClient;
+using System.Data.Common;
 
 namespace BuilderProAPI.Controllers;
 
@@ -81,83 +81,129 @@ public class MaterialsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] MaterialDto dto)
     {
         var conn = _db.Database.GetDbConnection();
-        var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-            DECLARE @catId INT, @brandId INT, @unitId INT, @vendorId INT, @whId INT;
-            
-            -- Resolve category
-            SELECT @catId = id FROM dbo.material_categories WHERE name = @Category;
-            IF @catId IS NULL
-            BEGIN
-                INSERT INTO dbo.material_categories (name, code) VALUES (@Category, UPPER(LEFT(@Category, 3)));
-                SET @catId = SCOPE_IDENTITY();
-            END
-            
-            -- Resolve brand
-            SELECT @brandId = id FROM dbo.brands_master WHERE name = @Brand;
-            IF @brandId IS NULL
-            BEGIN
-                INSERT INTO dbo.brands_master (name, code) VALUES (@Brand, UPPER(LEFT(@Brand, 3)));
-                SET @brandId = SCOPE_IDENTITY();
-            END
-            
-            -- Resolve unit
-            SELECT @unitId = id FROM dbo.units_master WHERE name = @Unit;
-            IF @unitId IS NULL
-            BEGIN
-                INSERT INTO dbo.units_master (name, code) VALUES (@Unit, UPPER(LEFT(@Unit, 3)));
-                SET @unitId = SCOPE_IDENTITY();
-            END
-
-            -- Resolve vendor
-            SELECT @vendorId = id FROM dbo.vendors_master WHERE name = @Vendor;
-            IF @vendorId IS NULL AND @Vendor IS NOT NULL AND @Vendor <> ''
-            BEGIN
-                INSERT INTO dbo.vendors_master (name) VALUES (@Vendor);
-                SET @vendorId = SCOPE_IDENTITY();
-            END
-
-            -- Resolve warehouse
-            SELECT @whId = id FROM dbo.warehouses_master WHERE name = @Warehouse;
-            IF @whId IS NULL AND @Warehouse IS NOT NULL AND @Warehouse <> ''
-            BEGIN
-                INSERT INTO dbo.warehouses_master (name) VALUES (@Warehouse);
-                SET @whId = SCOPE_IDENTITY();
-            END
-
-            INSERT INTO dbo.material_master (
-                code, name, category_id, brand_id, unit_id, hsn_code, gst_rate, reorder_level, preferred_vendor_id, default_warehouse_id, status
-            ) VALUES (
-                @Code, @Name, @catId, @brandId, @unitId, @Hsn, @Gst, @ReorderLevel, @vendorId, @whId, 'Active'
-            );
-            
-            SELECT SCOPE_IDENTITY();";
-
-        var pCat = cmd.CreateParameter(); pCat.ParameterName = "@Category"; pCat.Value = dto.Category ?? ""; cmd.Parameters.Add(pCat);
-        var pBrand = cmd.CreateParameter(); pBrand.ParameterName = "@Brand"; pBrand.Value = dto.Brand ?? ""; cmd.Parameters.Add(pBrand);
-        var pUnit = cmd.CreateParameter(); pUnit.ParameterName = "@Unit"; pUnit.Value = dto.Unit ?? ""; cmd.Parameters.Add(pUnit);
-        var pVendor = cmd.CreateParameter(); pVendor.ParameterName = "@Vendor"; pVendor.Value = dto.Vendor ?? (object)DBNull.Value; cmd.Parameters.Add(pVendor);
-        var pWh = cmd.CreateParameter(); pWh.ParameterName = "@Warehouse"; pWh.Value = dto.Warehouse ?? (object)DBNull.Value; cmd.Parameters.Add(pWh);
-        var pCode = cmd.CreateParameter(); pCode.ParameterName = "@Code"; pCode.Value = dto.Code ?? ""; cmd.Parameters.Add(pCode);
-        var pName = cmd.CreateParameter(); pName.ParameterName = "@Name"; pName.Value = dto.Name ?? ""; cmd.Parameters.Add(pName);
-        var pHsn = cmd.CreateParameter(); pHsn.ParameterName = "@Hsn"; pHsn.Value = dto.Hsn ?? (object)DBNull.Value; cmd.Parameters.Add(pHsn);
-        var pGst = cmd.CreateParameter(); pGst.ParameterName = "@Gst"; pGst.Value = dto.Gst; cmd.Parameters.Add(pGst);
-        var pReorder = cmd.CreateParameter(); pReorder.ParameterName = "@ReorderLevel"; pReorder.Value = dto.ReorderLevel; cmd.Parameters.Add(pReorder);
-
+        bool isPostgres = conn.GetType().Name.Contains("Npgsql");
+        
         try
         {
             if (conn.State != ConnectionState.Open)
                 await conn.OpenAsync();
 
-            var newIdObj = await cmd.ExecuteScalarAsync();
-            int newId = Convert.ToInt32(newIdObj);
-            dto.Id = newId;
+            int? catId = await ResolveIdAsync(conn, isPostgres, "material_categories", dto.Category, true);
+            int? brandId = await ResolveIdAsync(conn, isPostgres, "brands_master", dto.Brand, true);
+            int? unitId = await ResolveIdAsync(conn, isPostgres, "units_master", dto.Unit, true);
+            int? vendorId = await ResolveIdAsync(conn, isPostgres, "vendors_master", dto.Vendor, false);
+            int? whId = await ResolveIdAsync(conn, isPostgres, "warehouses_master", dto.Warehouse, false);
+
+            using (var cmd = conn.CreateCommand())
+            {
+                if (isPostgres)
+                {
+                    cmd.CommandText = @"
+                        INSERT INTO dbo.material_master (
+                            code, name, category_id, brand_id, unit_id, hsn_code, gst_rate, reorder_level, preferred_vendor_id, default_warehouse_id, status
+                        ) VALUES (
+                            @Code, @Name, @catId, @brandId, @unitId, @Hsn, @Gst, @ReorderLevel, @vendorId, @whId, 'Active'
+                        ) RETURNING id;";
+                }
+                else
+                {
+                    cmd.CommandText = @"
+                        INSERT INTO dbo.material_master (
+                            code, name, category_id, brand_id, unit_id, hsn_code, gst_rate, reorder_level, preferred_vendor_id, default_warehouse_id, status
+                        ) VALUES (
+                            @Code, @Name, @catId, @brandId, @unitId, @Hsn, @Gst, @ReorderLevel, @vendorId, @whId, 'Active'
+                        );
+                        SELECT SCOPE_IDENTITY();";
+                }
+
+                AddParam(cmd, "@Code", dto.Code ?? "");
+                AddParam(cmd, "@Name", dto.Name ?? "");
+                AddParam(cmd, "@catId", (object?)catId ?? DBNull.Value);
+                AddParam(cmd, "@brandId", (object?)brandId ?? DBNull.Value);
+                AddParam(cmd, "@unitId", (object?)unitId ?? DBNull.Value);
+                AddParam(cmd, "@Hsn", dto.Hsn ?? (object)DBNull.Value);
+                AddParam(cmd, "@Gst", dto.Gst);
+                AddParam(cmd, "@ReorderLevel", dto.ReorderLevel);
+                AddParam(cmd, "@vendorId", (object?)vendorId ?? DBNull.Value);
+                AddParam(cmd, "@whId", (object?)whId ?? DBNull.Value);
+
+                var newIdObj = await cmd.ExecuteScalarAsync();
+                dto.Id = Convert.ToInt32(newIdObj);
+            }
+
             return Ok(dto);
         }
         finally
         {
             if (conn.State == ConnectionState.Open)
                 await conn.CloseAsync();
+        }
+    }
+
+    private void AddParam(DbCommand cmd, string name, object value)
+    {
+        var p = cmd.CreateParameter();
+        p.ParameterName = name;
+        p.Value = value;
+        cmd.Parameters.Add(p);
+    }
+
+    private async Task<int?> ResolveIdAsync(DbConnection conn, bool isPostgres, string tableName, string? nameValue, bool generateCode)
+    {
+        if (string.IsNullOrWhiteSpace(nameValue)) return null;
+        nameValue = nameValue.Trim();
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = $"SELECT id FROM dbo.{tableName} WHERE name = @Name";
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@Name";
+            p.Value = nameValue;
+            cmd.Parameters.Add(p);
+
+            var val = await cmd.ExecuteScalarAsync();
+            if (val != null && val != DBNull.Value)
+            {
+                return Convert.ToInt32(val);
+            }
+        }
+
+        // Insert new
+        using (var cmd = conn.CreateCommand())
+        {
+            if (generateCode)
+            {
+                string code = nameValue.Length > 3 ? nameValue.Substring(0, 3) : nameValue;
+                code = code.ToUpper();
+
+                if (isPostgres)
+                {
+                    cmd.CommandText = $"INSERT INTO dbo.{tableName} (name, code) VALUES (@Name, @Code) RETURNING id;";
+                }
+                else
+                {
+                    cmd.CommandText = $"INSERT INTO dbo.{tableName} (name, code) VALUES (@Name, @Code); SELECT SCOPE_IDENTITY();";
+                }
+                
+                var pName = cmd.CreateParameter(); pName.ParameterName = "@Name"; pName.Value = nameValue; cmd.Parameters.Add(pName);
+                var pCode = cmd.CreateParameter(); pCode.ParameterName = "@Code"; pCode.Value = code; cmd.Parameters.Add(pCode);
+            }
+            else
+            {
+                if (isPostgres)
+                {
+                    cmd.CommandText = $"INSERT INTO dbo.{tableName} (name) VALUES (@Name) RETURNING id;";
+                }
+                else
+                {
+                    cmd.CommandText = $"INSERT INTO dbo.{tableName} (name) VALUES (@Name); SELECT SCOPE_IDENTITY();";
+                }
+                
+                var pName = cmd.CreateParameter(); pName.ParameterName = "@Name"; pName.Value = nameValue; cmd.Parameters.Add(pName);
+            }
+
+            var val = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(val);
         }
     }
 

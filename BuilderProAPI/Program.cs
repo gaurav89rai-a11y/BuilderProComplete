@@ -19,44 +19,95 @@ builder.Services.AddSwaggerGen(c => {
     c.SwaggerDoc("v1", new() { Title = "BuilderPro API", Version = "v1", Description = "Real Estate ERP Platform API" });
 });
 
-// Database - use local SQL Server (with auto-discovery and self-healing)
+// Database configuration with dynamic provider detection and URL parsing
 string workingConnectionString = null;
-var connectionStringsToTry = new List<string> {
-    builder.Configuration.GetConnectionString("DefaultConnection"),
-    "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
-    "Server=.\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
-    "Server=(localdb)\\MSSQLLocalDB;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
-    "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;"
-};
+bool isPostgres = false;
 
-foreach (var connStr in connectionStringsToTry)
+string rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (!string.IsNullOrEmpty(rawConnectionString))
 {
-    if (string.IsNullOrEmpty(connStr)) continue;
-    try
+    if (rawConnectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
     {
-        using (var connection = new Microsoft.Data.SqlClient.SqlConnection(connStr))
+        workingConnectionString = ConvertPostgresUrlToConnectionString(rawConnectionString);
+        isPostgres = true;
+    }
+    else if (rawConnectionString.Contains("Host=") || rawConnectionString.Contains("Port=") || rawConnectionString.Contains("Username=") || rawConnectionString.Contains("SslMode="))
+    {
+        workingConnectionString = rawConnectionString;
+        isPostgres = true;
+    }
+    else
+    {
+        // Try SQL Server
+        try
         {
-            connection.Open();
-            workingConnectionString = connStr;
-            Console.WriteLine($"✅ Database connection test succeeded: {connStr}");
-            break;
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(rawConnectionString))
+            {
+                connection.Open();
+                workingConnectionString = rawConnectionString;
+                isPostgres = false;
+                Console.WriteLine($"✅ Database connection test succeeded (SQL Server): {rawConnectionString}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ℹ️ Connection test failed for configured connection string (SQL Server): {ex.Message.Split('\n')[0].Trim()}");
         }
     }
-    catch (Exception ex)
+}
+
+// Fallback to local SQL Server auto-discovery if no connection is established yet
+if (workingConnectionString == null)
+{
+    var connectionStringsToTry = new List<string> {
+        "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
+        "Server=.\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
+        "Server=(localdb)\\MSSQLLocalDB;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
+        "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;"
+    };
+
+    foreach (var connStr in connectionStringsToTry)
     {
-        Console.WriteLine($"ℹ️ Database connection test failed for candidate: {connStr} ({ex.Message.Split('\n')[0].Trim()})");
+        try
+        {
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(connStr))
+            {
+                connection.Open();
+                workingConnectionString = connStr;
+                isPostgres = false;
+                Console.WriteLine($"✅ Local SQL Server auto-discovery succeeded: {connStr}");
+                break;
+            }
+        }
+        catch
+        {
+            // Ignore auto-discovery failures
+        }
     }
 }
 
 if (workingConnectionString == null)
 {
-    workingConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    Console.WriteLine($"⚠️ No local SQL Server instances responded. Falling back to default: {workingConnectionString}");
+    workingConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;";
+    isPostgres = false;
+    Console.WriteLine($"⚠️ No database connection succeeded. Falling back to default: {workingConnectionString}");
 }
+
+Console.WriteLine($"ℹ️ Active Database Provider: {(isPostgres ? "PostgreSQL" : "SQL Server")}");
 
 builder.Services.AddDbContext<BuilderProDbContext>(options =>
 {
-    options.UseSqlServer(workingConnectionString);
+    if (isPostgres)
+    {
+        options.UseNpgsql(workingConnectionString);
+    }
+    else
+    {
+        options.UseSqlServer(workingConnectionString);
+    }
 });
 
 // Dependency Injection Scopes
@@ -64,11 +115,23 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-// CORS - allow React frontend
+// CORS - allow React frontend (restricted to production GitHub Pages and development localhosts)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        var allowedOrigins = new List<string> { "https://gaurav89rai-a11y.github.io" };
+        
+        allowedOrigins.Add("http://localhost:5173");
+        allowedOrigins.Add("http://localhost:3000");
+        allowedOrigins.Add("https://localhost:5173");
+        allowedOrigins.Add("http://127.0.0.1:5173");
+
+        policy.WithOrigins(allowedOrigins.ToArray())
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
 });
 
 var app = builder.Build();
@@ -89,27 +152,43 @@ using (var scope = app.Services.CreateScope())
         {
             var conn = db.Database.GetDbConnection();
             bool hasMaterialMaster = false;
+            bool dbIsPostgres = conn.GetType().Name.Contains("Npgsql");
+
             try
             {
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT COUNT(*) FROM sysobjects WHERE name='material_master' AND xtype='U'";
+                    if (dbIsPostgres)
+                    {
+                        cmd.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'dbo' AND table_name = 'material_master'";
+                    }
+                    else
+                    {
+                        cmd.CommandText = "SELECT COUNT(*) FROM sysobjects WHERE name='material_master' AND xtype='U'";
+                    }
                     if (conn.State != ConnectionState.Open) conn.Open();
                     var res = cmd.ExecuteScalar();
                     hasMaterialMaster = res != null && Convert.ToInt32(res) > 0;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ℹ️ Table check warning: {ex.Message}");
+            }
 
             if (!hasMaterialMaster)
             {
-                Console.WriteLine("📦 Creating Material Master and OMS Tables from SQL Setup Script...");
+                string scriptFilename = dbIsPostgres 
+                    ? "BuilderProComplete_MaterialMaster_5000_pg.sql" 
+                    : "BuilderProComplete_MaterialMaster_5000.sql";
+
+                Console.WriteLine($"📦 Creating Material Master and OMS Tables from {scriptFilename}...");
                 string[] pathsToCheck = new string[]
                 {
-                    Path.Combine(Directory.GetCurrentDirectory(), "BuilderProComplete_MaterialMaster_5000.sql"),
-                    Path.Combine(Directory.GetCurrentDirectory(), "..", "BuilderProComplete_MaterialMaster_5000.sql"),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BuilderProComplete_MaterialMaster_5000.sql"),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "BuilderProComplete_MaterialMaster_5000.sql")
+                    Path.Combine(Directory.GetCurrentDirectory(), scriptFilename),
+                    Path.Combine(Directory.GetCurrentDirectory(), "..", scriptFilename),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFilename),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", scriptFilename)
                 };
 
                 string sqlPath = null;
@@ -125,33 +204,45 @@ using (var scope = app.Services.CreateScope())
                 if (sqlPath != null)
                 {
                     string scriptContent = File.ReadAllText(sqlPath);
-                    // Split the script by GO statement (case-insensitive, on new lines)
-                    var batches = Regex.Split(
-                        scriptContent,
-                        @"^\s*GO\s*$",
-                        RegexOptions.Multiline | RegexOptions.IgnoreCase
-                    );
-
-                    using (var cmd = conn.CreateCommand())
+                    if (dbIsPostgres)
                     {
-                        if (conn.State != ConnectionState.Open) conn.Open();
-                        foreach (var batch in batches)
+                        // In PostgreSQL, execute the entire script as a single batch
+                        using (var cmd = conn.CreateCommand())
                         {
-                            var sql = batch.Trim();
-                            if (string.IsNullOrEmpty(sql)) continue;
-                            
-                            // Remove USE statement to avoid issues if DB is different
-                            if (sql.StartsWith("USE ", StringComparison.OrdinalIgnoreCase)) continue;
-
-                            cmd.CommandText = sql;
+                            cmd.CommandText = scriptContent;
+                            if (conn.State != ConnectionState.Open) conn.Open();
                             cmd.ExecuteNonQuery();
                         }
                     }
-                    Console.WriteLine("✅ Material Master tables and 5,000+ items seeded successfully.");
+                    else
+                    {
+                        // Split the script by GO statement (case-insensitive, on new lines) for SQL Server
+                        var batches = Regex.Split(
+                            scriptContent,
+                            @"^\s*GO\s*$",
+                            RegexOptions.Multiline | RegexOptions.IgnoreCase
+                        );
+
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            if (conn.State != ConnectionState.Open) conn.Open();
+                            foreach (var batch in batches)
+                            {
+                                var sql = batch.Trim();
+                                if (string.IsNullOrEmpty(sql)) continue;
+                                
+                                if (sql.StartsWith("USE ", StringComparison.OrdinalIgnoreCase)) continue;
+
+                                cmd.CommandText = sql;
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    Console.WriteLine($"✅ Material Master tables and 5,000+ items seeded successfully ({(dbIsPostgres ? "PostgreSQL" : "SQL Server")}).");
                 }
                 else
                 {
-                    Console.WriteLine("⚠️ Material Master SQL setup script not found in any of the search paths.");
+                    Console.WriteLine($"⚠️ Material Master SQL setup script ({scriptFilename}) not found in any of the search paths.");
                 }
             }
         }
@@ -160,7 +251,7 @@ using (var scope = app.Services.CreateScope())
             Console.WriteLine($"⚠️ Warning seeding Material Master tables: {ex.Message}");
         }
     } catch (Exception ex) {
-        Console.WriteLine($"⚠️  DB initialization warning: {ex.Message}");
+        Console.WriteLine($"⚠️ DB initialization warning: {ex.Message}");
     }
 }
 
@@ -170,12 +261,54 @@ app.UseSwaggerUI(c => {
     c.RoutePrefix = "swagger";
 });
 
-app.UseCors("AllowAll");
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapControllers();
 
 // Health check
 app.MapGet("/", () => new { status = "BuilderPro API Running", version = "v2.4.1", timestamp = DateTime.UtcNow });
-app.MapGet("/health", () => Results.Ok(new { healthy = true }));
+app.MapGet("/health", async (BuilderProDbContext db) => {
+    bool databaseConnected = false;
+    try
+    {
+        databaseConnected = await db.Database.CanConnectAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"⚠️ Health check database connection failed: {ex.Message}");
+    }
+
+    return Results.Ok(new {
+        healthy = true,
+        database = databaseConnected ? "connected" : "disconnected"
+    });
+});
 
 app.Run();
+
+// Helper functions at the bottom of the file
+static string ConvertPostgresUrlToConnectionString(string url)
+{
+    if (string.IsNullOrEmpty(url) || !url.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    {
+        return url;
+    }
+
+    try
+    {
+        var uri = new Uri(url);
+        var userInfo = uri.UserInfo.Split(':');
+        var username = userInfo[0];
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+
+        return $"Host={host};Port={port};Database={database};Username={username};Password={password};SslMode=Require;Trust Server Certificate=true;";
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Error parsing PostgreSQL URL: {ex.Message}");
+        return url;
+    }
+}

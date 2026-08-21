@@ -1,26 +1,38 @@
 import { useState } from "react";
-import { Search, Sun, Moon, Bell } from "lucide-react";
+import { Search, Sun, Moon, Bell, Menu } from "lucide-react";
 import { C } from "../../config/theme.js";
 import { LABELS } from "../../config/navigation.js";
 import { Modal, Btn } from "../ui";
 
-export function TopBar({mod, theme, toggleTheme, user}) {
+export function TopBar({mod, theme, toggleTheme, user, sidebarCollapsed, setSidebarCollapsed, isMobile}) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   
   return (
-    <div style={{background:C.side,borderBottom:`1px solid ${C.bord}`,padding:"0 22px",
+    <div style={{background:C.side,borderBottom:`1px solid ${C.bord}`,padding:isMobile ? "0 12px" : "0 22px",
       height:58,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-      <div>
-        <div style={{color:C.txt,fontSize:15,fontWeight:700}}>{LABELS[mod]}</div>
-        <div style={{color:C.mute,fontSize:10}}>Abhay Buildcon ERP Platform · v2.4.1</div>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {isMobile && (
+          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{
+            background: "none", border: "none", color: C.txt, cursor: "pointer", 
+            display: "flex", alignItems: "center", padding: 6, borderRadius: 6
+          }}>
+            <Menu size={20}/>
+          </button>
+        )}
+        <div>
+          <div style={{color:C.txt,fontSize:isMobile ? 14 : 15,fontWeight:700}}>{LABELS[mod]}</div>
+          <div style={{color:C.mute,fontSize:9}}>Abhay Buildcon ERP Platform · v2.4.1</div>
+        </div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,background:C.raise,
-          border:`1px solid ${C.bord}`,borderRadius:10,padding:"7px 12px"}}>
-          <Search size={13} color={C.mute}/>
-          <input placeholder="Search anything..." style={{background:"transparent",border:"none",
-            outline:"none",color:C.txt,fontSize:12,width:180}}/>
-        </div>
+        {!isMobile && (
+          <div style={{display:"flex",alignItems:"center",gap:8,background:C.raise,
+            border:`1px solid ${C.bord}`,borderRadius:10,padding:"7px 12px"}}>
+            <Search size={13} color={C.mute}/>
+            <input placeholder="Search anything..." style={{background:"transparent",border:"none",
+              outline:"none",color:C.txt,fontSize:12,width:180}}/>
+          </div>
+        )}
         <button onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
           style={{background:C.raise,border:`1px solid ${C.bord}`,
           borderRadius:9,padding:8,cursor:"pointer",color:C.sub,display:"flex",alignItems:"center"}}>

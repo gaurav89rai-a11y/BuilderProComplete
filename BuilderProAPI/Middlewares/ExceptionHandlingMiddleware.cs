@@ -31,12 +31,28 @@ public class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
+        // Log the actual technical error server-side for diagnostics
+        Console.Error.WriteLine($"🔴 [ERROR] {DateTime.UtcNow}: {exception.ToString()}");
+
+        string clientMessage = "An unexpected error occurred on the server.";
+        
+        // Check if the exception might contain database details
+        var exceptionTypeName = exception.GetType().Name;
+        if (exceptionTypeName.Contains("SqlException") || 
+            exceptionTypeName.Contains("NpgsqlException") || 
+            exceptionTypeName.Contains("DbUpdateException") ||
+            exception.Message.Contains("database", StringComparison.OrdinalIgnoreCase) ||
+            exception.Message.Contains("connection", StringComparison.OrdinalIgnoreCase))
+        {
+            clientMessage = "A database connection or query error occurred. Please verify database connectivity.";
+        }
+
         var response = new
         {
             success = false,
-            message = "An unexpected error occurred on the server.",
+            message = clientMessage,
             data = (object?)null,
-            errors = new[] { exception.Message }
+            errors = new[] { clientMessage }
         };
 
         var options = new JsonSerializerOptions

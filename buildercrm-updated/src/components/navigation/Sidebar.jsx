@@ -4,7 +4,7 @@ import { C } from "../../config/theme.js";
 import { NAV } from "../../config/navigation.js";
 import { hasPermission } from "../../config/permissions.js";
 
-export function Sidebar({active, setActive, col, setCol, user, usersList, onSelectUser, onLogout}) {
+export function Sidebar({active, setActive, col, setCol, user, usersList, onSelectUser, onLogout, isMobile}) {
   const [expandedGroups, setExpandedGroups] = useState({
     crm: true,
     oms: true,
@@ -40,8 +40,22 @@ export function Sidebar({active, setActive, col, setCol, user, usersList, onSele
   };
 
   return (
-    <div style={{width:col?62:228,background:C.side,borderRight:`1px solid ${C.bord}`,
-      display:"flex",flexDirection:"column",transition:"width 0.25s ease",overflow:"hidden",flexShrink:0}}>
+    <div style={{
+      position: isMobile ? "fixed" : "relative",
+      left: isMobile ? (col ? -228 : 0) : 0,
+      top: 0,
+      bottom: 0,
+      zIndex: 1000,
+      width: isMobile ? 228 : (col ? 62 : 228),
+      height: isMobile ? "100%" : "auto",
+      background: C.side,
+      borderRight: `1px solid ${C.bord}`,
+      display: "flex",
+      flexDirection: "column",
+      transition: isMobile ? "left 0.25s ease" : "width 0.25s ease",
+      overflow: "hidden",
+      flexShrink: 0
+    }}>
       
       {/* Sidebar Header */}
       <div style={{padding:col?"15px 10px":"15px 18px",borderBottom:`1px solid ${C.bord}`,

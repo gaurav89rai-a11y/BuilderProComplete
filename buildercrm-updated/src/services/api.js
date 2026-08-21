@@ -1,5 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true" || (window.location.hostname.includes("github.io") && import.meta.env.VITE_USE_MOCK !== "false");
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 // ─── HTTP REQUEST UTILITY ──────────────────────────────────────
 async function req(method, path, body, customHeaders = {}) {
@@ -916,7 +916,7 @@ const mockApi = {
 };
 
 // ─── INTEGRATED API EXPORTS ────────────────────────────────────
-export const api = USE_MOCK ? mockApi : {
+const realApi = {
   getDashboard: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return req("GET", `/dashboard${qs ? "?" + qs : ""}`);
@@ -1035,3 +1035,29 @@ export const api = USE_MOCK ? mockApi : {
 
   getSystemConfigs: () => req("GET", "/systemconfigs"),
 };
+
+// Create fallback API wrapper
+const createFallbackApi = () => {
+  const fallbackApi = {};
+  
+  Object.keys(mockApi).forEach(methodName => {
+    fallbackApi[methodName] = async (...args) => {
+      if (USE_MOCK) {
+        return mockApi[methodName](...args);
+      }
+      
+      try {
+        if (realApi[methodName]) {
+          return await realApi[methodName](...args);
+        }
+      } catch (err) {
+        console.warn(`⚠️ API call failed for '${methodName}'. Falling back to local mock data. Error:`, err);
+        return mockApi[methodName](...args);
+      }
+    };
+  });
+  
+  return fallbackApi;
+};
+
+export const api = createFallbackApi();
