@@ -7,6 +7,9 @@ using System.Data;
 using System.IO;
 using System.Text.RegularExpressions;
 
+// Disable configuration reload on change to prevent inotify instance limits issues in Linux containers
+Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
@@ -133,6 +136,10 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
+
+// Bind to the port provided by the hosting environment (e.g. Render) or default to 8080
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://*:{port}");
 
 var app = builder.Build();
 
