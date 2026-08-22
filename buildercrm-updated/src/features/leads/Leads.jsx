@@ -185,7 +185,9 @@ export function Leads() {
     interest: "",
     assignedTo: "",
     budget: 0,
-    projectId: ""
+    projectId: "",
+    flatNo: "",
+    projectAddress: ""
   });
 
   const SC = {};
@@ -235,7 +237,9 @@ export function Leads() {
         interest: "",
         assignedTo: "",
         budget: 0,
-        projectId: ""
+        projectId: "",
+        flatNo: "",
+        projectAddress: ""
       });
       setToast({ msg: "Lead added successfully!", type: "success" });
       load();
@@ -1325,6 +1329,10 @@ export function Leads() {
             <Field label="Assigned To"><Input value={form.assignedTo} onChange={f("assignedTo")} placeholder="Agent name" /></Field>
             <Field label="Budget (₹)"><Input type="number" value={form.budget} onChange={f("budget")} placeholder="12000000" /></Field>
             <Field label="Score (0-100)"><Input type="number" value={form.score} onChange={f("score")} placeholder="50" /></Field>
+            <Field label="Flat No"><Input value={form.flatNo} onChange={f("flatNo")} placeholder="e.g. A-101" /></Field>
+            <div style={{ gridColumn: "1/-1" }}>
+              <Field label="Project Address"><Input value={form.projectAddress} onChange={f("projectAddress")} placeholder="e.g. Bandra West, Mumbai" /></Field>
+            </div>
             <div style={{ gridColumn: "1/-1" }}>
               <Field label="Interest Description"><Input value={form.interest} onChange={f("interest")} placeholder="e.g. Skyline Heights 3BHK" /></Field>
             </div>
@@ -1648,6 +1656,12 @@ export function Leads() {
                       </Field>
                       <Field label="Unit Preference">
                         <Input value={infoForm.interest || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, interest: val }))} />
+                      </Field>
+                      <Field label="Flat No">
+                        <Input value={infoForm.flatNo || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, flatNo: val }))} />
+                      </Field>
+                      <Field label="Project Address">
+                        <Input value={infoForm.projectAddress || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, projectAddress: val }))} />
                       </Field>
                       <Field label="Budget (₹)">
                         <Input type="number" value={infoForm.budget || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, budget: val }))} />

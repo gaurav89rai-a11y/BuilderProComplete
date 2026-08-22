@@ -102,6 +102,8 @@ public class LeadsController : ControllerBase
         existing.AssignedTo = lead.AssignedTo;
         existing.Budget = lead.Budget;
         existing.ProjectId = lead.ProjectId;
+        existing.FlatNo = lead.FlatNo;
+        existing.ProjectAddress = lead.ProjectAddress;
         await _db.SaveChangesAsync();
 
         // Log stage updates

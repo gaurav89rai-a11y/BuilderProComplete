@@ -17,6 +17,8 @@ public class Lead
     public decimal Budget { get; set; }
     public int? ProjectId { get; set; }
     public Project? Project { get; set; }
+    public string FlatNo { get; set; } = "";
+    public string ProjectAddress { get; set; } = "";
     public DateTime? NextFollowUpDate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<SiteVisit> SiteVisits { get; set; } = new List<SiteVisit>();
