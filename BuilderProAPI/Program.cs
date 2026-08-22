@@ -6,6 +6,7 @@ using BuilderProAPI.Middlewares;
 using System.Data;
 using System.IO;
 using System.Text.RegularExpressions;
+using Npgsql;
 
 // Disable configuration reload on change to prevent inotify instance limits issues in Linux containers
 Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
@@ -26,42 +27,74 @@ builder.Services.AddSwaggerGen(c => {
 string workingConnectionString = null;
 bool isPostgres = false;
 
-string rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
-
-if (!string.IsNullOrEmpty(rawConnectionString))
+// 1. Try DATABASE_URL first if it is set and connectable
+string dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrEmpty(dbUrl))
 {
-    if (rawConnectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    if (dbUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+        dbUrl.Contains("Host=") || dbUrl.Contains("Port=") || dbUrl.Contains("Username=") || dbUrl.Contains("SslMode="))
     {
-        workingConnectionString = ConvertPostgresUrlToConnectionString(rawConnectionString);
-        isPostgres = true;
-    }
-    else if (rawConnectionString.Contains("Host=") || rawConnectionString.Contains("Port=") || rawConnectionString.Contains("Username=") || rawConnectionString.Contains("SslMode="))
-    {
-        workingConnectionString = rawConnectionString;
-        isPostgres = true;
-    }
-    else
-    {
-        // Try SQL Server
+        string pgConn = dbUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) 
+            ? ConvertPostgresUrlToConnectionString(dbUrl) 
+            : dbUrl;
         try
         {
-            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(rawConnectionString))
+            using (var connection = new NpgsqlConnection(pgConn))
             {
                 connection.Open();
-                workingConnectionString = rawConnectionString;
-                isPostgres = false;
-                Console.WriteLine($"✅ Database connection test succeeded (SQL Server): {rawConnectionString}");
+                workingConnectionString = pgConn;
+                isPostgres = true;
+                Console.WriteLine("✅ Database connection test succeeded (DATABASE_URL - PostgreSQL).");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ℹ️ Connection test failed for configured connection string (SQL Server): {ex.Message.Split('\n')[0].Trim()}");
+            Console.WriteLine($"ℹ️ DATABASE_URL (PostgreSQL) connection test failed: {ex.Message.Split('\n')[0].Trim()}");
+        }
+    }
+    else
+    {
+        try
+        {
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(dbUrl))
+            {
+                connection.Open();
+                workingConnectionString = dbUrl;
+                isPostgres = false;
+                Console.WriteLine("✅ Database connection test succeeded (DATABASE_URL - SQL Server).");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ℹ️ DATABASE_URL (SQL Server) connection test failed: {ex.Message.Split('\n')[0].Trim()}");
         }
     }
 }
 
-// Fallback to local SQL Server auto-discovery if no connection is established yet
+// 2. Try DefaultConnection from appsettings.json
+if (workingConnectionString == null)
+{
+    string defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrEmpty(defaultConn))
+    {
+        try
+        {
+            using (var connection = new Microsoft.Data.SqlClient.SqlConnection(defaultConn))
+            {
+                connection.Open();
+                workingConnectionString = defaultConn;
+                isPostgres = false;
+                Console.WriteLine($"✅ Database connection test succeeded (DefaultConnection - SQL Server): {defaultConn}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ℹ️ DefaultConnection connection test failed: {ex.Message.Split('\n')[0].Trim()}");
+        }
+    }
+}
+
+// 3. Fallback to local SQL Server auto-discovery if no connection is established yet
 if (workingConnectionString == null)
 {
     var connectionStringsToTry = new List<string> {
