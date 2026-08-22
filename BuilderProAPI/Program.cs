@@ -276,18 +276,31 @@ app.MapControllers();
 app.MapGet("/", () => new { status = "BuilderPro API Running", version = "v2.4.1", timestamp = DateTime.UtcNow });
 app.MapGet("/health", async (BuilderProDbContext db) => {
     bool databaseConnected = false;
+    string errorMessage = null;
     try
     {
         databaseConnected = await db.Database.CanConnectAsync();
     }
     catch (Exception ex)
     {
+        errorMessage = ex.Message;
         Console.Error.WriteLine($"⚠️ Health check database connection failed: {ex.Message}");
     }
 
+    string connStr = db.Database.GetDbConnection()?.ConnectionString ?? "";
+    string maskedConnStr = System.Text.RegularExpressions.Regex.Replace(
+        connStr, 
+        @"(Password|pwd|pwd|User ID|uid|User)=\s*[^;]+", 
+        "$1=****", 
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase
+    );
+
     return Results.Ok(new {
         healthy = true,
-        database = databaseConnected ? "connected" : "disconnected"
+        database = databaseConnected ? "connected" : "disconnected",
+        provider = db.Database.ProviderName,
+        connectionString = maskedConnStr,
+        error = errorMessage
     });
 });
 
