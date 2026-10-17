@@ -172,7 +172,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        var allowedOrigins = new List<string> { "https://gaurav89rai-a11y.github.io" };
+        var allowedOrigins = new List<string> { 
+            "https://gaurav89rai-a11y.github.io",
+            "https://abhaybuildcon.com",
+            "https://www.abhaybuildcon.com"
+        };
         
         string? customOrigin = Environment.GetEnvironmentVariable("FRONTEND_URL");
         if (!string.IsNullOrEmpty(customOrigin))
