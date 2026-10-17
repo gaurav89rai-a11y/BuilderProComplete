@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using BuilderProAPI.Data;
 using BuilderProAPI.Repositories;
 using BuilderProAPI.Services;
@@ -216,8 +218,24 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BuilderProDbContext>();
     try {
-        db.Database.EnsureCreated();
-        Console.WriteLine("✅ Database initialized successfully.");
+        var created = db.Database.EnsureCreated();
+        if (!created)
+        {
+            try
+            {
+                var databaseCreator = (RelationalDatabaseCreator)db.Database.GetService<IDatabaseCreator>();
+                databaseCreator.CreateTables();
+                Console.WriteLine("✅ Database tables created successfully via RelationalDatabaseCreator.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ℹ️ Table check/creation note: {ex.Message.Split('\n')[0].Trim()}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("✅ Database initialized successfully.");
+        }
 
         // Execute Material Master SQL script if tables don't exist
         try
