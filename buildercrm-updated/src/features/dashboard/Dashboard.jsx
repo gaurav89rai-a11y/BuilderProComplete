@@ -122,12 +122,13 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-      <div className="grid-4" style={{marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginBottom:14}}>
         {[
           {l:"Total Units",v:data.totalUnits||0,c:C.sub},
-          {l:configs.systemSetting?.find(c => c.value === "SoldUnitStatus")?.label || "Sold",v:data.soldUnits||0,c:badgeColors[configs.systemSetting?.find(c => c.value === "SoldUnitStatus")?.label || "Sold"]?.c || C.red},
           {l:configs.systemSetting?.find(c => c.value === "AvailableUnitStatus")?.label || "Available",v:data.availableUnits||0,c:badgeColors[configs.systemSetting?.find(c => c.value === "AvailableUnitStatus")?.label || "Available"]?.c || C.teal},
           {l:configs.systemSetting?.find(c => c.value === "BookedUnitStatus")?.label || "Booked",v:data.bookedUnits||0,c:badgeColors[configs.systemSetting?.find(c => c.value === "BookedUnitStatus")?.label || "Booked"]?.c || C.amb},
+          {l:configs.systemSetting?.find(c => c.value === "SoldUnitStatus")?.label || "Sold",v:data.soldUnits||0,c:badgeColors[configs.systemSetting?.find(c => c.value === "SoldUnitStatus")?.label || "Sold"]?.c || C.red},
+          {l:"Held",v:data.heldUnits||0,c:C.blue},
         ].map(s=>(
           <div key={s.l} style={{background:C.card,border:`1px solid ${C.bord}`,borderRadius:12,padding:"14px 18px",textAlign:"center"}}>
             <div style={{color:s.c,fontSize:22,fontWeight:700}}>{s.v}</div>
@@ -165,7 +166,9 @@ export function Dashboard() {
               padding:"8px 0",borderBottom:`1px solid ${C.bord}`}}>
               <div>
                 <div style={{color:C.txt,fontWeight:600,fontSize:12}}>{b.customerName}</div>
-                <div style={{color:C.sub,fontSize:10}}>{b.bookingNumber}</div>
+                <div style={{color:C.sub,fontSize:10}}>
+                  {b.bookingNumber} {b.unitNumber ? `· Unit ${b.unitNumber}` : ""} {b.projectName ? `(${b.projectName})` : ""}
+                </div>
               </div>
               <div style={{textAlign:"right"}}>
                 <Badge s={b.status}/>

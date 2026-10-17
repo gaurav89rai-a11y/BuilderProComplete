@@ -10,7 +10,13 @@ namespace BuilderProAPI.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
-    public BookingsController(IBookingService bookingService) => _bookingService = bookingService;
+    private readonly ILogger<BookingsController> _logger;
+
+    public BookingsController(IBookingService bookingService, ILogger<BookingsController> logger)
+    {
+        _bookingService = bookingService;
+        _logger = logger;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status)
@@ -55,5 +61,36 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> GetStats()
     {
         return Ok(await _bookingService.GetBookingStatsAsync());
+    }
+
+    [HttpGet("{id}/agreement")]
+    public async Task<IActionResult> DownloadAgreement(int id)
+    {
+        _logger.LogInformation("Agreement PDF download requested for booking ID: {BookingId}", id);
+        try
+        {
+            var booking = await _bookingService.GetBookingByIdAsync(id);
+            if (booking == null)
+            {
+                _logger.LogWarning("Booking with ID {BookingId} not found for agreement generation", id);
+                return NotFound(new { message = $"Booking with ID {id} not found." });
+            }
+
+            var pdfBytes = await _bookingService.GenerateAgreementPdfAsync(id);
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                _logger.LogError("PDF generation returned null or empty byte array for booking ID {BookingId}", id);
+                return StatusCode(500, new { message = "Failed to generate agreement PDF." });
+            }
+
+            var fileName = $"Agreement_{booking.BookingNumber}.pdf";
+            _logger.LogInformation("Agreement PDF successfully generated for booking {BookingNumber} ({ByteCount} bytes)", booking.BookingNumber, pdfBytes.Length);
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error generating agreement PDF for booking ID {BookingId}", id);
+            return StatusCode(500, new { message = "An error occurred while generating the agreement PDF: " + ex.Message });
+        }
     }
 }

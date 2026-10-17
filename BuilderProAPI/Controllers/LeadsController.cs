@@ -77,7 +77,25 @@ public class LeadsController : ControllerBase
                 Comments = $"Assigned to sales representative {lead.AssignedTo}."
             });
         }
-        await _db.SaveChangesAsync();
+        // Auto-sync Lead as Customer so they are immediately available in Customer & Booking registries
+        var existingCust = await _db.Customers.FirstOrDefaultAsync(c => c.Phone == lead.Phone || (!string.IsNullOrEmpty(lead.Email) && c.Email == lead.Email));
+        if (existingCust == null)
+        {
+            _db.Customers.Add(new Customer
+            {
+                Name = lead.Name,
+                Email = lead.Email ?? "",
+                Phone = lead.Phone,
+                UnitNumber = !string.IsNullOrEmpty(lead.FlatNo) ? lead.FlatNo : (!string.IsNullOrEmpty(lead.Interest) ? lead.Interest : "Pending Allocation"),
+                ProjectId = lead.ProjectId ?? 1,
+                BookingDate = DateTime.UtcNow,
+                Status = "Active",
+                TotalAmount = lead.Budget,
+                PaidAmount = 0,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = lead.Id }, lead);
     }
@@ -105,6 +123,18 @@ public class LeadsController : ControllerBase
         existing.FlatNo = lead.FlatNo;
         existing.ProjectAddress = lead.ProjectAddress;
         await _db.SaveChangesAsync();
+
+        // Keep Customer record in sync
+        var custToUpdate = await _db.Customers.FirstOrDefaultAsync(c => c.Phone == existing.Phone || (!string.IsNullOrEmpty(existing.Email) && c.Email == existing.Email));
+        if (custToUpdate != null)
+        {
+            custToUpdate.Name = lead.Name;
+            custToUpdate.Email = lead.Email ?? "";
+            custToUpdate.Phone = lead.Phone;
+            if (lead.ProjectId.HasValue) custToUpdate.ProjectId = lead.ProjectId.Value;
+            custToUpdate.TotalAmount = lead.Budget;
+            await _db.SaveChangesAsync();
+        }
 
         // Log stage updates
         if (prevStage != lead.Stage)
@@ -272,6 +302,13 @@ public class LeadsController : ControllerBase
     {
         var lead = await _db.Leads.FindAsync(id);
         if (lead == null) return NotFound();
+
+        var audits = _db.LeadAuditLogs.Where(a => a.LeadId == id);
+        _db.LeadAuditLogs.RemoveRange(audits);
+
+        var visits = _db.SiteVisits.Where(v => v.LeadId == id);
+        _db.SiteVisits.RemoveRange(visits);
+
         _db.Leads.Remove(lead);
         await _db.SaveChangesAsync();
         return NoContent();
@@ -286,6 +323,22 @@ public class LeadsController : ControllerBase
             .Select(c => c.Value)
             .ToArrayAsync();
         var leads = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).ToListAsync();
+
+        // Normalize legacy or mismatched stages to prevent leads disappearing from the kanban board
+        var stageSet = new HashSet<string>(stages, StringComparer.OrdinalIgnoreCase);
+        foreach (var lead in leads)
+        {
+            if (string.Equals(lead.Stage, "Booking", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lead.Stage, "Booked", StringComparison.OrdinalIgnoreCase))
+            {
+                lead.Stage = "Booking Confirmed";
+            }
+            else if (!stageSet.Contains(lead.Stage))
+            {
+                lead.Stage = stages.FirstOrDefault() ?? "New Lead";
+            }
+        }
+
         var kanban = stages.ToDictionary(s => s, s => leads.Where(l => l.Stage == s).OrderByDescending(l => l.Score).ToList());
         return Ok(kanban);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Target, Phone, Clock, Calendar, MapPin, FileText, Handshake, Home, 
   Award, DollarSign, CheckSquare, Key, Trophy, AlertCircle, Mail, 
@@ -40,11 +40,10 @@ export function Leads() {
   const [filterSiteVisitToday, setFilterSiteVisitToday] = useState(false);
   const [filterHighProb, setFilterHighProb] = useState(false);
 
-  // Stage change confirmation state
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingMove, setPendingMove] = useState(null); // { leadId, leadName, prevStage, targetStage }
-  const [comment, setComment] = useState("");
+  // Lead pipeline state
   const [simulatedUser, setSimulatedUser] = useState("Arjun Kapoor|Super Admin");
+  const draggedLeadRef = useRef(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
 
   // Redesign additional states
   const [collapsedStages, setCollapsedStages] = useState({});
@@ -250,84 +249,63 @@ export function Leads() {
     }
   };
 
-  // Drag and Drop implementation
+  // Direct Drag and Drop implementation without confirmation modal
   const handleDragStart = (e, lead) => {
-    e.dataTransfer.setData("text/plain", lead.id.toString());
+    draggedLeadRef.current = lead;
+    e.dataTransfer.effectAllowed = "move";
+    try {
+      e.dataTransfer.setData("text/plain", lead.id.toString());
+    } catch (_) {}
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, stage) => {
     e.preventDefault();
-  };
-
-  const getStageIndex = (stageName) => stages.indexOf(stageName);
-
-  const isCommentRequired = (prevStage, targetStage) => {
-    const prevIdx = getStageIndex(prevStage);
-    const targetIdx = getStageIndex(targetStage);
-    return (prevIdx !== -1 && targetIdx !== -1 && targetIdx < prevIdx) || 
-           targetStage === "Closed Lost" || 
-           targetStage === "Cancelled";
-  };
-
-  const handleDrop = (e, targetStage) => {
-    e.preventDefault();
-    const leadId = e.dataTransfer.getData("text/plain");
-    if (!leadId) return;
-
-    let foundLead = null;
-    for (const stage in kanban) {
-      const idx = kanban[stage].findIndex(l => l.id.toString() === leadId);
-      if (idx !== -1) {
-        foundLead = kanban[stage][idx];
-        break;
-      }
+    e.dataTransfer.dropEffect = "move";
+    if (stage && dragOverStage !== stage) {
+      setDragOverStage(stage);
     }
-
-    if (!foundLead) return;
-    if (foundLead.stage === targetStage) return;
-
-    setPendingMove({
-      leadId: parseInt(leadId),
-      leadName: foundLead.name,
-      prevStage: foundLead.stage,
-      targetStage: targetStage
-    });
-    setComment("");
-    setShowConfirmModal(true);
   };
 
-  const executePendingMove = async () => {
-    if (!pendingMove) return;
-    const { leadId, targetStage, prevStage } = pendingMove;
-    const savedComment = comment;
+  const handleDragLeave = (e, stage) => {
+    if (dragOverStage === stage) {
+      setDragOverStage(null);
+    }
+  };
 
-    setShowConfirmModal(false);
-    setPendingMove(null);
-    setComment("");
+  const handleDragEnd = () => {
+    draggedLeadRef.current = null;
+    setDragOverStage(null);
+  };
 
-    // Optimistic Update
+  const executeLeadTransition = async (lead, targetStage) => {
+    if (!lead || lead.stage === targetStage) return;
+    const leadId = lead.id;
+    const prevStage = lead.stage;
+
+    // Optimistic Update: immediately move card to target stage column in local state
     const prevKanban = { ...kanban };
     setKanban(prev => {
       const updated = { ...prev };
-      let foundLead = null;
+      let movedLead = null;
       for (const stage in updated) {
         const index = updated[stage].findIndex(l => l.id.toString() === leadId.toString());
         if (index !== -1) {
-          foundLead = { ...updated[stage][index], stage: targetStage };
+          movedLead = { ...updated[stage][index], stage: targetStage };
           updated[stage] = updated[stage].filter(l => l.id.toString() !== leadId.toString());
           break;
         }
       }
-      if (foundLead) {
-        updated[targetStage] = [...(updated[targetStage] || []), foundLead];
+      if (movedLead) {
+        updated[targetStage] = [...(updated[targetStage] || []), movedLead];
       }
       return updated;
     });
 
     try {
       const [uName, uRole] = simulatedUser.split("|");
-      await api.updateLeadStage(leadId, targetStage, savedComment, uRole, uName);
-      setToast({ msg: `Lead moved to ${targetStage} successfully!`, type: "success" });
+      const defaultComment = `Moved from ${prevStage} to ${targetStage} via Lead Pipeline`;
+      await api.updateLeadStage(leadId, targetStage, defaultComment, uRole || "Super Admin", uName || "Arjun Kapoor");
+      setToast({ msg: `Lead #${leadId} moved to ${targetStage} successfully!`, type: "success" });
       
       // Update state in drawer if open
       if (selectedLead && selectedLead.id === leadId) {
@@ -337,9 +315,39 @@ export function Leads() {
       }
       load();
     } catch (err) {
+      console.error("Transition failed:", err);
       setToast({ msg: `Transition Failed: ${err.message || err.error || err}`, type: "error" });
       setKanban(prevKanban);
     }
+  };
+
+  const handleDrop = async (e, targetStage) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverStage(null);
+
+    let lead = draggedLeadRef.current;
+    if (!lead) {
+      try {
+        const leadId = e.dataTransfer.getData("text/plain");
+        if (leadId) {
+          for (const stage in kanban) {
+            const found = kanban[stage]?.find(l => l.id.toString() === leadId.toString());
+            if (found) {
+              lead = found;
+              break;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    draggedLeadRef.current = null;
+
+    if (!lead) return;
+    if (lead.stage === targetStage) return;
+
+    await executeLeadTransition(lead, targetStage);
   };
 
   const refreshDrawerData = async (lead) => {
@@ -764,16 +772,9 @@ export function Leads() {
 
 
 
-  const handleStatusChange = (lead, targetStage) => {
-    if (lead.stage === targetStage) return;
-    setPendingMove({
-      leadId: lead.id,
-      leadName: lead.name,
-      prevStage: lead.stage,
-      targetStage: targetStage
-    });
-    setComment("");
-    setShowConfirmModal(true);
+  const handleStatusChange = async (lead, targetStage) => {
+    if (!lead || lead.stage === targetStage) return;
+    await executeLeadTransition(lead, targetStage);
   };
 
   // Get last updated timestamp from logs or lead
@@ -1092,6 +1093,9 @@ export function Leads() {
               return (
                 <div 
                   key={stage} 
+                  onDragOver={(e) => handleDragOver(e, stage)}
+                  onDragLeave={(e) => handleDragLeave(e, stage)}
+                  onDrop={(e) => handleDrop(e, stage)}
                   style={{ 
                     minWidth: 44, 
                     width: "44px", 
@@ -1101,13 +1105,14 @@ export function Leads() {
                     alignItems: "center",
                     gap: 12,
                     height: "100%",
-                    background: `${C.raise}60`,
-                    border: `1px solid ${C.bord}`,
+                    background: dragOverStage === stage ? `${SC[stage] || C.blue}20` : `${C.raise}60`,
+                    border: dragOverStage === stage ? `2px dashed ${SC[stage] || C.blue}` : `1px solid ${C.bord}`,
                     borderRadius: 12,
                     padding: "12px 4px",
                     boxSizing: "border-box",
                     cursor: "pointer",
-                    position: "relative"
+                    position: "relative",
+                    transition: "background 0.2s ease, border-color 0.2s ease"
                   }}
                   onClick={() => toggleStageCollapse(stage)}
                   title={`Expand ${stage} column`}
@@ -1162,7 +1167,8 @@ export function Leads() {
             return (
               <div 
                 key={stage} 
-                onDragOver={handleDragOver}
+                onDragOver={(e) => handleDragOver(e, stage)}
+                onDragLeave={(e) => handleDragLeave(e, stage)}
                 onDrop={(e) => handleDrop(e, stage)}
                 style={{ 
                   minWidth: 260, 
@@ -1173,9 +1179,11 @@ export function Leads() {
                   gap: 10,
                   height: "fit-content",
                   boxSizing: "border-box",
-                  background: `${C.raise}30`,
+                  background: dragOverStage === stage ? `${SC[stage] || C.blue}15` : `${C.raise}30`,
+                  border: dragOverStage === stage ? `2px dashed ${SC[stage] || C.blue}` : `2px solid transparent`,
                   borderRadius: 12,
-                  padding: 6
+                  padding: 6,
+                  transition: "background 0.2s ease, border-color 0.2s ease"
                 }}
               >
                 {/* Stage Header - Fixed inside Column */}
@@ -1209,15 +1217,39 @@ export function Leads() {
                 </div>
 
                 {/* Column Cards List - no inner scrollbar */}
-                <div style={{ 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  gap: 10, 
-                  overflow: "visible", 
-                  flex: 1, 
-                  padding: "2px",
-                  boxSizing: "border-box"
-                }}>
+                <div 
+                  onDragOver={(e) => handleDragOver(e, stage)}
+                  onDrop={(e) => handleDrop(e, stage)}
+                  style={{ 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: 10, 
+                    overflow: "visible", 
+                    flex: 1, 
+                    minHeight: 140,
+                    padding: "2px",
+                    boxSizing: "border-box"
+                  }}
+                >
+                  {sl.length === 0 && (
+                    <div style={{
+                      border: `2px dashed ${dragOverStage === stage ? (SC[stage] || C.blue) : `${C.bord}80`}`,
+                      borderRadius: 10,
+                      padding: "20px 10px",
+                      textAlign: "center",
+                      color: C.mute,
+                      fontSize: 11,
+                      minHeight: 80,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4
+                    }}>
+                      <span>No leads in {stage}</span>
+                      <span style={{ fontSize: 10, opacity: 0.7 }}>Drop here</span>
+                    </div>
+                  )}
                   {sl.map(lead => {
                     const prio = getPriority(lead.score);
                     return (
@@ -1225,6 +1257,7 @@ export function Leads() {
                         key={lead.id} 
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead)}
+                        onDragEnd={handleDragEnd}
                         onClick={() => handleCardClick(lead, "info")}
                         style={{
                           background: C.card, 
@@ -1344,164 +1377,7 @@ export function Leads() {
         </Modal>
       )}
 
-      {/* ─── CONFIRM STAGE TRANSITION MODAL ───────────────────────────── */}
-      {showConfirmModal && pendingMove && (() => {
-        const PrevIcon = getStageHeaderIcon(pendingMove.prevStage);
-        const TargetIcon = getStageHeaderIcon(pendingMove.targetStage);
-        const prevColor = SC[pendingMove.prevStage] || C.sub;
-        const targetColor = SC[pendingMove.targetStage] || C.sub;
 
-        return (
-          <Modal 
-            title="Confirm Stage Transition" 
-            onClose={() => {
-              setShowConfirmModal(false);
-              setPendingMove(null);
-              setComment("");
-            }} 
-            width={450}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Lead Name */}
-              <div>
-                <div style={{ fontSize: 10, color: C.mute, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 2 }}>Lead</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.txt }}>{pendingMove.leadName}</div>
-              </div>
-
-              {/* Stage Transition Visualizer */}
-              <div style={{ 
-                background: C.raise, 
-                border: `1px solid ${C.bord}`, 
-                borderRadius: 8, 
-                padding: "14px 16px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 4
-              }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                  <span style={{ fontSize: 8.5, color: C.mute, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>From</span>
-                  <span style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 6, 
-                    fontSize: 12.5, 
-                    fontWeight: 700, 
-                    color: C.txt 
-                  }}>
-                    <span style={{ display: "inline-flex", width: 6, height: 6, borderRadius: "50%", background: prevColor }}></span>
-                    <PrevIcon size={13} style={{ color: prevColor }} />
-                    {pendingMove.prevStage}
-                  </span>
-                </div>
-                
-                <div style={{ color: C.mute, fontSize: 13, margin: "2px 0" }}>↓</div>
-
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                  <span style={{ fontSize: 8.5, color: C.mute, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>To</span>
-                  <span style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 6, 
-                    fontSize: 12.5, 
-                    fontWeight: 700, 
-                    color: C.txt 
-                  }}>
-                    <span style={{ display: "inline-flex", width: 6, height: 6, borderRadius: "50%", background: targetColor }}></span>
-                    <TargetIcon size={13} style={{ color: targetColor }} />
-                    {pendingMove.targetStage}
-                  </span>
-                </div>
-              </div>
-
-              {/* Impact Section */}
-              <div>
-                <div style={{ fontSize: 10, color: C.mute, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 }}>This will:</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 2 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.sub }}>
-                    <Check size={13} style={{ color: C.teal, flexShrink: 0 }} />
-                    <span>Update lead stage to <strong>{pendingMove.targetStage}</strong></span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.sub }}>
-                    <Check size={13} style={{ color: C.teal, flexShrink: 0 }} />
-                    <span>Record timeline activity audit trail</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.sub }}>
-                    <Check size={13} style={{ color: C.teal, flexShrink: 0 }} />
-                    <span>Notify assigned sales executives & managers</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.sub }}>
-                    <Check size={13} style={{ color: C.teal, flexShrink: 0 }} />
-                    <span>Trigger real-time automation rules</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Acting User Selection */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ fontSize: 10, color: C.mute, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Perform Action As</div>
-                <Select 
-                  value={simulatedUser} 
-                  onChange={(val) => setSimulatedUser(val)} 
-                  options={[
-                    { value: "Arjun Kapoor|Super Admin", label: "Arjun Kapoor (Super Admin)" },
-                    { value: "Amit Kumar|Manager", label: "Amit Kumar (Manager)" },
-                    { value: "Priya Mehta|Sales Agent", label: "Priya Mehta (Sales Agent)" },
-                    { value: "Vikram Sen|Support Agent", label: "Vikram Sen (Support Agent)" }
-                  ]}
-                />
-              </div>
-
-              {/* Comments Field */}
-              <Field 
-                label={isCommentRequired(pendingMove.prevStage, pendingMove.targetStage) ? "Reason / Comments (Required)" : "Reason / Comments (Optional)"} 
-                required={isCommentRequired(pendingMove.prevStage, pendingMove.targetStage)}
-              >
-                <Input 
-                  value={comment} 
-                  onChange={(val) => setComment(val)} 
-                  placeholder={isCommentRequired(pendingMove.prevStage, pendingMove.targetStage) ? "A comment is required for reverting or closing leads..." : "Add comments for this transition..."}
-                />
-              </Field>
-
-              {isCommentRequired(pendingMove.prevStage, pendingMove.targetStage) && !comment.trim() && (
-                <div style={{ color: C.red, fontSize: 11, fontWeight: 700, marginTop: -6 }}>
-                  * Reason comment is mandatory when reverting stage or closing/cancelling a lead.
-                </div>
-              )}
-
-              {/* Log warning */}
-              <div style={{ 
-                fontSize: 10.5, 
-                color: C.mute, 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 6,
-                borderTop: `1px solid ${C.bord}`,
-                paddingTop: 12,
-                marginTop: 2
-              }}>
-                <AlertCircle size={13} style={{ color: C.gold, flexShrink: 0 }} />
-                <span>This action will be recorded in the audit log.</span>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.bord}` }}>
-              <Btn v="outline" onClick={() => {
-                setShowConfirmModal(false);
-                setPendingMove(null);
-                setComment("");
-              }}>Cancel</Btn>
-              <Btn 
-                onClick={executePendingMove} 
-                disabled={isCommentRequired(pendingMove.prevStage, pendingMove.targetStage) && !comment.trim()}
-              >
-                Confirm Transition
-              </Btn>
-            </div>
-          </Modal>
-        );
-      })()}
 
       {/* ─── SLIDING DRAWER (42% Width) ────────────────────────────────── */}
       <div 

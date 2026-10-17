@@ -29,8 +29,8 @@ public class DashboardService : IDashboardService
         var allLeads = await _uow.Leads.GetAllAsync(l => !projectId.HasValue || l.ProjectId == projectId.Value);
         var allCustomers = await _uow.Customers.GetAllAsync(c => !projectId.HasValue || c.ProjectId == projectId.Value);
         var allBookings = await _uow.Bookings.GetAllAsync(
-            b => !projectId.HasValue || b.Unit != null && b.Unit.ProjectId == projectId.Value,
-            includeProperties: "Customer,Unit"
+            b => !projectId.HasValue || (b.Unit != null && b.Unit.ProjectId == projectId.Value) || (b.Customer != null && b.Customer.ProjectId == projectId.Value),
+            includeProperties: "Customer,Customer.Project,Unit,Unit.Project"
         );
         var allPartners = await _uow.ChannelPartners.GetAllAsync();
         var allTickets = await _uow.ServiceTickets.GetAllAsync();
@@ -43,7 +43,7 @@ public class DashboardService : IDashboardService
             ? allProjects.Count(p => p.Id == projectId.Value && p.Status == activeProjectStatus)
             : allProjects.Count(p => p.Status == activeProjectStatus);
 
-        var totalRevenue = allCustomers.Sum(c => c.PaidAmount);
+        var totalRevenue = allBookings.Sum(b => b.TotalAmount);
 
         // Retrieve configured lead sources to safely map/group them from database definitions
         var configuredSources = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "LeadSource")).Select(c => c.Value).ToHashSet();
@@ -69,8 +69,8 @@ public class DashboardService : IDashboardService
             ? allProjects.Where(p => p.Id == projectId.Value).Sum(p => p.TotalValue) / 12m / 10000000m
             : allProjects.Sum(p => p.TotalValue) / 12m / 10000000m;
 
-        var customerPayments = allCustomers
-            .Select(c => new { c.BookingDate.Month, c.PaidAmount })
+        var bookingAmounts = allBookings
+            .Select(b => new { b.BookingDate.Month, b.TotalAmount })
             .ToList();
 
         // Generate month abbreviations dynamically via System.DateTime formatting to avoid hardcoded month arrays
@@ -78,7 +78,7 @@ public class DashboardService : IDashboardService
         var monthlyRevenue = monthLabels.Select((label, i) =>
         {
             var month = i + 1;
-            var rev = customerPayments.Where(c => c.Month == month).Sum(c => c.PaidAmount) / 10000000m;
+            var rev = bookingAmounts.Where(b => b.Month == month).Sum(b => b.TotalAmount) / 10000000m;
             return new
             {
                 m = label,
@@ -95,11 +95,18 @@ public class DashboardService : IDashboardService
         var soldStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "SoldUnitStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
         var availableStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "AvailableUnitStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
         var bookedUnitStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedUnitStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
-        var bookedLeadStage = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedLeadStage")).Select(c => c.Label).FirstOrDefault() ?? "";
+        var heldStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "UnitStatus" && c.Value == "Held")).Select(c => c.Value).FirstOrDefault() ?? "Held";
+        var bookedLeadStage = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedLeadStage")).Select(c => c.Label).FirstOrDefault() ?? "Booking Confirmed";
         var overdueCustomerStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "OverdueCustomerStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
         var openTicketStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "OpenSupportStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
         var pendingCommissionStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "PendingCommissionStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
         var scheduledVisitStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "ScheduledSiteVisitStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
+
+        // Non-active leads are those booked, registered, or closed
+        var nonActiveStages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            bookedLeadStage, "Booked", "Booking", "Booking Confirmed", "Agreement Signed", "Documentation", "Registration", "Closed Won", "Closed Lost"
+        };
 
         var stats = new
         {
@@ -109,7 +116,8 @@ public class DashboardService : IDashboardService
             soldUnits = allUnits.Count(u => u.Status == soldStatus),
             availableUnits = allUnits.Count(u => u.Status == availableStatus),
             bookedUnits = allUnits.Count(u => u.Status == bookedUnitStatus),
-            activeLeads = allLeads.Count(l => l.Stage != bookedLeadStage),
+            heldUnits = allUnits.Count(u => u.Status == heldStatus),
+            activeLeads = allLeads.Count(l => !nonActiveStages.Contains(l.Stage)),
             totalCustomers = allCustomers.Count(),
             overdueCustomers = allCustomers.Count(c => c.Status == overdueCustomerStatus),
             totalPartners = allPartners.Count(),
@@ -134,7 +142,16 @@ public class DashboardService : IDashboardService
                 .Select(l => new { l.Id, l.Name, l.Source, l.Stage, l.Score, l.Budget, l.AssignedTo }).ToList(),
             recentBookings = allBookings
                 .OrderByDescending(b => b.BookingDate).Take(5)
-                .Select(b => new { b.Id, b.BookingNumber, CustomerName = b.Customer?.Name ?? "", b.TotalAmount, b.Status }).ToList(),
+                .Select(b => new
+                {
+                    b.Id,
+                    b.BookingNumber,
+                    CustomerName = b.Customer?.Name ?? "",
+                    UnitNumber = b.Unit?.UnitNumber ?? "",
+                    ProjectName = b.Unit?.Project?.Name ?? b.Customer?.Project?.Name ?? "",
+                    b.TotalAmount,
+                    b.Status
+                }).ToList(),
         };
         return stats;
     }

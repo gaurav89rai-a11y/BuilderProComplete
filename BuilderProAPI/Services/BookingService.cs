@@ -1,5 +1,6 @@
 using BuilderProAPI.Repositories;
 using BuilderProAPI.Models;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,10 +11,14 @@ namespace BuilderProAPI.Services;
 public class BookingService : IBookingService
 {
     private readonly IUnitOfWork _uow;
+    private readonly ISSRSReportService? _ssrsReportService;
+    private readonly ILogger<BookingService>? _logger;
 
-    public BookingService(IUnitOfWork uow)
+    public BookingService(IUnitOfWork uow, ISSRSReportService? ssrsReportService = null, ILogger<BookingService>? logger = null)
     {
         _uow = uow;
+        _ssrsReportService = ssrsReportService;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status)
@@ -21,7 +26,7 @@ public class BookingService : IBookingService
         return await _uow.Bookings.GetAllAsync(
             b => string.IsNullOrEmpty(status) || b.Status == status,
             orderBy: q => q.OrderByDescending(b => b.BookingDate),
-            includeProperties: "Customer,Customer.Project,Unit"
+            includeProperties: "Customer,Customer.Project,Unit,Unit.Project"
         );
     }
 
@@ -29,7 +34,7 @@ public class BookingService : IBookingService
     {
         return await _uow.Bookings.GetFirstOrDefaultAsync(
             x => x.Id == id,
-            includeProperties: "Customer,Customer.Project,Unit"
+            includeProperties: "Customer,Customer.Project,Unit,Unit.Project"
         );
     }
 
@@ -48,21 +53,42 @@ public class BookingService : IBookingService
         {
             var bookedStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedUnitStatus")).Select(c => c.Label).FirstOrDefault()
                                ?? (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "UnitStatus" && c.Value == "Booked")).Select(c => c.Value).FirstOrDefault()
-                               ?? "";
+                               ?? "Booked";
             unit.Status = bookedStatus;
             _uow.Units.Update(unit);
         }
 
-        // Link to lead if matching customer email/phone exists
+        // Link to customer and sync details (Unit, Project, TotalAmount, Token Paid)
         var customer = await _uow.Customers.GetFirstOrDefaultAsync(c => c.Id == booking.CustomerId, includeProperties: "Project");
         if (customer != null)
         {
+            if (unit != null)
+            {
+                customer.UnitNumber = unit.UnitNumber;
+                customer.ProjectId = unit.ProjectId;
+            }
+            customer.TotalAmount = booking.TotalAmount;
+            if (customer.PaidAmount == 0)
+            {
+                customer.PaidAmount = booking.TokenAmount;
+            }
+            customer.Status = "Active";
+            _uow.Customers.Update(customer);
+
+            // Link to lead if matching customer email/phone exists
             var lead = (await _uow.Leads.GetAllAsync(l => l.Email == customer.Email || l.Phone == customer.Phone)).FirstOrDefault();
             if (lead != null)
             {
-                var bookedStage = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "LeadStage" && (c.Value == "Booking" || c.Value == "Booked"))).Select(c => c.Value).FirstOrDefault() ?? "Booking";
+                var bookedStage = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedLeadStage")).Select(c => c.Label).FirstOrDefault()
+                                   ?? (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "LeadStage" && c.Value == "Booking Confirmed")).Select(c => c.Value).FirstOrDefault()
+                                   ?? "Booking Confirmed";
                 var prevStage = lead.Stage;
                 lead.Stage = bookedStage;
+                if (unit != null)
+                {
+                    lead.FlatNo = unit.UnitNumber;
+                    lead.ProjectId = unit.ProjectId;
+                }
                 _uow.Leads.Update(lead);
 
                 await _uow.LeadAuditLogs.AddAsync(new LeadAuditLog
@@ -124,5 +150,52 @@ public class BookingService : IBookingService
             AgreementSigned = all.Count(b => b.Status == signedStatus),
         };
         return stats;
+    }
+
+    public async Task<byte[]?> GenerateAgreementPdfAsync(int id)
+    {
+        var booking = await _uow.Bookings.GetFirstOrDefaultAsync(
+            x => x.Id == id,
+            includeProperties: "Customer,Customer.Project,Unit,Unit.Project"
+        );
+        if (booking == null) return null;
+
+        // 1. Generate via Microsoft RDLC SSRS LocalReport engine
+        try
+        {
+            _logger?.LogInformation("Generating agreement PDF using Microsoft RDLC format for booking {BookingNumber}", booking.BookingNumber);
+            var rdlcBytes = RdlcReportService.GenerateAgreementPdf(booking);
+            if (rdlcBytes != null && rdlcBytes.Length > 0)
+            {
+                _logger?.LogInformation("Successfully generated agreement PDF from RDLC report ({ByteCount} bytes)", rdlcBytes.Length);
+                return rdlcBytes;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "RDLC report generation failed for booking {BookingNumber}. Attempting alternative engines.", booking.BookingNumber);
+        }
+
+        // 2. Attempt rendering via SSRS Report Server if available
+        if (_ssrsReportService != null)
+        {
+            try
+            {
+                var ssrsBytes = await _ssrsReportService.RenderReportPdfAsync(booking);
+                if (ssrsBytes != null && ssrsBytes.Length > 0)
+                {
+                    _logger?.LogInformation("Successfully generated agreement PDF from SSRS Report Server for booking {BookingNumber}", booking.BookingNumber);
+                    return ssrsBytes;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "SSRS rendering failed for booking {BookingNumber}.", booking.BookingNumber);
+            }
+        }
+
+        // 3. Fallback to embedded agreement generator
+        _logger?.LogInformation("Using fallback agreement generator for booking {BookingNumber}", booking.BookingNumber);
+        return AgreementReportService.GenerateAgreementPdf(booking);
     }
 }

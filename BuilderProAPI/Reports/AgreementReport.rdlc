@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="AgreementDataSource">
+      <ConnectionProperties>
+        <DataProvider>System.Data.DataSet</DataProvider>
+        <ConnectString>/* Local Connection */</ConnectString>
+      </ConnectionProperties>
+      <rd:DataSourceID>c526d11b-1a91-447a-8f92-9a3b83981290</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="AgreementDataSet">
+      <Query>
+        <DataSourceName>AgreementDataSource</DataSourceName>
+        <CommandText>/* Command Text */</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="BookingNumber"><DataField>BookingNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="BookingDate"><DataField>BookingDate</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="BookingStatus"><DataField>BookingStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerName"><DataField>CustomerName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerPhone"><DataField>CustomerPhone</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerEmail"><DataField>CustomerEmail</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerStatus"><DataField>CustomerStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectName"><DataField>ProjectName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectLocation"><DataField>ProjectLocation</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectReraNumber"><DataField>ProjectReraNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitNumber"><DataField>UnitNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitType"><DataField>UnitType</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitArea"><DataField>UnitArea</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitFloor"><DataField>UnitFloor</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="BasePrice"><DataField>BasePrice</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="GstAmount"><DataField>GstAmount</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="TotalAmount"><DataField>TotalAmount</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="TokenAmount"><DataField>TokenAmount</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="BalanceAmount"><DataField>BalanceAmount</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="AssignedAgent"><DataField>AssignedAgent</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <!-- Company & Document Title Header -->
+          <Textbox Name="HeaderCompany">
+            <Top>0.2in</Top>
+            <Left>0.2in</Left>
+            <Height>0.35in</Height>
+            <Width>4.0in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>ABHAY BUILDCON ERP</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>16pt</FontSize>
+                      <FontWeight>Bold</FontWeight>
+                      <Color>#B8860B</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+          <Textbox Name="HeaderDocType">
+            <Top>0.2in</Top>
+            <Left>4.3in</Left>
+            <Height>0.35in</Height>
+            <Width>2.7in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <Style>
+                  <TextAlign>Right</TextAlign>
+                </Style>
+                <TextRuns>
+                  <TextRun>
+                    <Value>ALLOTMENT &amp; SALE AGREEMENT</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>11pt</FontSize>
+                      <FontWeight>Bold</FontWeight>
+                      <Color>#222222</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <Textbox Name="SubHeader">
+            <Top>0.55in</Top>
+            <Left>0.2in</Left>
+            <Height>0.2in</Height>
+            <Width>4.0in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>="RERA Reg: " &amp; First(Fields!ProjectReraNumber.Value, "AgreementDataSet")</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>8pt</FontSize>
+                      <Color>#666666</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+          <Textbox Name="RefMeta">
+            <Top>0.55in</Top>
+            <Left>4.3in</Left>
+            <Height>0.2in</Height>
+            <Width>2.7in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <Style>
+                  <TextAlign>Right</TextAlign>
+                </Style>
+                <TextRuns>
+                  <TextRun>
+                    <Value>="Ref: " &amp; First(Fields!BookingNumber.Value, "AgreementDataSet") &amp; " | Date: " &amp; First(Fields!BookingDate.Value, "AgreementDataSet")</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>8pt</FontSize>
+                      <FontWeight>Bold</FontWeight>
+                      <Color>#B8860B</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <Line Name="HeaderDivider">
+            <Top>0.8in</Top>
+            <Left>0.2in</Left>
+            <Height>0.0in</Height>
+            <Width>6.8in</Width>
+            <Style>
+              <Border>
+                <Color>#B8860B</Color>
+                <Style>Solid</Style>
+                <Width>1.5pt</Width>
+              </Border>
+            </Style>
+          </Line>
+
+          <!-- Standard Legal Preamble -->
+          <Textbox Name="Preamble">
+            <Top>0.9in</Top>
+            <Left>0.2in</Left>
+            <Height>0.4in</Height>
+            <Width>6.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>STANDARD APARTMENT BUYER'S AGREEMENT (RDLC SSRS REPORT FORMAT)&#xD;&#xA;This Agreement for Sale is entered into between the Promoter and the Allottee subject to the terms and statutory covenants set forth herein under the Real Estate (Regulation and Development) Act.</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>8pt</FontSize>
+                      <Color>#444444</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <!-- 1. Parties Section -->
+          <Textbox Name="PartiesHeader">
+            <Top>1.35in</Top>
+            <Left>0.2in</Left>
+            <Height>0.2in</Height>
+            <Width>6.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>1. PARTIES TO THIS AGREEMENT</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>9pt</FontSize>
+                      <FontWeight>Bold</FontWeight>
+                      <Color>#111111</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <Rectangle Name="PromoterBox">
+            <Top>1.6in</Top>
+            <Left>0.2in</Left>
+            <Height>0.85in</Height>
+            <Width>3.3in</Width>
+            <Style>
+              <Border><Color>#E0E0E0</Color><Style>Solid</Style><Width>1pt</Width></Border>
+              <BackgroundColor>#FAFAFA</BackgroundColor>
+            </Style>
+            <ReportItems>
+              <Textbox Name="PromoterContent">
+                <Top>0.05in</Top>
+                <Left>0.05in</Left>
+                <Height>0.75in</Height>
+                <Width>3.2in</Width>
+                <Paragraphs>
+                  <Paragraph>
+                    <TextRuns>
+                      <TextRun>
+                        <Value>PROMOTER / DEVELOPER&#xD;&#xA;</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>8pt</FontSize><FontWeight>Bold</FontWeight><Color>#B8860B</Color></Style>
+                      </TextRun>
+                      <TextRun>
+                        <Value>Abhay Buildcon Developers Pvt. Ltd.&#xD;&#xA;Regd Office: Bandra West, Mumbai - 400050&#xD;&#xA;CIN: U45200MH2018PTC312459&#xD;&#xA;</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>7.5pt</FontSize></Style>
+                      </TextRun>
+                      <TextRun>
+                        <Value>="Representative: " &amp; First(Fields!AssignedAgent.Value, "AgreementDataSet")</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>7.5pt</FontSize></Style>
+                      </TextRun>
+                    </TextRuns>
+                  </Paragraph>
+                </Paragraphs>
+              </Textbox>
+            </ReportItems>
+          </Rectangle>
+
+          <Rectangle Name="AllotteeBox">
+            <Top>1.6in</Top>
+            <Left>3.7in</Left>
+            <Height>0.85in</Height>
+            <Width>3.3in</Width>
+            <Style>
+              <Border><Color>#E0E0E0</Color><Style>Solid</Style><Width>1pt</Width></Border>
+              <BackgroundColor>#FAFAFA</BackgroundColor>
+            </Style>
+            <ReportItems>
+              <Textbox Name="AllotteeContent">
+                <Top>0.05in</Top>
+                <Left>0.05in</Left>
+                <Height>0.75in</Height>
+                <Width>3.2in</Width>
+                <Paragraphs>
+                  <Paragraph>
+                    <TextRuns>
+                      <TextRun>
+                        <Value>ALLOTTEE / PURCHASER&#xD;&#xA;</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>8pt</FontSize><FontWeight>Bold</FontWeight><Color>#1E88E5</Color></Style>
+                      </TextRun>
+                      <TextRun>
+                        <Value>=First(Fields!CustomerName.Value, "AgreementDataSet") &amp; "&#xD;&#xA;Phone: " &amp; First(Fields!CustomerPhone.Value, "AgreementDataSet") &amp; "&#xD;&#xA;Email: " &amp; First(Fields!CustomerEmail.Value, "AgreementDataSet") &amp; "&#xD;&#xA;Status: " &amp; First(Fields!CustomerStatus.Value, "AgreementDataSet")</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>7.5pt</FontSize><FontWeight>Bold</FontWeight></Style>
+                      </TextRun>
+                    </TextRuns>
+                  </Paragraph>
+                </Paragraphs>
+              </Textbox>
+            </ReportItems>
+          </Rectangle>
+
+          <!-- 2. Property Schedule -->
+          <Textbox Name="PropertyHeader">
+            <Top>2.55in</Top>
+            <Left>0.2in</Left>
+            <Height>0.2in</Height>
+            <Width>6.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>2. SCHEDULE OF APARTMENT / PROPERTY</Value>
+                    <Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight><Color>#111111</Color></Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <Rectangle Name="PropertyBox">
+            <Top>2.8in</Top>
+            <Left>0.2in</Left>
+            <Height>0.65in</Height>
+            <Width>6.8in</Width>
+            <Style>
+              <Border><Color>#E0E0E0</Color><Style>Solid</Style><Width>1pt</Width></Border>
+              <BackgroundColor>#FFFFFF</BackgroundColor>
+            </Style>
+            <ReportItems>
+              <Textbox Name="PropertyDetails">
+                <Top>0.05in</Top>
+                <Left>0.1in</Left>
+                <Height>0.55in</Height>
+                <Width>6.6in</Width>
+                <Paragraphs>
+                  <Paragraph>
+                    <TextRuns>
+                      <TextRun>
+                        <Value>="Project: " &amp; First(Fields!ProjectName.Value, "AgreementDataSet") &amp; " (" &amp; First(Fields!ProjectLocation.Value, "AgreementDataSet") &amp; ")&#xD;&#xA;Unit Number: " &amp; First(Fields!UnitNumber.Value, "AgreementDataSet") &amp; "  |  Configuration: " &amp; First(Fields!UnitType.Value, "AgreementDataSet") &amp; "  |  Floor Level: " &amp; First(Fields!UnitFloor.Value, "AgreementDataSet") &amp; "  |  Super Built-up Area: " &amp; First(Fields!UnitArea.Value, "AgreementDataSet")</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>8pt</FontSize></Style>
+                      </TextRun>
+                    </TextRuns>
+                  </Paragraph>
+                </Paragraphs>
+              </Textbox>
+            </ReportItems>
+          </Rectangle>
+
+          <!-- 3. Financial Schedule -->
+          <Textbox Name="FinanceHeader">
+            <Top>3.55in</Top>
+            <Left>0.2in</Left>
+            <Height>0.2in</Height>
+            <Width>6.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>3. CONSIDERATION &amp; PAYMENT BREAKUP</Value>
+                    <Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight><Color>#111111</Color></Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <Rectangle Name="FinanceBox">
+            <Top>3.8in</Top>
+            <Left>0.2in</Left>
+            <Height>1.25in</Height>
+            <Width>6.8in</Width>
+            <Style>
+              <Border><Color>#E0E0E0</Color><Style>Solid</Style><Width>1pt</Width></Border>
+              <BackgroundColor>#FFFFFF</BackgroundColor>
+            </Style>
+            <ReportItems>
+              <Textbox Name="FinanceContent">
+                <Top>0.08in</Top>
+                <Left>0.1in</Left>
+                <Height>1.1in</Height>
+                <Width>6.6in</Width>
+                <Paragraphs>
+                  <Paragraph>
+                    <TextRuns>
+                      <TextRun>
+                        <Value>="1. Base Apartment Consideration: " &amp; First(Fields!BasePrice.Value, "AgreementDataSet") &amp; "&#xD;&#xA;2. Estimated Statutory Taxes &amp; GST (5%): " &amp; First(Fields!GstAmount.Value, "AgreementDataSet") &amp; "&#xD;&#xA;-----------------------------------------------------------------------------------------------------------------------------&#xD;&#xA;TOTAL AGREEMENT CONSIDERATION: " &amp; First(Fields!TotalAmount.Value, "AgreementDataSet") &amp; "&#xD;&#xA;• Token / Earnest Money Received: " &amp; First(Fields!TokenAmount.Value, "AgreementDataSet") &amp; "&#xD;&#xA;• Balance Milestone Payments Due: " &amp; First(Fields!BalanceAmount.Value, "AgreementDataSet")</Value>
+                        <Style><FontFamily>Arial</FontFamily><FontSize>8pt</FontSize><FontWeight>SemiBold</FontWeight></Style>
+                      </TextRun>
+                    </TextRuns>
+                  </Paragraph>
+                </Paragraphs>
+              </Textbox>
+            </ReportItems>
+          </Rectangle>
+
+          <!-- 4. Legal Covenants -->
+          <Textbox Name="CovenantsHeader">
+            <Top>5.15in</Top>
+            <Left>0.2in</Left>
+            <Height>0.2in</Height>
+            <Width>6.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>4. ESSENTIAL COVENANTS &amp; RERA GUIDELINES</Value>
+                    <Style><FontFamily>Arial</FontFamily><FontSize>9pt</FontSize><FontWeight>Bold</FontWeight><Color>#111111</Color></Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+          <Textbox Name="CovenantsBody">
+            <Top>5.35in</Top>
+            <Left>0.2in</Left>
+            <Height>0.6in</Height>
+            <Width>6.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>a) The Allottee covenants to honor stage-wise payment demand letters strictly within specified timelines.&#xD;&#xA;b) The Promoter covenants to construct the Apartment in conformity with approved architectural drawings and RERA rules.&#xD;&#xA;c) Time is of essence regarding payment installments. Unpaid balances accrue interest at the prescribed benchmark rate.&#xD;&#xA;d) Handover of possession will be effected upon issuance of the Occupancy Certificate and clearance of all outstanding dues.</Value>
+                    <Style><FontFamily>Arial</FontFamily><FontSize>7.5pt</FontSize><Color>#555555</Color></Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <!-- 5. Signatures -->
+          <Line Name="SigDevLine">
+            <Top>6.5in</Top>
+            <Left>0.2in</Left>
+            <Height>0.0in</Height>
+            <Width>2.5in</Width>
+            <Style><Border><Color>#666666</Color><Style>Solid</Style><Width>1pt</Width></Border></Style>
+          </Line>
+          <Textbox Name="SigDevLabel">
+            <Top>6.55in</Top>
+            <Left>0.2in</Left>
+            <Height>0.3in</Height>
+            <Width>2.5in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>For ABHAY BUILDCON DEVELOPERS&#xD;&#xA;Authorized Signatory</Value>
+                    <Style><FontFamily>Arial</FontFamily><FontSize>8pt</FontSize><FontWeight>Bold</FontWeight></Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+
+          <Line Name="SigCustLine">
+            <Top>6.5in</Top>
+            <Left>4.5in</Left>
+            <Height>0.0in</Height>
+            <Width>2.5in</Width>
+            <Style><Border><Color>#666666</Color><Style>Solid</Style><Width>1pt</Width></Border></Style>
+          </Line>
+          <Textbox Name="SigCustLabel">
+            <Top>6.55in</Top>
+            <Left>4.5in</Left>
+            <Height>0.3in</Height>
+            <Width>2.5in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <Style>
+                  <TextAlign>Right</TextAlign>
+                </Style>
+                <TextRuns>
+                  <TextRun>
+                    <Value>="ALLOTTEE: " &amp; UCase(First(Fields!CustomerName.Value, "AgreementDataSet")) &amp; "&#xD;&#xA;Signature of Purchaser(s)"</Value>
+                    <Style><FontFamily>Arial</FontFamily><FontSize>8pt</FontSize><FontWeight>Bold</FontWeight></Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+        </ReportItems>
+        <Height>7.2in</Height>
+      </Body>
+      <Width>7.2in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight>
+        <PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.5in</LeftMargin>
+        <RightMargin>0.5in</RightMargin>
+        <TopMargin>0.5in</TopMargin>
+        <BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

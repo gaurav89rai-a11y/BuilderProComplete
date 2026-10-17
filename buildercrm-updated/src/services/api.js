@@ -1,14 +1,61 @@
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+let currentBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
-// ─── HTTP REQUEST UTILITY ──────────────────────────────────────
+// Helper to find alternative local port (e.g. 5000 <-> 8080)
+function getAlternativeBaseUrl(url) {
+  if (url.includes(":5000")) return url.replace(":5000", ":8080");
+  if (url.includes(":8080")) return url.replace(":8080", ":5000");
+  return null;
+}
+
+// Global connection state
+let connectionState = {
+  isConnected: USE_MOCK ? false : null,
+  url: currentBaseUrl,
+  isMock: USE_MOCK,
+  error: null,
+};
+const connectionListeners = new Set();
+function notifyConnectionChange() {
+  connectionListeners.forEach(cb => {
+    try { cb({ ...connectionState }); } catch (e) { console.error(e); }
+  });
+}
+
+// ─── HTTP REQUEST UTILITY (WITH DYNAMIC PORT PROBING) ─────────
 async function req(method, path, body, customHeaders = {}) {
   const opts = {
     method,
     headers: { "Content-Type": "application/json", ...customHeaders },
   };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(`${BASE}${path}`, opts);
+
+  let res;
+  try {
+    res = await fetch(`${currentBaseUrl}${path}`, opts);
+  } catch (networkErr) {
+    // If local fetch failed, try failover to the alternative local port (5000 vs 8080)
+    const altUrl = getAlternativeBaseUrl(currentBaseUrl);
+    if (altUrl) {
+      try {
+        res = await fetch(`${altUrl}${path}`, opts);
+        // Failover worked! Update currentBaseUrl so future calls use this port directly
+        console.log(`🔄 API connected via fallback port: ${altUrl}`);
+        currentBaseUrl = altUrl;
+        connectionState = { isConnected: true, url: currentBaseUrl, isMock: false, error: null };
+        notifyConnectionChange();
+      } catch (altErr) {
+        connectionState = { isConnected: false, url: currentBaseUrl, isMock: true, error: networkErr.message };
+        notifyConnectionChange();
+        throw networkErr;
+      }
+    } else {
+      connectionState = { isConnected: false, url: currentBaseUrl, isMock: true, error: networkErr.message };
+      notifyConnectionChange();
+      throw networkErr;
+    }
+  }
+
   if (!res.ok) {
     let errMsg = "";
     try {
@@ -20,6 +67,13 @@ async function req(method, path, body, customHeaders = {}) {
     }
     throw new Error(errMsg || `HTTP ${res.status}`);
   }
+
+  // Request succeeded: mark as live connected
+  if (connectionState.isConnected !== true) {
+    connectionState = { isConnected: true, url: currentBaseUrl, isMock: false, error: null };
+    notifyConnectionChange();
+  }
+
   if (res.status === 204) return null;
   return res.json();
 }
@@ -33,14 +87,24 @@ const SEED_DATA = {
     { id: 4, name: "Pearl Residences", location: "Thane West", reraNumber: "P51900051890", status: "Pre-launch", type: "Residential", totalUnits: 180, constructionPct: 12, totalValue: 2900000000 }
   ],
   units: [
-    { id: 1, projectId: 1, unitNumber: "A-101", floor: 1, unitType: "2BHK", area: 987, price: 12500000, status: "Available", view: "Garden" },
+    { id: 1, projectId: 1, unitNumber: "A-101", floor: 1, unitType: "2BHK", area: 987, price: 12500000, status: "Booked", view: "Garden" },
     { id: 2, projectId: 1, unitNumber: "A-102", floor: 1, unitType: "3BHK", area: 1350, price: 17200000, status: "Sold", view: "Road" },
     { id: 3, projectId: 1, unitNumber: "B-201", floor: 2, unitType: "2BHK", area: 1010, price: 13100000, status: "Booked", view: "Pool" },
     { id: 4, projectId: 1, unitNumber: "B-202", floor: 2, unitType: "4BHK", area: 1980, price: 28500000, status: "Available", view: "Sea" },
     { id: 5, projectId: 1, unitNumber: "C-301", floor: 3, unitType: "3BHK", area: 1450, price: 18900000, status: "Held", view: "Garden" },
     { id: 6, projectId: 1, unitNumber: "C-302", floor: 3, unitType: "2BHK", area: 950, price: 12100000, status: "Sold", view: "Road" },
     { id: 7, projectId: 1, unitNumber: "D-401", floor: 4, unitType: "4BHK", area: 2100, price: 32000000, status: "Available", view: "Sea" },
-    { id: 8, projectId: 1, unitNumber: "D-402", floor: 4, unitType: "3BHK", area: 1380, price: 17800000, status: "Booked", view: "City" }
+    { id: 8, projectId: 1, unitNumber: "D-402", floor: 4, unitType: "3BHK", area: 1380, price: 17800000, status: "Booked", view: "City" },
+    { id: 9, projectId: 2, unitNumber: "GV-A101", floor: 1, unitType: "2BHK", area: 850, price: 8500000, status: "Available", view: "Garden" },
+    { id: 10, projectId: 2, unitNumber: "GV-A102", floor: 1, unitType: "3BHK", area: 1200, price: 12000000, status: "Available", view: "Pool" },
+    { id: 11, projectId: 2, unitNumber: "GV-B201", floor: 2, unitType: "2BHK", area: 880, price: 8800000, status: "Available", view: "Clubhouse" },
+    { id: 12, projectId: 2, unitNumber: "GV-C401", floor: 4, unitType: "2BHK", area: 900, price: 9000000, status: "Booked", view: "Hill" },
+    { id: 13, projectId: 2, unitNumber: "GV-B202", floor: 2, unitType: "3BHK", area: 1250, price: 12500000, status: "Sold", view: "Garden" },
+    { id: 14, projectId: 3, unitNumber: "MBP-101", floor: 1, unitType: "Commercial", area: 1500, price: 25000000, status: "Available", view: "Highway" },
+    { id: 15, projectId: 3, unitNumber: "MBP-201", floor: 2, unitType: "Commercial", area: 2000, price: 35000000, status: "Available", view: "City" },
+    { id: 16, projectId: 4, unitNumber: "PR-101", floor: 1, unitType: "2BHK", area: 800, price: 9500000, status: "Available", view: "Garden" },
+    { id: 17, projectId: 4, unitNumber: "PR-201", floor: 2, unitType: "3BHK", area: 1100, price: 13500000, status: "Booked", view: "Sea" },
+    { id: 18, projectId: 4, unitNumber: "PR-301", floor: 3, unitType: "3BHK", area: 1150, price: 14000000, status: "Available", view: "City" }
   ],
   leads: [
     { id: 1, name: "Rahul Sharma", email: "rahul.s@email.com", phone: "9800000001", source: "Website", stage: "New Lead", score: 85, interest: "Skyline Heights 3BHK", assignedTo: "Priya M.", budget: 18000000, projectId: 1, createdAt: "2026-07-01T12:00:00.000Z", nextFollowUpDate: "2026-07-07T12:00:00" },
@@ -190,7 +254,7 @@ const mockApi = {
     const allVisits = getMock("visits").filter(v => !projectId || v.projectId === projectId);
     const allCommissions = getMock("commissions");
 
-    const totalRevenue = allCustomers.reduce((acc, c) => acc + c.paidAmount, 0);
+    const totalRevenue = allBookings.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
 
     // Group leads by source
     const totalLeadCount = allLeads.length;
@@ -211,10 +275,11 @@ const mockApi = {
     
     const monthlyRevenue = months.map((m, idx) => {
       const monthIdx = idx + 1;
-      // Get sum of customer paid amount where booking date month matches
-      const revVal = allCustomers.reduce((sum, c) => {
-        const dateMonth = new Date(c.bookingDate).getMonth() + 1;
-        return dateMonth === monthIdx ? sum + c.paidAmount : sum;
+      // Get sum of booking total amount where booking date month matches
+      const revVal = allBookings.reduce((sum, b) => {
+        if (!b.bookingDate) return sum;
+        const dateMonth = new Date(b.bookingDate).getMonth() + 1;
+        return dateMonth === monthIdx ? sum + (b.totalAmount || 0) : sum;
       }, 0) / 10000000;
       return {
         m,
@@ -555,6 +620,25 @@ const mockApi = {
     list = list.filter(x => x.id !== parseInt(id));
     setMock("bookings", list);
     return null;
+  },
+  downloadBookingAgreement: async (id, bookingNumber = "Agreement") => {
+    const b = getMock("bookings").find(x => x.id === parseInt(id));
+    const cust = b ? getMock("customers").find(c => c.id === b.customerId) : null;
+    const dummyContent = `ABHAY BUILDCON ERP - ALLOTMENT AGREEMENT\n\nBooking: ${bookingNumber}\nCustomer: ${cust ? cust.name : "N/A"}\nStatus: Confirmed\nDate: ${new Date().toLocaleDateString()}\n`;
+    const blob = new Blob([dummyContent], { type: "text/plain" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Agreement_${bookingNumber}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      window.URL.revokeObjectURL(url);
+    }, 2000);
+    return true;
   },
 
   // Payments
@@ -973,6 +1057,30 @@ const realApi = {
   createBooking: (data) => req("POST", "/bookings", data),
   updateBooking: (id, data) => req("PUT", `/bookings/${id}`, data),
   deleteBooking: (id) => req("DELETE", `/bookings/${id}`),
+  downloadBookingAgreement: async (id, bookingNumber = "Agreement") => {
+    const cleanNumber = (bookingNumber || "Agreement").toString().replace(/[^a-zA-Z0-9_-]/g, "_");
+    const fileName = `Agreement_${cleanNumber}.pdf`;
+    const endpointUrl = `/api/bookings/${id}/agreement`;
+
+    // Trigger direct native browser download using the server endpoint URL.
+    // By using the direct endpoint URL instead of an in-memory blob URL, the browser's download manager
+    // natively respects the server's Content-Disposition header (Agreement_BK2026003.pdf)
+    // and saves the file with the proper .pdf extension.
+    const link = document.createElement("a");
+    link.style.display = "none";
+    link.href = endpointUrl;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 2000);
+
+    return true;
+  },
 
   getPayments: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
@@ -1039,11 +1147,12 @@ const realApi = {
 // Create fallback API wrapper
 const createFallbackApi = () => {
   const fallbackApi = {};
-  
-  Object.keys(mockApi).forEach(methodName => {
+  const allMethods = new Set([...Object.keys(mockApi), ...Object.keys(realApi)]);
+
+  allMethods.forEach(methodName => {
     fallbackApi[methodName] = async (...args) => {
       if (USE_MOCK) {
-        return mockApi[methodName](...args);
+        return mockApi[methodName] ? mockApi[methodName](...args) : null;
       }
       
       try {
@@ -1052,10 +1161,45 @@ const createFallbackApi = () => {
         }
       } catch (err) {
         console.warn(`⚠️ API call failed for '${methodName}'. Falling back to local mock data. Error:`, err);
-        return mockApi[methodName](...args);
+        connectionState = { isConnected: false, url: currentBaseUrl, isMock: true, error: err.message };
+        notifyConnectionChange();
+        if (mockApi[methodName]) {
+          return mockApi[methodName](...args);
+        }
+        throw err;
       }
     };
   });
+
+  // Health and connection inspection helpers
+  fallbackApi.getConnectionStatus = () => ({ ...connectionState });
+  fallbackApi.onConnectionChange = (listener) => {
+    connectionListeners.add(listener);
+    listener({ ...connectionState });
+    return () => connectionListeners.delete(listener);
+  };
+  fallbackApi.checkBackendHealth = async () => {
+    const urlsToTry = [currentBaseUrl];
+    const alt = getAlternativeBaseUrl(currentBaseUrl);
+    if (alt) urlsToTry.push(alt);
+
+    for (const base of urlsToTry) {
+      try {
+        const rootUrl = base.replace(/\/api\/?$/, "");
+        const res = await fetch(`${rootUrl}/health`, { method: "GET" });
+        if (res.ok) {
+          currentBaseUrl = base;
+          connectionState = { isConnected: true, url: base, isMock: false, error: null };
+          notifyConnectionChange();
+          return connectionState;
+        }
+      } catch {}
+    }
+    connectionState = { isConnected: false, url: currentBaseUrl, isMock: true, error: "Backend not reachable on 5000 or 8080" };
+    notifyConnectionChange();
+    return connectionState;
+  };
+  fallbackApi.getBaseUrl = () => currentBaseUrl;
   
   return fallbackApi;
 };

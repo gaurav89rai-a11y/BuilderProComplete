@@ -113,14 +113,31 @@ public class BuilderProDbContext : DbContext
         );
 
         modelBuilder.Entity<Unit>().HasData(
-            new Unit { Id=1, ProjectId=1, UnitNumber="A-101", Floor=1, UnitType="2BHK", Area=987, Price=12500000m, Status="Available", View="Garden" },
+            // Skyline Heights (ProjectId = 1)
+            new Unit { Id=1, ProjectId=1, UnitNumber="A-101", Floor=1, UnitType="2BHK", Area=987, Price=12500000m, Status="Booked", View="Garden" },
             new Unit { Id=2, ProjectId=1, UnitNumber="A-102", Floor=1, UnitType="3BHK", Area=1350, Price=17200000m, Status="Sold", View="Road" },
             new Unit { Id=3, ProjectId=1, UnitNumber="B-201", Floor=2, UnitType="2BHK", Area=1010, Price=13100000m, Status="Booked", View="Pool" },
             new Unit { Id=4, ProjectId=1, UnitNumber="B-202", Floor=2, UnitType="4BHK", Area=1980, Price=28500000m, Status="Available", View="Sea" },
             new Unit { Id=5, ProjectId=1, UnitNumber="C-301", Floor=3, UnitType="3BHK", Area=1450, Price=18900000m, Status="Held", View="Garden" },
             new Unit { Id=6, ProjectId=1, UnitNumber="C-302", Floor=3, UnitType="2BHK", Area=950, Price=12100000m, Status="Sold", View="Road" },
             new Unit { Id=7, ProjectId=1, UnitNumber="D-401", Floor=4, UnitType="4BHK", Area=2100, Price=32000000m, Status="Available", View="Sea" },
-            new Unit { Id=8, ProjectId=1, UnitNumber="D-402", Floor=4, UnitType="3BHK", Area=1380, Price=17800000m, Status="Booked", View="City" }
+            new Unit { Id=8, ProjectId=1, UnitNumber="D-402", Floor=4, UnitType="3BHK", Area=1380, Price=17800000m, Status="Booked", View="City" },
+
+            // Green Valley Township (ProjectId = 2)
+            new Unit { Id=9, ProjectId=2, UnitNumber="GV-A101", Floor=1, UnitType="2BHK", Area=850, Price=8500000m, Status="Available", View="Garden" },
+            new Unit { Id=10, ProjectId=2, UnitNumber="GV-A102", Floor=1, UnitType="3BHK", Area=1200, Price=12000000m, Status="Available", View="Pool" },
+            new Unit { Id=11, ProjectId=2, UnitNumber="GV-B201", Floor=2, UnitType="2BHK", Area=880, Price=8800000m, Status="Available", View="Clubhouse" },
+            new Unit { Id=12, ProjectId=2, UnitNumber="GV-C401", Floor=4, UnitType="2BHK", Area=900, Price=9000000m, Status="Booked", View="Hill" },
+            new Unit { Id=13, ProjectId=2, UnitNumber="GV-B202", Floor=2, UnitType="3BHK", Area=1250, Price=12500000m, Status="Sold", View="Garden" },
+
+            // Meridian Business Park (ProjectId = 3)
+            new Unit { Id=14, ProjectId=3, UnitNumber="MBP-101", Floor=1, UnitType="Commercial", Area=1500, Price=25000000m, Status="Available", View="Highway" },
+            new Unit { Id=15, ProjectId=3, UnitNumber="MBP-201", Floor=2, UnitType="Commercial", Area=2000, Price=35000000m, Status="Available", View="City" },
+
+            // Pearl Residences (ProjectId = 4)
+            new Unit { Id=16, ProjectId=4, UnitNumber="PR-101", Floor=1, UnitType="2BHK", Area=800, Price=9500000m, Status="Available", View="Garden" },
+            new Unit { Id=17, ProjectId=4, UnitNumber="PR-201", Floor=2, UnitType="3BHK", Area=1100, Price=13500000m, Status="Booked", View="Sea" },
+            new Unit { Id=18, ProjectId=4, UnitNumber="PR-301", Floor=3, UnitType="3BHK", Area=1150, Price=14000000m, Status="Available", View="City" }
         );
 
         modelBuilder.Entity<Lead>().HasData(
@@ -353,7 +370,7 @@ public class BuilderProDbContext : DbContext
             new SystemConfig { Id = 104, Category = "SystemSetting", Value = "SoldUnitStatus", Label = "Sold", IsDefault = false, SortOrder = 2 },
             new SystemConfig { Id = 105, Category = "SystemSetting", Value = "AvailableUnitStatus", Label = "Available", IsDefault = false, SortOrder = 3 },
             new SystemConfig { Id = 106, Category = "SystemSetting", Value = "BookedUnitStatus", Label = "Booked", IsDefault = false, SortOrder = 4 },
-            new SystemConfig { Id = 107, Category = "SystemSetting", Value = "BookedLeadStage", Label = "Booked", IsDefault = false, SortOrder = 5 },
+            new SystemConfig { Id = 107, Category = "SystemSetting", Value = "BookedLeadStage", Label = "Booking Confirmed", IsDefault = false, SortOrder = 5 },
             new SystemConfig { Id = 108, Category = "SystemSetting", Value = "OverdueCustomerStatus", Label = "Overdue", IsDefault = false, SortOrder = 6 },
             new SystemConfig { Id = 109, Category = "SystemSetting", Value = "OpenSupportStatus", Label = "Open", IsDefault = false, SortOrder = 7 },
             new SystemConfig { Id = 110, Category = "SystemSetting", Value = "PendingCommissionStatus", Label = "Pending Approval", IsDefault = false, SortOrder = 8 },

@@ -1,11 +1,29 @@
-import { useState } from "react";
-import { Search, Sun, Moon, Bell, Menu } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Sun, Moon, Bell, Menu, RefreshCw } from "lucide-react";
 import { C } from "../../config/theme.js";
 import { LABELS } from "../../config/navigation.js";
 import { Modal, Btn } from "../ui";
+import { api } from "../../services/api.js";
 
 export function TopBar({mod, theme, toggleTheme, user, sidebarCollapsed, setSidebarCollapsed, isMobile}) {
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [connStatus, setConnStatus] = useState(api.getConnectionStatus ? api.getConnectionStatus() : { isConnected: null });
+  const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    if (api.onConnectionChange) {
+      const unsub = api.onConnectionChange(setConnStatus);
+      return unsub;
+    }
+  }, []);
+
+  const handleReconnect = async () => {
+    setIsChecking(true);
+    if (api.checkBackendHealth) {
+      await api.checkBackendHealth();
+    }
+    setIsChecking(false);
+  };
   
   return (
     <div style={{background:C.side,borderBottom:`1px solid ${C.bord}`,padding:isMobile ? "0 12px" : "0 22px",
@@ -33,6 +51,31 @@ export function TopBar({mod, theme, toggleTheme, user, sidebarCollapsed, setSide
               outline:"none",color:C.txt,fontSize:12,width:180}}/>
           </div>
         )}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: connStatus.isConnected ? `${C.teal}14` : `${C.gold}14`,
+          border: `1px solid ${connStatus.isConnected ? `${C.teal}40` : `${C.gold}40`}`,
+          borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 600,
+          color: connStatus.isConnected ? C.teal : C.gold,
+          userSelect: "none"
+        }} title={connStatus.isConnected ? `Connected to live API: ${connStatus.url}` : "Backend API unreachable - running on local mock data. Click retry to reconnect."}>
+          <span style={{
+            width: 7, height: 7, borderRadius: "50%",
+            background: connStatus.isConnected ? C.teal : C.gold,
+            boxShadow: connStatus.isConnected ? `0 0 6px ${C.teal}` : "none",
+          }} />
+          <span style={{ display: isMobile ? "none" : "inline" }}>
+            {connStatus.isConnected ? "Live DB" : "Mock Data"}
+          </span>
+          {!connStatus.isConnected && (
+            <button onClick={handleReconnect} disabled={isChecking} title="Retry API connection" style={{
+              background: "none", border: "none", padding: 0, marginLeft: 2, cursor: "pointer",
+              color: C.gold, display: "flex", alignItems: "center"
+            }}>
+              <RefreshCw size={11} style={{ animation: isChecking ? "spin 1s linear infinite" : "none" }} />
+            </button>
+          )}
+        </div>
         <button onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
           style={{background:C.raise,border:`1px solid ${C.bord}`,
           borderRadius:9,padding:8,cursor:"pointer",color:C.sub,display:"flex",alignItems:"center"}}>

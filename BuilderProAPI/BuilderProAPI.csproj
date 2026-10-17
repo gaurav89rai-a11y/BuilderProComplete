@@ -10,7 +10,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="QuestPDF" Version="2023.12.6" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.33" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Reports\**\*.rdlc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <EmbeddedResource Include="Reports\**\*.rdlc" />
   </ItemGroup>
 </Project>

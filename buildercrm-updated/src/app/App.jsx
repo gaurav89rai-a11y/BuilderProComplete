@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, FileText, GitBranch, CreditCard, RefreshCw, Bell, Clock, Activity, ShoppingCart, Package, Users, FolderOpen, DollarSign } from "lucide-react";
+import { Shield, CreditCard, Clock, Activity, Users, FolderOpen, DollarSign, AlertCircle } from "lucide-react";
 import { api } from "../services/api.js";
 
 import { C, themes, initialTheme } from "../config/theme.js";
@@ -9,10 +9,7 @@ import { LoginForm } from "../forms";
 import { Sidebar, TopBar } from "../components/navigation";
 import { ModuleErrorBoundary } from "../components/ModuleErrorBoundary.jsx";
 
-// Import UI subcomponents
-import { AlertCircle } from "lucide-react";
-
-// Import all feature components
+// Import feature components
 import { Dashboard } from "../features/dashboard/Dashboard.jsx";
 import { Projects } from "../features/projects/Projects.jsx";
 import { Inventory } from "../features/inventory/Inventory.jsx";
@@ -108,6 +105,14 @@ const MODULES = {
   vendors: Vendors,
   store: StoreManagement,
   inventory_oms: MaterialInventoryDashboard,
+  commission: Commission,
+  commissions: Commission,
+  documents: Documents,
+  cust_docs: Documents,
+  proj_docs: Documents,
+  rera: RERACompliance,
+  ai: AIAssistant,
+  workflow: Workflow,
   engineers: (props) => <PlaceholderView featureName="Site Engineers Directory" icon={Users} {...props} />,
   labour: (props) => <PlaceholderView featureName="Labour Log Book" icon={Users} {...props} />,
   equipment: (props) => <PlaceholderView featureName="Heavy Equipment Tracker" icon={Activity} {...props} />,

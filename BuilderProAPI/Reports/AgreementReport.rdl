@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BuilderProDataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=DESKTOP-141HEF3\SQLEXPRESS;Initial Catalog=BuilderProDB;Integrated Security=True</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>c526d11b-1a91-447a-8f92-9a3b83981290</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="BookingAgreementDataSet">
+      <Query>
+        <DataSourceName>BuilderProDataSource</DataSourceName>
+        <CommandText>
+          SELECT 
+            b.Id AS BookingId,
+            b.BookingNumber,
+            b.BookingDate,
+            b.TotalAmount,
+            b.TokenAmount,
+            (b.TotalAmount - b.TokenAmount) AS BalanceAmount,
+            b.Status AS BookingStatus,
+            b.AssignedAgent,
+            c.Name AS CustomerName,
+            c.Phone AS CustomerPhone,
+            c.Email AS CustomerEmail,
+            c.Status AS CustomerStatus,
+            u.UnitNumber,
+            u.UnitType,
+            u.Area AS UnitArea,
+            u.Floor AS UnitFloor,
+            u.Price AS UnitPrice,
+            p.Name AS ProjectName,
+            p.Location AS ProjectLocation,
+            p.ReraNumber AS ProjectReraNumber
+          FROM Bookings b
+          LEFT JOIN Customers c ON b.CustomerId = c.Id
+          LEFT JOIN Units u ON b.UnitId = u.Id
+          LEFT JOIN Projects p ON u.ProjectId = p.Id OR c.ProjectId = p.Id
+          WHERE b.Id = @BookingId OR b.BookingNumber = @BookingNumber
+        </CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@BookingId">
+            <Value>=Parameters!BookingId.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@BookingNumber">
+            <Value>=Parameters!BookingNumber.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="BookingId"><DataField>BookingId</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="BookingNumber"><DataField>BookingNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="BookingDate"><DataField>BookingDate</DataField><rd:TypeName>System.DateTime</rd:TypeName></Field>
+        <Field Name="TotalAmount"><DataField>TotalAmount</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TokenAmount"><DataField>TokenAmount</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="BalanceAmount"><DataField>BalanceAmount</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="BookingStatus"><DataField>BookingStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="AssignedAgent"><DataField>AssignedAgent</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerName"><DataField>CustomerName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerPhone"><DataField>CustomerPhone</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerEmail"><DataField>CustomerEmail</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerStatus"><DataField>CustomerStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitNumber"><DataField>UnitNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitType"><DataField>UnitType</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitArea"><DataField>UnitArea</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="UnitFloor"><DataField>UnitFloor</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="UnitPrice"><DataField>UnitPrice</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="ProjectName"><DataField>ProjectName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectLocation"><DataField>ProjectLocation</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectReraNumber"><DataField>ProjectReraNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="BookingId">
+      <DataType>Integer</DataType>
+      <DefaultValue><Values><Value>1</Value></Values></DefaultValue>
+      <Prompt>Booking ID</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="BookingNumber">
+      <DataType>String</DataType>
+      <Nullable>true</Nullable>
+      <AllowBlank>true</AllowBlank>
+      <Prompt>Booking Number</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="HeaderTitle">
+            <Top>0.2in</Top>
+            <Left>0.2in</Left>
+            <Height>0.4in</Height>
+            <Width>6.5in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>ABHAY BUILDCON ERP - ALLOTMENT &amp; SALE AGREEMENT</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>14pt</FontSize>
+                      <FontWeight>Bold</FontWeight>
+                      <Color>#B8860B</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+          <Textbox Name="ReportSummary">
+            <Top>0.7in</Top>
+            <Left>0.2in</Left>
+            <Height>0.3in</Height>
+            <Width>6.5in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>="Booking Ref: " &amp; First(Fields!BookingNumber.Value, "BookingAgreementDataSet") &amp; " | Customer: " &amp; First(Fields!CustomerName.Value, "BookingAgreementDataSet") &amp; " | Unit: " &amp; First(Fields!UnitNumber.Value, "BookingAgreementDataSet")</Value>
+                    <Style>
+                      <FontFamily>Arial</FontFamily>
+                      <FontSize>10pt</FontSize>
+                      <FontWeight>SemiBold</FontWeight>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+        </ReportItems>
+        <Height>8.0in</Height>
+      </Body>
+      <Width>7.0in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight>
+        <PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.5in</LeftMargin>
+        <RightMargin>0.5in</RightMargin>
+        <TopMargin>0.5in</TopMargin>
+        <BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

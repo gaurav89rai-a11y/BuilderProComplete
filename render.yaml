@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: builderpro-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: https://gaurav89rai-a11y.github.io

@@ -12,4 +12,5 @@ public interface IBookingService
     Task<Booking?> UpdateBookingAsync(int id, Booking booking);
     Task<bool> DeleteBookingAsync(int id);
     Task<object> GetBookingStatsAsync();
+    Task<byte[]?> GenerateAgreementPdfAsync(int id);
 }

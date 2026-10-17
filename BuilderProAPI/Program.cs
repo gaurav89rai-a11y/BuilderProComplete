@@ -11,6 +11,9 @@ using Npgsql;
 // Disable configuration reload on change to prevent inotify instance limits issues in Linux containers
 Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
 
+// Enable legacy timestamp behavior in Npgsql to allow DateTimeKind.Unspecified seamlessly
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
@@ -24,17 +27,23 @@ builder.Services.AddSwaggerGen(c => {
 });
 
 // Database configuration with dynamic provider detection and URL parsing
-string workingConnectionString = null;
+string? workingConnectionString = null;
 bool isPostgres = false;
 
 // 1. Try DATABASE_URL first if it is set and connectable
-string dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string? dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrEmpty(dbUrl))
 {
-    if (dbUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
-        dbUrl.Contains("Host=") || dbUrl.Contains("Port=") || dbUrl.Contains("Username=") || dbUrl.Contains("SslMode="))
+    bool looksLikePostgres = dbUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+                             dbUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) ||
+                             dbUrl.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+                             dbUrl.Contains("Port=", StringComparison.OrdinalIgnoreCase) ||
+                             dbUrl.Contains("Username=", StringComparison.OrdinalIgnoreCase) ||
+                             dbUrl.Contains("SslMode=", StringComparison.OrdinalIgnoreCase);
+
+    if (looksLikePostgres)
     {
-        string pgConn = dbUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) 
+        string pgConn = (dbUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) || dbUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
             ? ConvertPostgresUrlToConnectionString(dbUrl) 
             : dbUrl;
         try
@@ -74,7 +83,7 @@ if (!string.IsNullOrEmpty(dbUrl))
 // 2. Try DefaultConnection from appsettings.json
 if (workingConnectionString == null)
 {
-    string defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
+    string? defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
     if (!string.IsNullOrEmpty(defaultConn))
     {
         try
@@ -84,7 +93,7 @@ if (workingConnectionString == null)
                 connection.Open();
                 workingConnectionString = defaultConn;
                 isPostgres = false;
-                Console.WriteLine($"✅ Database connection test succeeded (DefaultConnection - SQL Server): {defaultConn}");
+                Console.WriteLine("✅ Database connection test succeeded (DefaultConnection - SQL Server).");
             }
         }
         catch (Exception ex)
@@ -98,10 +107,11 @@ if (workingConnectionString == null)
 if (workingConnectionString == null)
 {
     var connectionStringsToTry = new List<string> {
-        "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
-        "Server=.\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
-        "Server=(localdb)\\MSSQLLocalDB;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;",
-        "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=2;"
+        "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5;",
+        "Server=.\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5;",
+        "Server=DESKTOP-141HEF3\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5;",
+        "Server=(localdb)\\MSSQLLocalDB;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5;",
+        "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5;"
     };
 
     foreach (var connStr in connectionStringsToTry)
@@ -113,7 +123,7 @@ if (workingConnectionString == null)
                 connection.Open();
                 workingConnectionString = connStr;
                 isPostgres = false;
-                Console.WriteLine($"✅ Local SQL Server auto-discovery succeeded: {connStr}");
+                Console.WriteLine("✅ Local SQL Server auto-discovery succeeded.");
                 break;
             }
         }
@@ -129,7 +139,7 @@ if (workingConnectionString == null)
     workingConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
         ?? "Server=localhost\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;";
     isPostgres = false;
-    Console.WriteLine($"⚠️ No database connection succeeded. Falling back to default: {workingConnectionString}");
+    Console.WriteLine("⚠️ No active database connection succeeded. Using default SQL Server configuration.");
 }
 
 Console.WriteLine($"ℹ️ Active Database Provider: {(isPostgres ? "PostgreSQL" : "SQL Server")}");
@@ -146,22 +156,36 @@ builder.Services.AddDbContext<BuilderProDbContext>(options =>
     }
 });
 
+// SSRS Reporting Configuration & Services
+builder.Services.Configure<BuilderProAPI.Models.SSRSConfig>(builder.Configuration.GetSection("SSRS"));
+builder.Services.AddScoped<ISSRSReportService, SSRSReportService>();
+
 // Dependency Injection Scopes
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-// CORS - allow React frontend (restricted to production GitHub Pages and development localhosts)
+// CORS - allow React frontend (restricted to production GitHub Pages, optional FRONTEND_URL, and development localhosts)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         var allowedOrigins = new List<string> { "https://gaurav89rai-a11y.github.io" };
         
+        string? customOrigin = Environment.GetEnvironmentVariable("FRONTEND_URL");
+        if (!string.IsNullOrEmpty(customOrigin))
+        {
+            allowedOrigins.Add(customOrigin.TrimEnd('/'));
+        }
+
         allowedOrigins.Add("http://localhost:5173");
+        allowedOrigins.Add("http://localhost:5174");
         allowedOrigins.Add("http://localhost:3000");
+        allowedOrigins.Add("http://127.0.0.1:3000");
         allowedOrigins.Add("https://localhost:5173");
         allowedOrigins.Add("http://127.0.0.1:5173");
+        allowedOrigins.Add("http://localhost:5000");
+        allowedOrigins.Add("http://localhost:8080");
 
         policy.WithOrigins(allowedOrigins.ToArray())
               .AllowAnyMethod()
@@ -170,9 +194,17 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Bind to the port provided by the hosting environment (e.g. Render) or default to 8080
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://*:{port}");
+// Bind to the port provided by the hosting environment (e.g. Render/Docker) or bind to both 5000 and 8080 locally
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
+else
+{
+    // In local development, listen on both 5000 and 8080 so both ports work simultaneously
+    builder.WebHost.UseUrls("http://*:5000", "http://*:8080");
+}
 
 var app = builder.Build();
 
@@ -227,11 +259,14 @@ using (var scope = app.Services.CreateScope())
                 {
                     Path.Combine(Directory.GetCurrentDirectory(), scriptFilename),
                     Path.Combine(Directory.GetCurrentDirectory(), "..", scriptFilename),
+                    Path.Combine(Directory.GetCurrentDirectory(), "scripts", "database", scriptFilename),
+                    Path.Combine(Directory.GetCurrentDirectory(), "..", "scripts", "database", scriptFilename),
                     Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptFilename),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", scriptFilename)
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", scriptFilename),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "scripts", "database", scriptFilename)
                 };
 
-                string sqlPath = null;
+                string? sqlPath = null;
                 foreach (var path in pathsToCheck)
                 {
                     if (File.Exists(path))
@@ -309,31 +344,20 @@ app.MapControllers();
 app.MapGet("/", () => new { status = "BuilderPro API Running", version = "v2.4.1", timestamp = DateTime.UtcNow });
 app.MapGet("/health", async (BuilderProDbContext db) => {
     bool databaseConnected = false;
-    string errorMessage = null;
     try
     {
         databaseConnected = await db.Database.CanConnectAsync();
     }
     catch (Exception ex)
     {
-        errorMessage = ex.Message;
         Console.Error.WriteLine($"⚠️ Health check database connection failed: {ex.Message}");
     }
 
-    string connStr = db.Database.GetDbConnection()?.ConnectionString ?? "";
-    string maskedConnStr = System.Text.RegularExpressions.Regex.Replace(
-        connStr, 
-        @"(Password|pwd|pwd|User ID|uid|User)=\s*[^;]+", 
-        "$1=****", 
-        System.Text.RegularExpressions.RegexOptions.IgnoreCase
-    );
-
     return Results.Ok(new {
-        healthy = true,
+        status = databaseConnected ? "Healthy" : "Degraded",
         database = databaseConnected ? "connected" : "disconnected",
         provider = db.Database.ProviderName,
-        connectionString = maskedConnStr,
-        error = errorMessage
+        timestamp = DateTime.UtcNow
     });
 });
 
@@ -342,7 +366,9 @@ app.Run();
 // Helper functions at the bottom of the file
 static string ConvertPostgresUrlToConnectionString(string url)
 {
-    if (string.IsNullOrEmpty(url) || !url.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    if (string.IsNullOrEmpty(url) || 
+        (!url.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) && 
+         !url.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)))
     {
         return url;
     }
@@ -351,8 +377,8 @@ static string ConvertPostgresUrlToConnectionString(string url)
     {
         var uri = new Uri(url);
         var userInfo = uri.UserInfo.Split(':');
-        var username = userInfo[0];
-        var password = userInfo.Length > 1 ? userInfo[1] : "";
+        var username = Uri.UnescapeDataString(userInfo[0]);
+        var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
         var host = uri.Host;
         var port = uri.Port > 0 ? uri.Port : 5432;
         var database = uri.AbsolutePath.TrimStart('/');

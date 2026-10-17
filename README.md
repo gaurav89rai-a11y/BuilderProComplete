@@ -1,284 +1,209 @@
-# BuilderPro ERP — Full Stack Setup Guide
+# BuilderPro ERP — Real Estate Management Platform
 
-Complete Real Estate ERP with React frontend + .NET 8 API + Azure SQL.
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
+[![React 18](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://react.dev/)
+[![EF Core](https://img.shields.io/badge/EF%20Core-8.0-purple.svg)](https://learn.microsoft.com/ef/core/)
+[![Vite](https://img.shields.io/badge/Vite-5.4-yellow.svg)](https://vitejs.dev/)
+[![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)]()
+
+A comprehensive, enterprise-grade Real Estate ERP system designed for builders, developers, and property aggregators. Built with a robust **ASP.NET Core 8 Web API** backend and a high-performance **React 18** client powered by Vite.
 
 ---
 
-## Project Structure
+## Architecture & Technology Stack
 
 ```
-BuilderPro/
-├── BuilderProAPI/              ← .NET 8 Web API (Backend)
-│   ├── Controllers/            ← 11 API controllers
-│   ├── Models/Models.cs        ← All database models
-│   ├── Data/BuilderProDbContext.cs  ← EF Core + Seed data
-│   ├── Migrations/             ← EF migrations
-│   ├── Program.cs              ← App startup + CORS + Swagger
-│   ├── appsettings.json        ← DB connection string
-│   └── BuilderProAPI.csproj
+BuilderProComplete/
+├── BuilderProAPI/                 # ASP.NET Core 8 Web API (Backend)
+│   ├── Controllers/               # 19 REST Controllers (Leads, Projects, Bookings, OMS, etc.)
+│   ├── Data/                      # EF Core DbContext & Schema Seeding
+│   ├── Middlewares/               # Global Exception Handling & Logging
+│   ├── Models/                    # 19 Domain Entities (Projects, Units, Bookings, etc.)
+│   ├── Repositories/              # Generic Repository & Transactional Unit of Work
+│   ├── Services/                  # Business Logic Services (BookingService, DashboardService)
+│   ├── Properties/                # Launch profiles & environment bindings
+│   ├── appsettings.json           # Runtime configuration & database connection
+│   ├── appsettings.Example.json   # Template configuration for production/staging
+│   └── BuilderProAPI.csproj       # .NET 8 project definition
 │
-├── buildercrm-updated/         ← React 18 Frontend
+├── BuilderProAPI.Tests/           # xUnit Automated Test Suite
+│   ├── AttendanceTests.cs         # HRMS attendance integration tests
+│   ├── EmployeeTests.cs           # Employee lifecycle and user provisioning tests
+│   ├── OrderTests.cs              # Material order procurement tests
+│   └── BuilderProAPI.Tests.csproj # .NET 8 test project definition
+│
+├── buildercrm-updated/            # React 18 Single Page Application (Frontend)
+│   ├── public/                    # Static branding & logo assets
 │   ├── src/
-│   │   ├── App.jsx             ← Full app with all modals & API calls
-│   │   ├── api.js              ← API service layer
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── package.json
-│   └── vite.config.js
+│   │   ├── app/                   # App shell, responsive layouts, router mapping
+│   │   ├── components/            # Navigation (Sidebar, TopBar) & UI primitives
+│   │   ├── config/                # Dynamic theme tokens, permissions, navigation tree
+│   │   ├── features/              # 18 Domain features (Dashboard, Leads, OMS, HRMS, etc.)
+│   │   ├── forms/                 # Customer, booking, partner, feedback forms
+│   │   ├── services/              # Dual-mode HTTP service layer + offline mock fallback
+│   │   └── utils/                 # Formatting, currency, badge helpers
+│   ├── package.json               # Frontend dependencies & scripts
+│   └── vite.config.js             # Vite configuration with automatic API proxy
 │
-├── BuilderProDB_Setup.sql      ← SQL indexes, views, stored procedures
-├── deploy-azure.ps1            ← Windows/PowerShell deployment
-├── deploy-azure.sh             ← Linux/Mac deployment
-└── README.md
+├── scripts/
+│   ├── database/                  # SQL setup scripts & 5,000+ item material catalog
+│   │   ├── BuilderProDB_Setup.sql
+│   │   ├── BuilderProComplete_MaterialMaster_5000.sql
+│   │   └── BuilderProComplete_MaterialMaster_5000_pg.sql
+│   └── deployment/                # Cloud provisioning & deployment automation
+│       ├── deploy-azure.ps1       # Automated Azure Resource Group, SQL, App Service deployment
+│       ├── deploy-azure.sh        # Linux/macOS deployment script
+│       └── deploy-gh-pages.ps1    # Automated GitHub Pages static deployer
+│
+├── docs/                          # Architecture, API specifications, deployment guides
+│   ├── ARCHITECTURE.md            # System architecture and design patterns
+│   ├── API_DOCUMENTATION.md       # Complete 19-controller REST endpoint reference
+│   └── DEPLOYMENT_GUIDE.md        # Detailed Azure, Docker, and GitHub Pages guide
+│
+├── BuilderPro.sln                 # Root Visual Studio solution file
+├── Dockerfile                     # Multi-stage production container build
+├── .gitignore                     # Comprehensive repository exclusion rules
+└── README.md                      # Project documentation
 ```
 
 ---
 
-## API Endpoints
+## Core Modules & Features
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/dashboard` | Dashboard stats |
-| GET/POST | `/api/projects` | List / Create projects |
-| PUT/DELETE | `/api/projects/{id}` | Update / Delete project |
-| GET/POST | `/api/units` | List / Add units (filter: ?projectId=&status=) |
-| PATCH | `/api/units/{id}/status` | Update unit status |
-| GET/POST | `/api/leads` | List / Create leads |
-| GET | `/api/leads/kanban` | Kanban board data |
-| PATCH | `/api/leads/{id}/stage` | Move lead stage |
-| GET/POST | `/api/channelpartners` | List / Add partners |
-| GET/POST | `/api/customers` | List / Add customers |
-| GET/POST | `/api/sitevisits` | List / Schedule visits |
-| PATCH | `/api/sitevisits/{id}/status` | Update visit status |
-| GET/POST | `/api/bookings` | List / Create bookings |
-| GET/POST | `/api/payments` | List / Record payments |
-| GET/POST | `/api/commissions` | List / Add commissions |
-| PATCH | `/api/commissions/{id}/approve` | Approve commission |
-| PATCH | `/api/commissions/{id}/pay` | Mark commission paid |
-| GET/POST | `/api/documents` | List / Add documents |
-| GET/POST | `/api/servicetickets` | List / Create tickets |
-| PATCH | `/api/servicetickets/{id}/status` | Update ticket status |
+| Module | Features Included |
+| :--- | :--- |
+| **Executive Dashboard** | Real-time project metrics, financial summaries, lead conversion sources, inventory breakdowns |
+| **Sales CRM** | Multi-stage lead management, interactive Kanban board, timeline audit tracking |
+| **Site Visits** | Schedule, track, and record feedback for prospective property buyer site visits |
+| **Bookings & Units** | Complete unit inventory management, automated token-to-booking transitions, unit status locking |
+| **Finance & Ledger** | Receipts tracking, installment schedules, invoices, payment receipts |
+| **Order Management (OMS)** | 5,000+ material master catalog, stock levels, purchase orders, store management, vendor directory |
+| **Human Resources (HRMS)** | Employee directory, daily attendance check-in, leave requests and approvals |
+| **Channel Partners** | Broker registrations, tier ranking (Platinum/Gold/Silver), commission claims & payouts |
+| **Customer Support** | Customer grievance ticketing, priority escalation, issue resolution logs |
+| **RERA & Compliance** | Project regulatory tracking, documentation verification |
+| **Security & RBAC** | Role-based permission controls (`Super Admin`, `Manager`, `Sales Agent`, `Support Agent`) |
 
 ---
 
 ## Prerequisites
 
-| Tool | Version | Download |
-|------|---------|----------|
-| .NET SDK | 8.0+ | https://dotnet.microsoft.com/download |
-| Node.js | 18+ | https://nodejs.org |
-| Azure CLI | Latest | https://aka.ms/installazurecli |
-| SQL Server | Any (local/Azure) | https://www.microsoft.com/sql-server |
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Node.js 18+](https://nodejs.org) & npm
+- [SQL Server](https://www.microsoft.com/sql-server) (Local / Azure) or [PostgreSQL](https://www.postgresql.org/)
 
 ---
 
-## Local Development Setup
+## Quickstart (Run Locally)
 
-### Step 1 — Run the Backend
-
-```bash
-cd BuilderProAPI
-
-# Restore packages
-dotnet restore
-
-# Apply migrations & seed database (auto-runs on startup)
-# Make sure SQL Server is running locally, then update connection string:
-# In appsettings.json change to:
-# "DefaultConnection": "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;"
-
-# Run the API
-dotnet run
-
-# API will start at: http://localhost:5000
-# Swagger docs at:   http://localhost:5000/swagger
-```
-
-### Step 2 — Run the Frontend
-
-```bash
-cd buildercrm-updated
-
-# Install dependencies
-npm install
-
-# Start dev server (proxies /api to localhost:5000 automatically)
-npm run dev
-
-# Open http://localhost:3000
-```
-
-### Step 3 — Test API
-
-Visit http://localhost:5000/swagger to see all endpoints and test them interactively.
-
----
-
-## Azure Deployment (One Command)
-
-### Option A — Windows (PowerShell)
+### 1. Start the Backend API
 
 ```powershell
-# Open PowerShell as Administrator
-cd C:\path\to\BuilderPro
-
-# Run deployment script
-.\deploy-azure.ps1
-
-# Custom parameters (optional):
-.\deploy-azure.ps1 -ResourceGroup "my-rg" -Location "westindia" -AppName "my-builderpro-api"
+cd BuilderProAPI
+$env:PORT="5000"
+dotnet run
 ```
 
-### Option B — Linux / Mac (Bash)
+- **Backend API**: `http://localhost:5000`
+- **Swagger Documentation**: `http://localhost:5000/swagger`
+- **Health Check**: `http://localhost:5000/health`
 
-```bash
-cd /path/to/BuilderPro
-chmod +x deploy-azure.sh
-./deploy-azure.sh
+### 2. Start the Frontend Client
+
+In a separate terminal:
+
+```powershell
+cd buildercrm-updated
+npm install
+npm run dev
 ```
 
-### What the script does automatically:
-
-1. ✅ Logs in to Azure
-2. ✅ Creates Resource Group in Central India
-3. ✅ Creates Azure SQL Server + Database (Basic tier ~$5/month)
-4. ✅ Sets firewall rules
-5. ✅ Creates App Service Plan (B1 Linux ~$13/month)
-6. ✅ Creates .NET Web App with connection string injected
-7. ✅ Creates Azure Static Web App (free tier)
-8. ✅ Builds .NET API → publishes → deploys via zip
-9. ✅ Builds React frontend with Azure API URL baked in
-10. ✅ Deploys frontend to Static Web App CDN
-11. ✅ Health checks both services
-12. ✅ Prints live URLs
+- **Frontend Client**: `http://localhost:3000`
 
 ---
 
-## Manual Azure SQL Setup (Alternative)
+## Automated Testing
 
-If you prefer to set up the database manually:
+Run the full suite of unit and integration tests from the root directory:
 
-```bash
-# 1. Create SQL Server
-az sql server create \
-  --name builderproserver \
-  --resource-group builderpro-rg \
-  --location centralindia \
-  --admin-user builderadmin \
-  --admin-password "BuilderPro@2024!"
+```powershell
+# Run all tests via the root solution
+dotnet test BuilderPro.sln
 
-# 2. Create Database
-az sql db create \
-  --server builderproserver \
-  --resource-group builderpro-rg \
-  --name BuilderProDB \
-  --service-objective Basic
-
-# 3. Open firewall
-az sql server firewall-rule create \
-  --server builderproserver \
-  --resource-group builderpro-rg \
-  --name AllowAll \
-  --start-ip-address 0.0.0.0 \
-  --end-ip-address 255.255.255.255
-
-# 4. Run the SQL setup script in Azure Portal Query Editor
-# Upload BuilderProDB_Setup.sql and execute it
+# Run frontend production build validation
+cd buildercrm-updated
+npm run build
 ```
 
 ---
 
-## Changing the Connection String
+## Database Configuration
 
-Edit `BuilderProAPI/appsettings.json`:
+The application supports both **Microsoft SQL Server** and **PostgreSQL** with automatic provider detection:
 
+### SQL Server (Default)
+In `BuilderProAPI/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=tcp:YOUR_SERVER.database.windows.net,1433;Initial Catalog=BuilderProDB;User ID=builderadmin;Password=YOUR_PASSWORD;Encrypt=True;"
+    "DefaultConnection": "Server=localhost;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;"
   }
 }
 ```
 
-For local SQL Server Express:
-```json
-"DefaultConnection": "Server=.\\SQLEXPRESS;Database=BuilderProDB;Trusted_Connection=True;TrustServerCertificate=True;"
+### PostgreSQL (or Cloud / Container)
+Set the `DATABASE_URL` environment variable:
+```bash
+export DATABASE_URL="postgres://username:password@hostname:5432/builderprodb"
+```
+On startup, EF Core automatically initializes the database schema (`EnsureCreated()`) and seeds the Material Master catalog from `scripts/database/BuilderProComplete_MaterialMaster_5000.sql`.
+
+---
+
+## Container Deployment (Docker)
+
+Build and run the containerized backend:
+
+```bash
+# Build Docker image
+docker build -t builderpro-api .
+
+# Run container
+docker run -d -p 8080:8080 \
+  -e "ConnectionStrings__DefaultConnection=Server=your-sql-server;Database=BuilderProDB;User ID=your-user;Password=your-password;TrustServerCertificate=True;" \
+  --name builderpro-api builderpro-api
 ```
 
 ---
 
-## Features Implemented
+## Cloud Deployment (Azure)
 
-### Frontend (React 18)
-- ✅ Dashboard with live stats from API
-- ✅ Projects — Add/View/Edit with modal
-- ✅ Inventory — Add units, filter by status
-- ✅ Leads — Kanban board, Add lead modal
-- ✅ Channel Partners — Add/View partners
-- ✅ Customers — Add/View with payment tracker
-- ✅ Site Visits — Schedule, Complete, Cancel
-- ✅ Bookings — Create bookings
-- ✅ Payments — Record payments
-- ✅ Commission — Approve/Pay commissions
-- ✅ Documents — Add document records
-- ✅ Customer Service — Create/Resolve tickets
-- ✅ RERA Compliance — Status tracker
-- ✅ AI Assistant (ARIA) — Chat interface
-- ✅ Workflows — Process visualizer
-- ✅ Reports — Revenue charts, KPIs
+Deploy the entire infrastructure (Azure SQL + App Service + Static Web App) in one command:
 
-### Backend (.NET 8)
-- ✅ 11 full CRUD controllers
-- ✅ Entity Framework Core + MS SQL
-- ✅ Auto-migration on startup
-- ✅ Seed data (4 projects, 8 units, 5 leads, 3 partners, 4 customers)
-- ✅ Swagger / OpenAPI documentation
-- ✅ CORS configured for any origin
-- ✅ Health check endpoint
+```powershell
+./scripts/deployment/deploy-azure.ps1 `
+    -ResourceGroup "builderpro-rg" `
+    -Location "centralindia" `
+    -AppName "builderpro-api" `
+    -FrontendApp "builderpro-web" `
+    -SqlServer "builderproserver" `
+    -SqlDatabase "BuilderProDB" `
+    -SqlAdmin "builderadmin" `
+    -SqlPassword "$env:AZURE_SQL_PASSWORD"
+```
 
-### Database
-- ✅ 11 tables with proper FK relationships
-- ✅ Performance indexes
-- ✅ 4 SQL Views (Dashboard, Portfolio, Payments, Lead Pipeline)
-- ✅ 3 Stored Procedures (Revenue, Lead Conversion, Partner Performance)
-- ✅ 2 Triggers (Booking auto-update, Overdue detection)
+For detailed deployment guides and configurations, see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
 
 ---
 
-## Estimated Azure Cost
+## Documentation
 
-| Resource | Tier | Monthly Cost |
-|----------|------|-------------|
-| App Service (API) | B1 | ~$13 |
-| Azure SQL Database | Basic 5 DTU | ~$5 |
-| Static Web App (Frontend) | Free | $0 |
-| **Total** | | **~$18/month** |
+- **System Architecture & Design**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Complete REST API Reference**: [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
+- **Deployment Manual**: [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 
 ---
 
-## Troubleshooting
+## License
 
-**API returns 500 errors?**
-- Check connection string in App Service → Configuration → Connection Strings
-- Check App Service logs: `az webapp log tail --name builderpro-api --resource-group builderpro-rg`
-
-**Frontend shows "Failed to load data"?**
-- Check `VITE_API_URL` in `.env.production` matches your API URL
-- Verify CORS is enabled (it is by default in Program.cs)
-
-**Database migration errors?**
-- Run `dotnet ef database update` from the BuilderProAPI folder
-- Or delete the database and let auto-migrate recreate it
-
-**Swagger not showing?**
-- Visit `https://your-api.azurewebsites.net/swagger`
-- Swagger is enabled in both Development and Production
-
----
-
-## Login Credentials (Demo)
-
-The app currently uses a static demo user. Auth can be added via ASP.NET Core Identity.
-
-- **Username:** Arjun Kapoor
-- **Role:** Super Admin
+Proprietary enterprise software built for Abhay Buildcon / Matrix Group. All rights reserved.

@@ -1,4 +1,5 @@
 export * from "./Badge";
+export * from "./Button";
 export * from "./Btn";
 export * from "./Modal";
 export * from "./Field";
@@ -7,6 +8,7 @@ export * from "./Select";
 export * from "./LoadingState";
 export * from "./ErrorState";
 export * from "./Toast";
+export * from "./SectionTitle";
 export * from "./STitle";
 export * from "./Stat";
 export * from "./DocUploadField";
