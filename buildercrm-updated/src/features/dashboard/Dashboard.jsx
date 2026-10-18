@@ -14,6 +14,7 @@ export function Dashboard() {
   const { configs, badgeColors } = useConfig();
   const [data,setData]=useState(null);
   const [projects,setProjects]=useState([]);
+  const [users,setUsers]=useState([]);
   const [selProject,setSelProject]=useState("All");
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState(null);
@@ -30,7 +31,14 @@ export function Dashboard() {
 
   useEffect(()=>{
     api.getProjects().then(setProjects).catch(()=>{});
+    api.getUsers().then(setUsers).catch(()=>{});
   },[]);
+
+  const formatAgent = (agentVal) => {
+    if (!agentVal) return "Unassigned";
+    const user = users.find(u => u.id === parseInt(agentVal) || u.name === agentVal);
+    return user ? `${user.name} (ID: ${user.id})` : agentVal;
+  };
 
   useEffect(()=>{ load(); },[load]);
   if(loading) return <LoadingState/>;
@@ -66,7 +74,7 @@ export function Dashboard() {
           </div>
         }
       />
-      <div className="grid-4" style={{marginBottom:18}}>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))", gap:12, marginBottom:18}}>
         <Stat
           icon={Building2}
           label={proj ? "Construction Progress" : "Active Projects"}
@@ -75,6 +83,7 @@ export function Dashboard() {
           color={C.gold}
         />
         <Stat icon={DollarSign} label="Total Revenue" value={fmtCr(data.totalRevenue||0)} change={18} color={C.teal}/>
+        <Stat icon={CreditCard} label="Outstanding Balance" value={fmtCr(data.totalOutstandingBalance||0)} change={-4} color={C.red}/>
         <Stat icon={Target} label="Active Leads" value={data.activeLeads||0} change={12} color={C.blue}/>
         <Stat icon={Users} label="Customers" value={data.totalCustomers||0} change={5} color={C.amb}/>
       </div>
@@ -147,7 +156,7 @@ export function Dashboard() {
               padding:"8px 0",borderBottom:`1px solid ${C.bord}`}}>
               <div>
                 <div style={{color:C.txt,fontWeight:600,fontSize:12}}>{l.name}</div>
-                <div style={{color:C.sub,fontSize:10}}>{l.source} · {l.assignedTo}</div>
+                <div style={{color:C.sub,fontSize:10}}>{l.source} · {formatAgent(l.assignedTo || l.agentId)}</div>
               </div>
               <div style={{textAlign:"right"}}>
                 <Badge s={l.stage}/>

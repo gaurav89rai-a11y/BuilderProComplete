@@ -24,11 +24,15 @@ function notifyConnectionChange() {
 
 // ─── HTTP REQUEST UTILITY (WITH DYNAMIC PORT PROBING) ─────────
 async function req(method, path, body, customHeaders = {}) {
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  const headers = isFormData ? { ...customHeaders } : { "Content-Type": "application/json", ...customHeaders };
   const opts = {
     method,
-    headers: { "Content-Type": "application/json", ...customHeaders },
+    headers,
   };
-  if (body) opts.body = JSON.stringify(body);
+  if (body) {
+    opts.body = isFormData ? body : JSON.stringify(body);
+  }
 
   let res;
   try {
@@ -289,10 +293,17 @@ const mockApi = {
     });
 
     const selectedProject = projectId ? allProjects.find(p => p.id === projectId) : null;
+    const allPayments = getMock("payments") || [];
+    const totalOutstandingBalance = allCustomers.reduce((acc, c) => {
+      const custPayments = allPayments.filter(p => p.customerId === c.id && (p.status === "Received" || !p.status)).reduce((s, p) => s + (p.amount || 0), 0);
+      const paid = Math.max(c.paidAmount || 0, custPayments);
+      return acc + Math.max(0, (c.totalAmount || 0) - paid);
+    }, 0);
 
     return {
       activeProjects: allProjects.filter(p => p.status === "Active").length,
       totalRevenue,
+      totalOutstandingBalance,
       totalUnits: allUnits.length,
       soldUnits: allUnits.filter(u => u.status === "Sold").length,
       availableUnits: allUnits.filter(u => u.status === "Available").length,
@@ -639,6 +650,33 @@ const mockApi = {
       window.URL.revokeObjectURL(url);
     }, 2000);
     return true;
+  },
+  uploadBookingAgreement: async (id, file) => {
+    const list = getMock("bookings");
+    const idx = list.findIndex(x => x.id === parseInt(id));
+    if (idx === -1) throw new Error("Booking not found");
+    list[idx].agreementFileName = file.name;
+    list[idx].agreementPath = `/mock/agreements/${file.name}`;
+    list[idx].agreementUploadedAt = new Date().toISOString();
+    list[idx].status = "Agreement Signed";
+    setMock("bookings", list);
+    return {
+      message: "Agreement uploaded successfully",
+      fileName: file.name,
+      uploadedAt: list[idx].agreementUploadedAt,
+      status: list[idx].status
+    };
+  },
+  deleteBookingAgreement: async (id) => {
+    const list = getMock("bookings");
+    const idx = list.findIndex(x => x.id === parseInt(id));
+    if (idx !== -1) {
+      delete list[idx].agreementFileName;
+      delete list[idx].agreementPath;
+      delete list[idx].agreementUploadedAt;
+      setMock("bookings", list);
+    }
+    return { message: "Uploaded agreement removed successfully." };
   },
 
   // Payments
@@ -1081,6 +1119,13 @@ const realApi = {
 
     return true;
   },
+  uploadBookingAgreement: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return req("POST", `/bookings/${id}/agreement/upload`, formData);
+  },
+  deleteBookingAgreement: (id) => req("DELETE", `/bookings/${id}/agreement`),
+  viewBookingAgreementUrl: (id) => `/api/bookings/${id}/agreement/view`,
 
   getPayments: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

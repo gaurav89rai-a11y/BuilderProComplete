@@ -15,5 +15,10 @@ public class Booking
     public decimal TokenAmount { get; set; }
     public string Status { get; set; } = "Confirmed"; // Confirmed, Agreement Pending, Agreement Signed
     public string AssignedAgent { get; set; } = "";
+    public int? AgentId { get; set; }
+    public User? Agent { get; set; }
+    public string? AgreementPath { get; set; }
+    public string? AgreementFileName { get; set; }
+    public DateTime? AgreementUploadedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

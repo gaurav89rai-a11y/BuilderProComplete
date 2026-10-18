@@ -63,19 +63,165 @@ public class BookingsController : ControllerBase
         return Ok(await _bookingService.GetBookingStatsAsync());
     }
 
+    [HttpPost("{id}/agreement/upload")]
+    [RequestSizeLimit(30 * 1024 * 1024)] // 30 MB limit
+    public async Task<IActionResult> UploadAgreement(int id, IFormFile file)
+    {
+        _logger.LogInformation("Agreement upload requested for booking ID: {BookingId}", id);
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file was provided." });
+        }
+
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking == null)
+        {
+            return NotFound(new { message = $"Booking with ID {id} not found." });
+        }
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
+        if (!allowedExtensions.Contains(ext))
+        {
+            return BadRequest(new { message = "Only PDF, Word, and Image files (.pdf, .doc, .docx, .jpg, .png) are permitted." });
+        }
+
+        try
+        {
+            // Secure storage path outside web root
+            var storageDir = Path.Combine(AppContext.BaseDirectory, "Storage", "Agreements");
+            if (!Directory.Exists(storageDir))
+            {
+                Directory.CreateDirectory(storageDir);
+            }
+
+            // Remove existing file if present
+            if (!string.IsNullOrEmpty(booking.AgreementPath) && System.IO.File.Exists(booking.AgreementPath))
+            {
+                try { System.IO.File.Delete(booking.AgreementPath); } catch { }
+            }
+
+            // Generate sanitized unique file name
+            var safeBookingNo = string.Join("_", booking.BookingNumber.Split(Path.GetInvalidFileNameChars()));
+            var uniqueFileName = $"Agreement_{safeBookingNo}_{Guid.NewGuid():N}{ext}";
+            var fullPath = Path.Combine(storageDir, uniqueFileName);
+
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            booking.AgreementPath = fullPath;
+            booking.AgreementFileName = Path.GetFileName(file.FileName);
+            booking.AgreementUploadedAt = DateTime.UtcNow;
+            if (booking.Status == "Agreement Pending" || booking.Status == "Confirmed")
+            {
+                booking.Status = "Agreement Signed";
+            }
+
+            await _bookingService.UpdateBookingAsync(id, booking);
+            _logger.LogInformation("Agreement uploaded successfully for booking {BookingNumber}", booking.BookingNumber);
+
+            return Ok(new
+            {
+                message = "Agreement uploaded successfully.",
+                fileName = booking.AgreementFileName,
+                uploadedAt = booking.AgreementUploadedAt,
+                status = booking.Status
+            });
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading agreement for booking ID {BookingId}", id);
+            return StatusCode(500, new { message = "Error uploading agreement: " + ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/agreement/view")]
+    public async Task<IActionResult> ViewAgreement(int id)
+    {
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking == null) return NotFound(new { message = $"Booking with ID {id} not found." });
+
+        if (!string.IsNullOrEmpty(booking.AgreementPath) && System.IO.File.Exists(booking.AgreementPath))
+        {
+            var ext = Path.GetExtension(booking.AgreementPath).ToLowerInvariant();
+            var contentType = ext switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                _ => "application/octet-stream"
+            };
+
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{booking.AgreementFileName ?? "agreement" + ext}\"";
+            return PhysicalFile(booking.AgreementPath, contentType);
+        }
+
+        // Fallback to generated PDF view
+        var pdfBytes = await _bookingService.GenerateAgreementPdfAsync(id);
+        if (pdfBytes != null && pdfBytes.Length > 0)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"Agreement_{booking.BookingNumber}.pdf\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
+        return NotFound(new { message = "No agreement found for this booking." });
+    }
+
+    [HttpDelete("{id}/agreement")]
+    public async Task<IActionResult> DeleteAgreement(int id)
+    {
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking == null) return NotFound(new { message = $"Booking with ID {id} not found." });
+
+        if (!string.IsNullOrEmpty(booking.AgreementPath) && System.IO.File.Exists(booking.AgreementPath))
+        {
+            try { System.IO.File.Delete(booking.AgreementPath); } catch { }
+        }
+
+        booking.AgreementPath = null;
+        booking.AgreementFileName = null;
+        booking.AgreementUploadedAt = null;
+        await _bookingService.UpdateBookingAsync(id, booking);
+
+        return Ok(new { message = "Uploaded agreement removed successfully." });
+    }
+
     [HttpGet("{id}/agreement")]
     public async Task<IActionResult> DownloadAgreement(int id)
     {
-        _logger.LogInformation("Agreement PDF download requested for booking ID: {BookingId}", id);
+        _logger.LogInformation("Agreement download requested for booking ID: {BookingId}", id);
         try
         {
             var booking = await _bookingService.GetBookingByIdAsync(id);
             if (booking == null)
             {
-                _logger.LogWarning("Booking with ID {BookingId} not found for agreement generation", id);
+                _logger.LogWarning("Booking with ID {BookingId} not found", id);
                 return NotFound(new { message = $"Booking with ID {id} not found." });
             }
 
+            // If an uploaded agreement exists, return that file directly
+            if (!string.IsNullOrEmpty(booking.AgreementPath) && System.IO.File.Exists(booking.AgreementPath))
+            {
+                var ext = Path.GetExtension(booking.AgreementPath).ToLowerInvariant();
+                var contentType = ext switch
+                {
+                    ".pdf" => "application/pdf",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".doc" => "application/msword",
+                    ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    _ => "application/octet-stream"
+                };
+
+                var dlName = booking.AgreementFileName ?? $"Agreement_{booking.BookingNumber}{ext}";
+                return PhysicalFile(booking.AgreementPath, contentType, dlName);
+            }
+
+            // Otherwise, generate agreement via report service
             var pdfBytes = await _bookingService.GenerateAgreementPdfAsync(id);
             if (pdfBytes == null || pdfBytes.Length == 0)
             {

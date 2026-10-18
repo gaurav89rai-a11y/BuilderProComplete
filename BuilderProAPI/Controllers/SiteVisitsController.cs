@@ -15,7 +15,7 @@ public class SiteVisitsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status)
     {
-        var query = _db.SiteVisits.Include(v => v.Lead).Include(v => v.Project).AsQueryable();
+        var query = _db.SiteVisits.Include(v => v.Lead).Include(v => v.Project).Include(v => v.Agent).AsQueryable();
         if (!string.IsNullOrEmpty(status)) query = query.Where(v => v.Status == status);
         return Ok(await query.OrderByDescending(v => v.VisitDate).ToListAsync());
     }
@@ -23,7 +23,7 @@ public class SiteVisitsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var v = await _db.SiteVisits.Include(x => x.Lead).Include(x => x.Project).FirstOrDefaultAsync(x => x.Id == id);
+        var v = await _db.SiteVisits.Include(x => x.Lead).Include(x => x.Project).Include(x => x.Agent).FirstOrDefaultAsync(x => x.Id == id);
         if (v == null) return NotFound();
         return Ok(v);
     }
@@ -33,6 +33,30 @@ public class SiteVisitsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
         visit.CreatedAt = DateTime.UtcNow;
+
+        // Resolve Agent
+        if (visit.AgentId.HasValue)
+        {
+            var user = await _db.Users.FindAsync(visit.AgentId.Value);
+            if (user != null && string.IsNullOrEmpty(visit.AssignedAgent))
+            {
+                visit.AssignedAgent = user.Name;
+            }
+        }
+        else if (!string.IsNullOrEmpty(visit.AssignedAgent))
+        {
+            if (int.TryParse(visit.AssignedAgent, out int parsedId))
+            {
+                visit.AgentId = parsedId;
+                var user = await _db.Users.FindAsync(parsedId);
+                if (user != null) visit.AssignedAgent = user.Name;
+            }
+            else
+            {
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Name == visit.AssignedAgent);
+                if (user != null) visit.AgentId = user.Id;
+            }
+        }
         if (string.IsNullOrEmpty(visit.Status))
         {
             visit.Status = await _db.SystemConfigs.Where(c => c.Category == "SystemSetting" && c.Value == "DefaultSiteVisitStatus").Select(c => c.Label).FirstOrDefaultAsync()
@@ -91,10 +115,34 @@ public class SiteVisitsController : ControllerBase
         if (existing == null) return NotFound();
         existing.VisitDate = visit.VisitDate;
         existing.VisitTime = visit.VisitTime;
-        existing.AssignedAgent = visit.AssignedAgent;
         existing.Status = visit.Status;
         existing.Interest = visit.Interest;
         existing.Notes = visit.Notes;
+
+        // Resolve Agent
+        if (visit.AgentId.HasValue)
+        {
+            existing.AgentId = visit.AgentId;
+            var user = await _db.Users.FindAsync(visit.AgentId.Value);
+            if (user != null) existing.AssignedAgent = user.Name;
+            else if (!string.IsNullOrEmpty(visit.AssignedAgent)) existing.AssignedAgent = visit.AssignedAgent;
+        }
+        else if (!string.IsNullOrEmpty(visit.AssignedAgent))
+        {
+            if (int.TryParse(visit.AssignedAgent, out int parsedId))
+            {
+                existing.AgentId = parsedId;
+                var user = await _db.Users.FindAsync(parsedId);
+                if (user != null) existing.AssignedAgent = user.Name;
+                else existing.AssignedAgent = visit.AssignedAgent;
+            }
+            else
+            {
+                existing.AssignedAgent = visit.AssignedAgent;
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Name == visit.AssignedAgent);
+                if (user != null) existing.AgentId = user.Id;
+            }
+        }
         await _db.SaveChangesAsync();
 
         var lead = await _db.Leads.FindAsync(existing.LeadId);

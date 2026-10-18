@@ -36,6 +36,7 @@ public class DashboardService : IDashboardService
         var allTickets = await _uow.ServiceTickets.GetAllAsync();
         var allVisits = await _uow.SiteVisits.GetAllAsync(v => !projectId.HasValue || v.ProjectId == projectId.Value);
         var allCommissions = await _uow.Commissions.GetAllAsync();
+        var allPayments = await _uow.Payments.GetAllAsync();
 
         var activeProjectStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "ActiveProjectStatus")).Select(c => c.Label).FirstOrDefault() ?? "";
 
@@ -44,6 +45,14 @@ public class DashboardService : IDashboardService
             : allProjects.Count(p => p.Status == activeProjectStatus);
 
         var totalRevenue = allBookings.Sum(b => b.TotalAmount);
+
+        // Calculate total Outstanding Balance based on actual customer purchases and payment records
+        var totalOutstandingBalance = allCustomers.Sum(c =>
+        {
+            var custPayments = allPayments.Where(p => p.CustomerId == c.Id && (p.Status == "Received" || string.IsNullOrEmpty(p.Status))).Sum(p => p.Amount);
+            var paid = Math.Max(c.PaidAmount, custPayments);
+            return Math.Max(0m, c.TotalAmount - paid);
+        });
 
         // Retrieve configured lead sources to safely map/group them from database definitions
         var configuredSources = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "LeadSource")).Select(c => c.Value).ToHashSet();
@@ -112,6 +121,7 @@ public class DashboardService : IDashboardService
         {
             activeProjects,
             totalRevenue,
+            totalOutstandingBalance,
             totalUnits = allUnits.Count(),
             soldUnits = allUnits.Count(u => u.Status == soldStatus),
             availableUnits = allUnits.Count(u => u.Status == availableStatus),
@@ -139,7 +149,7 @@ public class DashboardService : IDashboardService
             leadSources,
             monthlyRevenue,
             recentLeads = allLeads.OrderByDescending(l => l.CreatedAt).Take(5)
-                .Select(l => new { l.Id, l.Name, l.Source, l.Stage, l.Score, l.Budget, l.AssignedTo }).ToList(),
+                .Select(l => new { l.Id, l.Name, l.Source, l.Stage, l.Budget, l.AssignedTo, l.AgentId }).ToList(),
             recentBookings = allBookings
                 .OrderByDescending(b => b.BookingDate).Take(5)
                 .Select(b => new

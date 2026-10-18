@@ -356,7 +356,7 @@ export function BookingForm({
             style={{ ...inp, cursor: "pointer" }}
           >
             {usersList.filter(u => u.role === "Sales Agent" || u.role === "Super Admin").map(u => (
-              <option key={u.id} value={u.name}>{u.name}</option>
+              <option key={u.id} value={u.name}>{u.name} (ID: {u.id})</option>
             ))}
           </select>
         </Field>

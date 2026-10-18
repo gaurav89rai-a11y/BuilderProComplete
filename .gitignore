@@ -12,6 +12,7 @@ yarn-error.log*
 .pnpm-debug.log*
 .node/
 .git-portable/
+.tools/
 vite.config.js.timestamp-*.mjs
 
 # .NET & ASP.NET Core

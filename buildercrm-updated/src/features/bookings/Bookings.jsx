@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { 
   FileText, Plus, Edit, Trash2, Loader2, X, RefreshCw, DollarSign, 
-  CheckCircle, Eye, Download, Search, User, Home, Calendar, Phone, Mail, Award, Check
+  CheckCircle, Eye, Download, Search, User, Home, Calendar, Phone, Mail, Award, Check, Upload
 } from "lucide-react";
 import { api } from "../../services/api.js";
 import { C } from "../../config/theme.js";
@@ -16,6 +16,7 @@ export function Bookings() {
   const [units, setUnits] = useState([]);
   const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -25,6 +26,8 @@ export function Bookings() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [uploadingBookingId, setUploadingBookingId] = useState(null);
+  const [agreementFile, setAgreementFile] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
 
@@ -37,25 +40,42 @@ export function Bookings() {
     totalAmount: 0,
     tokenAmount: 0,
     status: defaultStatus,
+    agentId: "",
     assignedAgent: ""
   });
+
+  const getAgentDisplay = (assignedAgent, agentId) => {
+    if (agentId) {
+      const u = users.find(x => x.id === agentId || x.id.toString() === agentId.toString());
+      if (u) return `${u.name} (ID: ${u.id})`;
+      return `Agent #${agentId}`;
+    }
+    if (assignedAgent) {
+      const u = users.find(x => x.name?.toLowerCase() === assignedAgent?.toLowerCase() || x.id?.toString() === assignedAgent?.toString());
+      if (u) return `${u.name} (ID: ${u.id})`;
+      return assignedAgent;
+    }
+    return "Unassigned";
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [b, c, u, l, p] = await Promise.all([
+      const [b, c, u, l, p, usrs] = await Promise.all([
         api.getBookings(),
         api.getCustomers(),
         api.getUnits({ status: "Available" }),
         api.getLeads(),
-        api.getProjects()
+        api.getProjects(),
+        api.getUsers().catch(() => [])
       ]);
       setBookings(b || []);
       setCustomers(c || []);
       setUnits(u || []);
       setLeads(l || []);
       setProjects(p || []);
+      setUsers(usrs || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -74,14 +94,38 @@ export function Bookings() {
     if (!booking) return;
     try {
       setDownloadingId(booking.id);
-      setToast({ msg: `Generating Agreement PDF for ${booking.bookingNumber}...`, type: "info" });
-      await api.downloadBookingAgreement(booking.id, booking.bookingNumber);
+      setToast({ msg: `Downloading Agreement for ${booking.bookingNumber}...`, type: "info" });
+      await api.downloadBookingAgreement(booking.id, booking.agreementFileName || booking.bookingNumber);
       setToast({ msg: `Agreement for ${booking.bookingNumber} downloaded successfully!`, type: "success" });
     } catch (err) {
       console.error("Agreement download error:", err);
       setToast({ msg: `Failed to download agreement: ${err.message || "Unknown error"}`, type: "error" });
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleViewAgreement = (booking) => {
+    if (!booking) return;
+    const url = api.viewBookingAgreementUrl(booking.id);
+    window.open(url, "_blank");
+  };
+
+  const handleUploadAgreement = async (bookingId, file) => {
+    if (!file) return;
+    try {
+      setUploadingBookingId(bookingId);
+      setToast({ msg: `Uploading agreement file (${file.name})...`, type: "info" });
+      const updated = await api.uploadBookingAgreement(bookingId, file);
+      setToast({ msg: "Agreement uploaded and saved securely!", type: "success" });
+      if (selectedBooking && selectedBooking.id === bookingId) {
+        setSelectedBooking(updated);
+      }
+      load();
+    } catch (err) {
+      setToast({ msg: `Upload failed: ${err.message}`, type: "error" });
+    } finally {
+      setUploadingBookingId(null);
     }
   };
 
@@ -104,10 +148,21 @@ export function Bookings() {
       };
 
       // 1. Auto-fill Assigned Agent
-      if (matchingLead?.assignedTo) {
-        updated.assignedAgent = matchingLead.assignedTo;
-      } else if (!updated.assignedAgent) {
-        updated.assignedAgent = "Arjun Kapoor";
+      if (matchingLead?.agentId) {
+        updated.agentId = matchingLead.agentId.toString();
+        const u = users.find(x => x.id === matchingLead.agentId);
+        updated.assignedAgent = u ? u.name : (matchingLead.assignedTo || "");
+      } else if (matchingLead?.assignedTo) {
+        const u = users.find(x => x.name?.toLowerCase() === matchingLead.assignedTo?.toLowerCase());
+        if (u) {
+          updated.agentId = u.id.toString();
+          updated.assignedAgent = u.name;
+        } else {
+          updated.assignedAgent = matchingLead.assignedTo;
+        }
+      } else if (!updated.agentId && users.length > 0) {
+        updated.agentId = users[0].id.toString();
+        updated.assignedAgent = users[0].name;
       }
 
       // 2. Auto-fill Booking Date to today if empty
@@ -164,15 +219,27 @@ export function Bookings() {
     }
     setSaving(true);
     try {
-      await api.createBooking({
+      const created = await api.createBooking({
         ...form,
         customerId: +form.customerId,
         unitId: +form.unitId,
         totalAmount: +form.totalAmount,
         tokenAmount: +form.tokenAmount,
+        agentId: form.agentId ? +form.agentId : null,
+        assignedAgent: form.assignedAgent || null,
         bookingDate: form.bookingDate ? new Date(form.bookingDate).toISOString() : new Date().toISOString()
       });
+
+      if (agreementFile && created?.id) {
+        try {
+          await api.uploadBookingAgreement(created.id, agreementFile);
+        } catch (upErr) {
+          console.error("Agreement upload failed:", upErr);
+        }
+      }
+
       setShowModal(false);
+      setAgreementFile(null);
       setForm({
         customerId: "",
         unitId: "",
@@ -180,9 +247,10 @@ export function Bookings() {
         totalAmount: 0,
         tokenAmount: 0,
         status: defaultStatus,
+        agentId: "",
         assignedAgent: ""
       });
-      setToast({ msg: "Booking created successfully!", type: "success" });
+      setToast({ msg: "Booking created successfully with agreement!", type: "success" });
       load();
     } catch (e) {
       setToast({ msg: e.message, type: "error" });
@@ -287,18 +355,28 @@ export function Bookings() {
                   <span>•</span>
                   <span><strong>Project:</strong> {b.unit?.project?.name || b.customer?.project?.name || "General"}</span>
                   <span>•</span>
-                  <span><strong>Agent:</strong> {b.assignedAgent || "Unassigned"}</span>
+                  <span><strong>Agent:</strong> {getAgentDisplay(b.assignedAgent, b.agentId)}</span>
                   <span>•</span>
                   <span><strong>Date:</strong> {b.bookingDate ? new Date(b.bookingDate).toLocaleDateString("en-IN") : "N/A"}</span>
                 </div>
+                {b.agreementFileName ? (
+                  <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 8px", borderRadius: 6, background: `${C.teal}15`, border: `1px solid ${C.teal}30`, fontSize: 11, color: C.teal }}>
+                    <Check size={11} /> Uploaded Agreement: <strong>{b.agreementFileName}</strong>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8, fontSize: 10.5, color: C.mute }}>
+                    System Generated Agreement
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ color: C.gold, fontWeight: 700, fontSize: 17 }}>{fmtCr(b.totalAmount)}</div>
                 <div style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>Token Paid: {fmtCr(b.tokenAmount)}</div>
               </div>
             </div>
-            <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
+            <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <Btn icon={Eye} v="outline" sm onClick={() => setSelectedBooking(b)}>View Details</Btn>
+              <Btn icon={Eye} v="ghost" sm onClick={() => handleViewAgreement(b)}>View Agreement</Btn>
               <Btn 
                 icon={downloadingId === b.id ? Loader2 : Download} 
                 v="ghost" 
@@ -306,8 +384,13 @@ export function Bookings() {
                 onClick={() => handleDownloadAgreement(b)}
                 disabled={downloadingId === b.id}
               >
-                {downloadingId === b.id ? "Downloading..." : "Agreement"}
+                {downloadingId === b.id ? "Downloading..." : "Download"}
               </Btn>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, background: C.raise, border: `1px solid ${C.bord}`, fontSize: 11, color: C.txt, cursor: "pointer", fontWeight: 600 }}>
+                {uploadingBookingId === b.id ? <Loader2 size={11} className="spin" /> : <Upload size={11} />}
+                {uploadingBookingId === b.id ? "Uploading..." : "Upload Agreement"}
+                <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" hidden onChange={(e) => { if (e.target.files?.[0]) handleUploadAgreement(b.id, e.target.files[0]); }} />
+              </label>
             </div>
           </div>
         ))
@@ -443,7 +526,22 @@ export function Bookings() {
             </Field>
 
             <Field label="Assigned Agent">
-              <Input value={form.assignedAgent} onChange={f("assignedAgent")} placeholder="Agent name" />
+              <Select
+                value={form.agentId || ""}
+                onChange={(val) => {
+                  const u = users.find(x => x.id.toString() === val.toString());
+                  setForm(p => ({
+                    ...p,
+                    agentId: val,
+                    assignedAgent: u ? u.name : ""
+                  }));
+                }}
+                placeholder="Select Agent"
+                options={users.map(u => ({
+                  value: u.id,
+                  label: `${u.name} (ID: ${u.id})`
+                }))}
+              />
             </Field>
 
             <Field label="Total Amount (₹)">
@@ -453,6 +551,31 @@ export function Bookings() {
             <Field label="Token Amount (₹)">
               <Input type="number" value={form.tokenAmount} onChange={f("tokenAmount")} placeholder="200000" />
             </Field>
+
+            <div style={{ gridColumn: "span 2" }}>
+              <Field label="Upload Agreement Document (PDF, DOCX, DOC, Images - max 30MB)">
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  onChange={(e) => setAgreementFile(e.target.files[0] || null)}
+                  style={{
+                    width: "100%",
+                    background: C.card,
+                    border: `1px solid ${C.bord}`,
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    color: C.txt,
+                    fontSize: 12,
+                    boxSizing: "border-box"
+                  }}
+                />
+                {agreementFile && (
+                  <div style={{ fontSize: 11, color: C.teal, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <Check size={12} /> Selected for upload: {agreementFile.name} ({(agreementFile.size / 1024).toFixed(1)} KB)
+                  </div>
+                )}
+              </Field>
+            </div>
 
             <div style={{ gridColumn: "span 2" }}>
               <Field label="Status">
@@ -535,20 +658,60 @@ export function Bookings() {
 
             {/* Additional Meta Information */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 11.5, color: C.sub, padding: "0 4px" }}>
-              <div><span>Assigned Sales Agent:</span> <strong style={{ color: C.txt }}>{selectedBooking.assignedAgent || "Unassigned"}</strong></div>
+              <div><span>Assigned Sales Agent:</span> <strong style={{ color: C.txt }}>{getAgentDisplay(selectedBooking.assignedAgent, selectedBooking.agentId)}</strong></div>
               <div><span>Booking Date:</span> <strong style={{ color: C.txt }}>{selectedBooking.bookingDate ? new Date(selectedBooking.bookingDate).toLocaleDateString("en-IN") : "N/A"}</strong></div>
+            </div>
+
+            {/* Agreement Section */}
+            <div style={{ background: C.card, border: `1px solid ${C.bord}`, borderRadius: 10, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, color: C.txt, fontSize: 13 }}>
+                  <FileText size={15} style={{ color: C.gold }} /> Flat Purchase Agreement
+                </div>
+                {selectedBooking.agreementFileName ? (
+                  <span style={{ fontSize: 10.5, color: C.teal, background: `${C.teal}15`, padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>
+                    ✓ Uploaded Agreement
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 10.5, color: C.blue, background: `${C.blue}15`, padding: "2px 8px", borderRadius: 4, fontWeight: 700 }}>
+                    System Standard PDF
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: C.sub, display: "flex", flexDirection: "column", gap: 4 }}>
+                {selectedBooking.agreementFileName ? (
+                  <>
+                    <div><span>Document Name:</span> <strong style={{ color: C.txt }}>{selectedBooking.agreementFileName}</strong></div>
+                    {selectedBooking.agreementUploadedAt && (
+                      <div><span>Uploaded On:</span> <span style={{ color: C.txt }}>{new Date(selectedBooking.agreementUploadedAt).toLocaleString("en-IN")}</span></div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ color: C.mute }}>No custom flat agreement uploaded yet. You can upload an agreement document (PDF, Word, or image) below.</div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+                <Btn icon={Eye} v="outline" sm onClick={() => handleViewAgreement(selectedBooking)}>View Agreement</Btn>
+                <Btn 
+                  icon={downloadingId === selectedBooking.id ? Loader2 : Download} 
+                  v="outline" 
+                  sm 
+                  onClick={() => handleDownloadAgreement(selectedBooking)}
+                  disabled={downloadingId === selectedBooking.id}
+                >
+                  {downloadingId === selectedBooking.id ? "Downloading..." : "Download Agreement"}
+                </Btn>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, background: C.gold, color: "#000", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                  {uploadingBookingId === selectedBooking.id ? <Loader2 size={12} className="spin" /> : <Upload size={12} />}
+                  {uploadingBookingId === selectedBooking.id ? "Uploading..." : "Upload / Replace Agreement"}
+                  <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" hidden onChange={(e) => { if (e.target.files?.[0]) handleUploadAgreement(selectedBooking.id, e.target.files[0]); }} />
+                </label>
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: `1px solid ${C.bord}`, paddingTop: 14 }}>
               <Btn v="outline" onClick={() => setSelectedBooking(null)}>Close</Btn>
-              <Btn 
-                icon={downloadingId === selectedBooking.id ? Loader2 : Download} 
-                onClick={() => handleDownloadAgreement(selectedBooking)}
-                disabled={downloadingId === selectedBooking.id}
-              >
-                {downloadingId === selectedBooking.id ? "Generating PDF..." : "Download Agreement"}
-              </Btn>
             </div>
           </div>
         </Modal>

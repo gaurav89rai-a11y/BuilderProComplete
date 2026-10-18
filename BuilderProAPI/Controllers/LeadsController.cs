@@ -15,16 +15,16 @@ public class LeadsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? stage, [FromQuery] string? assigned)
     {
-        var query = _db.Leads.Include(l => l.Project).AsQueryable();
+        var query = _db.Leads.Include(l => l.Project).Include(l => l.ChannelPartner).Include(l => l.Agent).AsQueryable();
         if (!string.IsNullOrEmpty(stage)) query = query.Where(l => l.Stage == stage);
-        if (!string.IsNullOrEmpty(assigned)) query = query.Where(l => l.AssignedTo == assigned);
-        return Ok(await query.OrderByDescending(l => l.Score).ToListAsync());
+        if (!string.IsNullOrEmpty(assigned)) query = query.Where(l => l.AssignedTo == assigned || (l.AgentId.HasValue && l.AgentId.ToString() == assigned));
+        return Ok(await query.OrderByDescending(l => l.CreatedAt).ToListAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var lead = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).FirstOrDefaultAsync(l => l.Id == id);
+        var lead = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).Include(l => l.ChannelPartner).Include(l => l.Agent).FirstOrDefaultAsync(l => l.Id == id);
         if (lead == null) return NotFound();
         return Ok(lead);
     }
@@ -46,6 +46,31 @@ public class LeadsController : ControllerBase
                            ?? await _db.SystemConfigs.Where(c => c.Category == "LeadSource").OrderBy(c => c.SortOrder).Select(c => c.Value).FirstOrDefaultAsync()
                            ?? "";
         }
+
+        // Resolve Agent
+        if (lead.AgentId.HasValue)
+        {
+            var user = await _db.Users.FindAsync(lead.AgentId.Value);
+            if (user != null && string.IsNullOrEmpty(lead.AssignedTo))
+            {
+                lead.AssignedTo = user.Name;
+            }
+        }
+        else if (!string.IsNullOrEmpty(lead.AssignedTo))
+        {
+            if (int.TryParse(lead.AssignedTo, out int parsedId))
+            {
+                lead.AgentId = parsedId;
+                var user = await _db.Users.FindAsync(parsedId);
+                if (user != null) lead.AssignedTo = user.Name;
+            }
+            else
+            {
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Name == lead.AssignedTo);
+                if (user != null) lead.AgentId = user.Id;
+            }
+        }
+
         _db.Leads.Add(lead);
         await _db.SaveChangesAsync();
 
@@ -63,8 +88,15 @@ public class LeadsController : ControllerBase
         });
 
         // Write initial assignment log if assigned
-        if (!string.IsNullOrEmpty(lead.AssignedTo))
+        if (!string.IsNullOrEmpty(lead.AssignedTo) || lead.AgentId.HasValue)
         {
+            var agentName = lead.AssignedTo;
+            if (string.IsNullOrEmpty(agentName) && lead.AgentId.HasValue)
+            {
+                var agentUser = await _db.Users.FindAsync(lead.AgentId.Value);
+                agentName = agentUser?.Name ?? lead.AgentId.ToString();
+            }
+
             _db.LeadAuditLogs.Add(new LeadAuditLog
             {
                 LeadId = lead.Id,
@@ -74,7 +106,7 @@ public class LeadsController : ControllerBase
                 NewStage = lead.Stage,
                 UserName = "System",
                 Timestamp = DateTime.UtcNow,
-                Comments = $"Assigned to sales representative {lead.AssignedTo}."
+                Comments = $"Assigned to sales representative {agentName}."
             });
         }
         // Auto-sync Lead as Customer so they are immediately available in Customer & Booking registries
@@ -114,14 +146,37 @@ public class LeadsController : ControllerBase
         existing.Email = lead.Email;
         existing.Phone = lead.Phone;
         existing.Source = lead.Source;
+        existing.ChannelPartnerId = lead.ChannelPartnerId;
         existing.Stage = lead.Stage;
-        existing.Score = lead.Score;
         existing.Interest = lead.Interest;
-        existing.AssignedTo = lead.AssignedTo;
         existing.Budget = lead.Budget;
         existing.ProjectId = lead.ProjectId;
         existing.FlatNo = lead.FlatNo;
-        existing.ProjectAddress = lead.ProjectAddress;
+
+        // Resolve Agent
+        if (lead.AgentId.HasValue)
+        {
+            existing.AgentId = lead.AgentId;
+            var user = await _db.Users.FindAsync(lead.AgentId.Value);
+            if (user != null) existing.AssignedTo = user.Name;
+            else if (!string.IsNullOrEmpty(lead.AssignedTo)) existing.AssignedTo = lead.AssignedTo;
+        }
+        else if (!string.IsNullOrEmpty(lead.AssignedTo))
+        {
+            if (int.TryParse(lead.AssignedTo, out int parsedId))
+            {
+                existing.AgentId = parsedId;
+                var user = await _db.Users.FindAsync(parsedId);
+                if (user != null) existing.AssignedTo = user.Name;
+                else existing.AssignedTo = lead.AssignedTo;
+            }
+            else
+            {
+                existing.AssignedTo = lead.AssignedTo;
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Name == lead.AssignedTo);
+                if (user != null) existing.AgentId = user.Id;
+            }
+        }
         await _db.SaveChangesAsync();
 
         // Keep Customer record in sync
@@ -339,7 +394,7 @@ public class LeadsController : ControllerBase
             }
         }
 
-        var kanban = stages.ToDictionary(s => s, s => leads.Where(l => l.Stage == s).OrderByDescending(l => l.Score).ToList());
+        var kanban = stages.ToDictionary(s => s, s => leads.Where(l => l.Stage == s).OrderByDescending(l => l.CreatedAt).ToList());
         return Ok(kanban);
     }
 

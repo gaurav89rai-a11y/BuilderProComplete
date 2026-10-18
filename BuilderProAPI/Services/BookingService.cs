@@ -26,7 +26,7 @@ public class BookingService : IBookingService
         return await _uow.Bookings.GetAllAsync(
             b => string.IsNullOrEmpty(status) || b.Status == status,
             orderBy: q => q.OrderByDescending(b => b.BookingDate),
-            includeProperties: "Customer,Customer.Project,Unit,Unit.Project"
+            includeProperties: "Customer,Customer.Project,Unit,Unit.Project,Agent"
         );
     }
 
@@ -34,7 +34,7 @@ public class BookingService : IBookingService
     {
         return await _uow.Bookings.GetFirstOrDefaultAsync(
             x => x.Id == id,
-            includeProperties: "Customer,Customer.Project,Unit,Unit.Project"
+            includeProperties: "Customer,Customer.Project,Unit,Unit.Project,Agent"
         );
     }
 
@@ -45,6 +45,30 @@ public class BookingService : IBookingService
         var count = all.Count();
         booking.BookingNumber = $"BK{DateTime.Now.Year}{(count + 1):D3}";
         
+        // Resolve Agent
+        if (booking.AgentId.HasValue)
+        {
+            var user = await _uow.Users.GetByIdAsync(booking.AgentId.Value);
+            if (user != null && string.IsNullOrEmpty(booking.AssignedAgent))
+            {
+                booking.AssignedAgent = user.Name;
+            }
+        }
+        else if (!string.IsNullOrEmpty(booking.AssignedAgent))
+        {
+            if (int.TryParse(booking.AssignedAgent, out int parsedId))
+            {
+                booking.AgentId = parsedId;
+                var user = await _uow.Users.GetByIdAsync(parsedId);
+                if (user != null) booking.AssignedAgent = user.Name;
+            }
+            else
+            {
+                var user = (await _uow.Users.GetAllAsync(u => u.Name == booking.AssignedAgent)).FirstOrDefault();
+                if (user != null) booking.AgentId = user.Id;
+            }
+        }
+
         await _uow.Bookings.AddAsync(booking);
 
         // Mark unit as booked
@@ -113,10 +137,40 @@ public class BookingService : IBookingService
     {
         var existing = await _uow.Bookings.GetByIdAsync(id);
         if (existing == null) return null;
-
         existing.Status = booking.Status;
-        existing.AssignedAgent = booking.AssignedAgent;
         existing.TokenAmount = booking.TokenAmount;
+
+        // Resolve Agent
+        if (booking.AgentId.HasValue)
+        {
+            existing.AgentId = booking.AgentId;
+            var user = await _uow.Users.GetByIdAsync(booking.AgentId.Value);
+            if (user != null) existing.AssignedAgent = user.Name;
+            else if (!string.IsNullOrEmpty(booking.AssignedAgent)) existing.AssignedAgent = booking.AssignedAgent;
+        }
+        else if (!string.IsNullOrEmpty(booking.AssignedAgent))
+        {
+            if (int.TryParse(booking.AssignedAgent, out int parsedId))
+            {
+                existing.AgentId = parsedId;
+                var user = await _uow.Users.GetByIdAsync(parsedId);
+                if (user != null) existing.AssignedAgent = user.Name;
+                else existing.AssignedAgent = booking.AssignedAgent;
+            }
+            else
+            {
+                existing.AssignedAgent = booking.AssignedAgent;
+                var user = (await _uow.Users.GetAllAsync(u => u.Name == booking.AssignedAgent)).FirstOrDefault();
+                if (user != null) existing.AgentId = user.Id;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(booking.AgreementPath))
+        {
+            existing.AgreementPath = booking.AgreementPath;
+            existing.AgreementFileName = booking.AgreementFileName;
+            existing.AgreementUploadedAt = booking.AgreementUploadedAt;
+        }
 
         _uow.Bookings.Update(existing);
         await _uow.SaveAsync();

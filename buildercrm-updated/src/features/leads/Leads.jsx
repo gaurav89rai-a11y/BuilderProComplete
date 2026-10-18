@@ -159,7 +159,6 @@ export function Leads() {
 
   // Quotation Form
   const [quoteAmount, setQuoteAmount] = useState("");
-  const [quoteDiscount, setQuoteDiscount] = useState("0");
   const [quoteHistory, setQuoteHistory] = useState({}); // leadId -> quote object
 
   // Payment Form
@@ -171,6 +170,10 @@ export function Leads() {
   // Notes Form
   const [newNote, setNewNote] = useState("");
 
+  // Database-backed Entities
+  const [partners, setPartners] = useState([]);
+  const [users, setUsers] = useState([]);
+
   const defaultSource = getDefault("leadSource", "Website");
   const defaultStage = getDefault("leadStage", "New Lead");
 
@@ -179,14 +182,14 @@ export function Leads() {
     email: "",
     phone: "",
     source: defaultSource,
+    channelPartnerId: "",
     stage: defaultStage,
-    score: 50,
     interest: "",
     assignedTo: "",
+    agentId: "",
     budget: 0,
     projectId: "",
-    flatNo: "",
-    projectAddress: ""
+    flatNo: ""
   });
 
   const SC = {};
@@ -195,13 +198,34 @@ export function Leads() {
     SC[stage] = C[cfg?.color] || C.sub;
   });
 
+  const getAgentDisplay = (assignedTo, agentId) => {
+    if (agentId) {
+      const u = users.find(x => x.id === agentId || x.id.toString() === agentId.toString());
+      if (u) return `${u.name} (ID: ${u.id})`;
+      return `Agent #${agentId}`;
+    }
+    if (assignedTo) {
+      const u = users.find(x => x.name?.toLowerCase() === assignedTo?.toLowerCase() || x.id?.toString() === assignedTo?.toString());
+      if (u) return `${u.name} (ID: ${u.id})`;
+      return assignedTo;
+    }
+    return "Unassigned";
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [k, p] = await Promise.all([api.getLeadsKanban(), api.getProjects()]);
+      const [k, p, parts, usrs] = await Promise.all([
+        api.getLeadsKanban(),
+        api.getProjects(),
+        api.getPartners().catch(() => []),
+        api.getUsers().catch(() => [])
+      ]);
       setKanban(k);
       setProjects(p);
+      setPartners(parts || []);
+      setUsers(usrs || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -220,10 +244,18 @@ export function Leads() {
     setSaving(true);
     try {
       await api.createLead({
-        ...form,
-        score: +form.score,
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        source: form.source,
+        channelPartnerId: form.source === "Channel Partner" && form.channelPartnerId ? +form.channelPartnerId : null,
+        stage: form.stage,
+        interest: form.interest,
+        assignedTo: form.assignedTo,
+        agentId: form.agentId ? +form.agentId : null,
         budget: +form.budget,
-        projectId: form.projectId ? +form.projectId : null
+        projectId: form.projectId ? +form.projectId : null,
+        flatNo: form.flatNo
       });
       setShowModal(false);
       setForm({
@@ -231,14 +263,14 @@ export function Leads() {
         email: "",
         phone: "",
         source: defaultSource,
+        channelPartnerId: "",
         stage: defaultStage,
-        score: 50,
         interest: "",
         assignedTo: "",
+        agentId: "",
         budget: 0,
         projectId: "",
-        flatNo: "",
-        projectAddress: ""
+        flatNo: ""
       });
       setToast({ msg: "Lead added successfully!", type: "success" });
       load();
@@ -385,12 +417,6 @@ export function Leads() {
     refreshDrawerData(lead);
   };
 
-  const getPriority = (score) => {
-    if (score >= 80) return { label: "High", color: C.red };
-    if (score >= 50) return { label: "Medium", color: C.blue };
-    return { label: "Low", color: C.sub };
-  };
-
   const getNextFollowUp = (lead) => {
     if (lead.siteVisits && lead.siteVisits.length > 0) {
       const v = lead.siteVisits[0];
@@ -453,9 +479,11 @@ export function Leads() {
       const updated = await api.updateLead(selectedLead.id, {
         ...selectedLead,
         ...infoForm,
-        score: parseInt(infoForm.score || 50),
         budget: parseFloat(infoForm.budget || 0),
-        projectId: infoForm.projectId ? parseInt(infoForm.projectId) : null
+        projectId: infoForm.projectId ? parseInt(infoForm.projectId) : null,
+        agentId: infoForm.agentId ? parseInt(infoForm.agentId) : null,
+        assignedTo: infoForm.assignedTo || null,
+        channelPartnerId: infoForm.source === "Channel Partner" && infoForm.channelPartnerId ? parseInt(infoForm.channelPartnerId) : null
       });
       setSelectedLead(updated);
       setIsEditingInfo(false);
@@ -590,11 +618,10 @@ export function Leads() {
     try {
       const qNo = `QT-${new Date().getFullYear()}-${Math.floor(Math.random() * 89999 + 10000)}`;
       const amt = parseFloat(quoteAmount);
-      const disc = parseFloat(quoteDiscount || 0);
-      const finalAmt = amt - (amt * disc / 100);
+      const finalAmt = amt;
 
       const [uName, uRole] = simulatedUser.split("|");
-      const commentString = `[Quotation Sent] Generated Quote ${qNo} for ₹${finalAmt.toLocaleString("en-IN")} (Discount: ${disc}%).`;
+      const commentString = `[Quotation Sent] Generated Quote ${qNo} for ₹${finalAmt.toLocaleString("en-IN")}.`;
       await api.updateLeadStage(selectedLead.id, "Quotation Sent", commentString, uRole, uName);
       
       setQuoteHistory(prev => ({
@@ -602,7 +629,6 @@ export function Leads() {
         [selectedLead.id]: {
           quoteNo: qNo,
           amount: amt,
-          discount: disc,
           finalAmount: finalAmt,
           date: new Date().toISOString()
         }
@@ -706,20 +732,23 @@ export function Leads() {
         lead.phone.includes(searchTerm) ||
         (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (lead.interest && lead.interest.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (lead.assignedTo && lead.assignedTo.toLowerCase().includes(searchTerm.toLowerCase()));
+        (lead.assignedTo && lead.assignedTo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (lead.agent?.name && lead.agent.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (lead.channelPartner?.name && lead.channelPartner.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
       // 2. Project filter
       const matchesProject = projectFilter === "All Projects" || (lead.project?.name === projectFilter);
       
       // 3. Executive filter
-      const matchesExecutive = executiveFilter === "All Executives" || (lead.assignedTo === executiveFilter);
+      const matchesExecutive = executiveFilter === "All Executives" || 
+        (lead.assignedTo === executiveFilter) || 
+        (lead.agentId && users.find(u => u.name === executiveFilter)?.id === lead.agentId);
       
       // 4. Source filter
       const matchesSource = sourceFilter === "All Sources" || (lead.source === sourceFilter);
       
       // 5. Priority filter
-      const prio = getPriority(lead.score);
-      const matchesPriority = priorityFilter === "All Priorities" || (prio.label === priorityFilter);
+      const matchesPriority = true;
       
       // 6. Budget filter
       let matchesBudget = true;
@@ -763,7 +792,7 @@ export function Leads() {
       
       let matchesHighProb = true;
       if (filterHighProb) {
-        matchesHighProb = lead.score >= 80;
+        matchesHighProb = (lead.budget || 0) >= 15000000 || lead.stage === "Site Visit Completed" || lead.stage === "Negotiation";
       }
 
       return matchesSearch && matchesProject && matchesExecutive && matchesSource && matchesPriority && matchesBudget && matchesDate && matchesTodayFollowUp && matchesOverdue && matchesSiteVisitToday && matchesHighProb;
@@ -895,11 +924,11 @@ export function Leads() {
             </div>
 
             {/* Executive Filter */}
-            <div style={{ width: 130 }}>
+            <div style={{ width: 140 }}>
               <Select
                 value={executiveFilter}
                 onChange={(val) => setExecutiveFilter(val)}
-                options={[{ value: "All Executives", label: "Executive ▼" }, ...uniqueExecutives.map(e => ({ value: e, label: e }))] }
+                options={[{ value: "All Executives", label: "Executive ▼" }, ...users.map(u => ({ value: u.name, label: `${u.name} (ID: ${u.id})` }))] }
               />
             </div>
 
@@ -1251,7 +1280,7 @@ export function Leads() {
                     </div>
                   )}
                   {sl.map(lead => {
-                    const prio = getPriority(lead.score);
+                    const stageColor = SC[lead.stage] || C.blue;
                     return (
                       <div 
                         key={lead.id} 
@@ -1262,7 +1291,7 @@ export function Leads() {
                         style={{
                           background: C.card, 
                           border: `1px solid ${C.bord}`,
-                          borderLeft: `4px solid ${prio.color}`,
+                          borderLeft: `4px solid ${stageColor}`,
                           borderRadius: 12, padding: "12px", cursor: "pointer",
                           display: "flex", flexDirection: "column", gap: 8, transition: "transform 0.15s, box-shadow 0.15s",
                           width: "100%", boxSizing: "border-box", position: "relative"
@@ -1282,12 +1311,12 @@ export function Leads() {
                           <span style={{ 
                             fontSize: 9, 
                             fontWeight: 800, 
-                            color: prio.color,
-                            background: `${prio.color}15`,
+                            color: stageColor,
+                            background: `${stageColor}15`,
                             padding: "2px 6px",
                             borderRadius: 4
                           }}>
-                            {prio.label}
+                            {lead.source === "Channel Partner" && lead.channelPartner ? lead.channelPartner.name : lead.source}
                           </span>
                         </div>
 
@@ -1307,7 +1336,7 @@ export function Leads() {
 
                         {/* Representative and Phone */}
                         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: C.mute, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 600, color: C.sub }}>{lead.assignedTo || "Unassigned"}</span>
+                          <span style={{ fontWeight: 600, color: C.sub }}>{getAgentDisplay(lead.assignedTo, lead.agentId)}</span>
                           <span>·</span>
                           <span>{lead.phone}</span>
                         </div>
@@ -1355,19 +1384,47 @@ export function Leads() {
             <Field label="Source">
               <Select value={form.source} onChange={f("source")} options={sources} />
             </Field>
+            {form.source === "Channel Partner" && (
+              <div style={{ gridColumn: "1/-1" }}>
+                <Field label="Channel Partner" required>
+                  <Select
+                    value={form.channelPartnerId}
+                    onChange={f("channelPartnerId")}
+                    placeholder="Select Channel Partner"
+                    options={partners.map(p => ({
+                      value: p.id,
+                      label: p.firmName ? `${p.name} (${p.firmName})` : p.name
+                    }))}
+                  />
+                </Field>
+              </div>
+            )}
             <Field label="Project Interest">
               <Select value={form.projectId} onChange={f("projectId")} placeholder="Select Project"
                 options={projects.map(p => ({ value: p.id, label: p.name }))} />
             </Field>
-            <Field label="Assigned To"><Input value={form.assignedTo} onChange={f("assignedTo")} placeholder="Agent name" /></Field>
+            <Field label="Assigned Agent">
+              <Select 
+                value={form.agentId || ""} 
+                onChange={(val) => {
+                  const u = users.find(x => x.id.toString() === val.toString());
+                  setForm(p => ({
+                    ...p,
+                    agentId: val,
+                    assignedTo: u ? u.name : ""
+                  }));
+                }} 
+                placeholder="Select Agent"
+                options={users.map(u => ({
+                  value: u.id,
+                  label: `${u.name} (ID: ${u.id})`
+                }))}
+              />
+            </Field>
             <Field label="Budget (₹)"><Input type="number" value={form.budget} onChange={f("budget")} placeholder="12000000" /></Field>
-            <Field label="Score (0-100)"><Input type="number" value={form.score} onChange={f("score")} placeholder="50" /></Field>
             <Field label="Flat No"><Input value={form.flatNo} onChange={f("flatNo")} placeholder="e.g. A-101" /></Field>
             <div style={{ gridColumn: "1/-1" }}>
-              <Field label="Project Address"><Input value={form.projectAddress} onChange={f("projectAddress")} placeholder="e.g. Bandra West, Mumbai" /></Field>
-            </div>
-            <div style={{ gridColumn: "1/-1" }}>
-              <Field label="Interest Description"><Input value={form.interest} onChange={f("interest")} placeholder="e.g. Skyline Heights 3BHK" /></Field>
+              <Field label="Interest Project"><Input value={form.interest} onChange={f("interest")} placeholder="e.g. Skyline Heights 3BHK" /></Field>
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.bord}` }}>
@@ -1408,7 +1465,7 @@ export function Leads() {
                   <div>
                     <span style={{ fontSize: 10, color: C.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 }}>Lead Management Portal</span>
                     <h2 style={{ color: C.txt, fontSize: 18, fontWeight: 800, marginTop: 2 }}>{selectedLead.name}</h2>
-                    <span style={{ fontSize: 11, color: C.sub }}>Lead ID: #{selectedLead.id} · Priority: {getPriority(selectedLead.score).label}</span>
+                    <span style={{ fontSize: 11, color: C.sub }}>Lead ID: #{selectedLead.id} · Stage: {selectedLead.stage}</span>
                     <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                       <a href={`tel:${selectedLead.phone}`} title="Call Customer" style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 6, background: `${C.teal}12`, border: `1px solid ${C.teal}22`, fontSize: 11, color: C.teal, fontWeight: 700, textDecoration: "none" }}>
                         <Phone size={11} /> Call
@@ -1519,6 +1576,25 @@ export function Leads() {
                           {sources.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </Field>
+                      {infoForm.source === "Channel Partner" && (
+                        <div style={{ gridColumn: "1/-1" }}>
+                          <Field label="Channel Partner">
+                            <select 
+                              value={infoForm.channelPartnerId || ""} 
+                              disabled={!isEditingInfo}
+                              onChange={e => setInfoForm(p => ({ ...p, channelPartnerId: e.target.value ? parseInt(e.target.value) : null }))}
+                              style={{ width: "100%", background: C.card, border: `1px solid ${C.bord}`, borderRadius: 6, color: C.txt, padding: 8 }}
+                            >
+                              <option value="">Select Channel Partner</option>
+                              {partners.map(cp => (
+                                <option key={cp.id} value={cp.id}>
+                                  {cp.firmName ? `${cp.name} (${cp.firmName})` : cp.name}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                        </div>
+                      )}
                       <Field label="Project Interest">
                         <select 
                           value={infoForm.projectId || ""} 
@@ -1530,23 +1606,37 @@ export function Leads() {
                           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       </Field>
-                      <Field label="Unit Preference">
+                      <Field label="Interest Project">
                         <Input value={infoForm.interest || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, interest: val }))} />
                       </Field>
                       <Field label="Flat No">
                         <Input value={infoForm.flatNo || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, flatNo: val }))} />
                       </Field>
-                      <Field label="Project Address">
-                        <Input value={infoForm.projectAddress || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, projectAddress: val }))} />
-                      </Field>
                       <Field label="Budget (₹)">
                         <Input type="number" value={infoForm.budget || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, budget: val }))} />
                       </Field>
-                      <Field label="Lead Score (0-100)">
-                        <Input type="number" value={infoForm.score || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, score: val }))} />
-                      </Field>
-                      <Field label="Assigned Executive">
-                        <Input value={infoForm.assignedTo || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, assignedTo: val }))} />
+                      <Field label="Assigned Agent">
+                        <select 
+                          value={infoForm.agentId || ""} 
+                          disabled={!isEditingInfo}
+                          onChange={e => {
+                            const aid = e.target.value;
+                            const u = users.find(x => x.id.toString() === aid.toString());
+                            setInfoForm(p => ({
+                              ...p,
+                              agentId: aid ? parseInt(aid) : null,
+                              assignedTo: u ? u.name : ""
+                            }));
+                          }}
+                          style={{ width: "100%", background: C.card, border: `1px solid ${C.bord}`, borderRadius: 6, color: C.txt, padding: 8 }}
+                        >
+                          <option value="">Unassigned</option>
+                          {users.map(u => (
+                            <option key={u.id} value={u.id}>
+                              {u.name} (ID: {u.id})
+                            </option>
+                          ))}
+                        </select>
                       </Field>
                       <Field label="Created Date">
                         <Input value={new Date(selectedLead.createdAt).toLocaleString("en-IN")} disabled />
@@ -1809,12 +1899,9 @@ export function Leads() {
                     
                     <form onSubmit={handleGenerateQuote} style={{ background: C.raise, padding: 14, borderRadius: 8, border: `1px solid ${C.bord}`, display: "flex", flexDirection: "column", gap: 10 }}>
                       <div style={{ fontWeight: 700, fontSize: 11, color: C.gold }}>Generate Official Quotation</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div>
                         <Field label="Quotation Amount (₹)" required>
-                          <input type="number" value={quoteAmount} onChange={e => setQuoteAmount(e.target.value)} placeholder="18000000" style={{ width: "100%", background: C.card, border: `1px solid ${C.bord}`, borderRadius: 6, color: C.txt, padding: 6, fontSize: 12 }} />
-                        </Field>
-                        <Field label="Discount (%)">
-                          <input type="number" value={quoteDiscount} onChange={e => setQuoteDiscount(e.target.value)} placeholder="2" style={{ width: "100%", background: C.card, border: `1px solid ${C.bord}`, borderRadius: 6, color: C.txt, padding: 6, fontSize: 12 }} />
+                          <input type="number" value={quoteAmount} onChange={e => setQuoteAmount(e.target.value)} placeholder="18000000" style={{ width: "100%", background: C.card, border: `1px solid ${C.bord}`, borderRadius: 6, color: C.txt, padding: 8, fontSize: 12, boxSizing: "border-box" }} />
                         </Field>
                       </div>
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -1830,9 +1917,7 @@ export function Leads() {
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 11 }}>
                           <div><strong>Quotation No:</strong> {quoteHistory[selectedLead.id].quoteNo}</div>
-                          <div><strong>Base Amount:</strong> ₹{quoteHistory[selectedLead.id].amount.toLocaleString()}</div>
-                          <div><strong>Discount Applied:</strong> {quoteHistory[selectedLead.id].discount}%</div>
-                          <div style={{ color: C.gold, fontSize: 12 }}><strong>Final Total:</strong> ₹{quoteHistory[selectedLead.id].finalAmount.toLocaleString()}</div>
+                          <div style={{ color: C.gold, fontSize: 12 }}><strong>Total Amount:</strong> ₹{quoteHistory[selectedLead.id].finalAmount.toLocaleString()}</div>
                         </div>
                         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
                           <Btn size="sm" icon={Download} onClick={() => handleDownloadQuotationPDF(quoteHistory[selectedLead.id])}>Download PDF Quote</Btn>

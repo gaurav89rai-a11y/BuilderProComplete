@@ -141,11 +141,11 @@ public class BuilderProDbContext : DbContext
         );
 
         modelBuilder.Entity<Lead>().HasData(
-            new Lead { Id=1, Name="Rahul Sharma", Email="rahul.s@email.com", Phone="9800000001", Source="Website", Stage="New Lead", Score=85, Interest="Skyline Heights 3BHK", AssignedTo="Priya M.", Budget=18000000m, ProjectId=1, NextFollowUpDate = new DateTime(2026, 7, 7, 12, 0, 0) },
-            new Lead { Id=2, Name="Anjali Patel", Email="anjali.p@email.com", Phone="9800000002", Source="Channel Partner", Stage="Contacted", Score=72, Interest="Green Valley 2BHK", AssignedTo="Amit K.", Budget=12000000m, ProjectId=2, NextFollowUpDate = new DateTime(2026, 7, 6, 15, 0, 0) },
-            new Lead { Id=3, Name="Suresh Kumar", Email="suresh.k@email.com", Phone="9800000003", Source="Walk-in", Stage="Site Visit Completed", Score=91, Interest="Skyline Heights 4BHK", AssignedTo="Priya M.", Budget=32000000m, ProjectId=1, NextFollowUpDate = new DateTime(2026, 7, 8, 11, 0, 0) },
-            new Lead { Id=4, Name="Meera Iyer", Email="meera.i@email.com", Phone="9800000004", Source="Referral", Stage="Negotiation", Score=88, Interest="Meridian Business Park", AssignedTo="Vikram S.", Budget=45000000m, ProjectId=3, NextFollowUpDate = null },
-            new Lead { Id=5, Name="Arun Mehta", Email="arun.m@email.com", Phone="9800000005", Source="Online Ad", Stage="Booking Confirmed", Score=95, Interest="Pearl Residences 3BHK", AssignedTo="Amit K.", Budget=21000000m, ProjectId=4, NextFollowUpDate = null }
+            new Lead { Id=1, Name="Rahul Sharma", Email="rahul.s@email.com", Phone="9800000001", Source="Website", Stage="New Lead", Interest="Skyline Heights 3BHK", AssignedTo="Priya M.", AgentId=2, Budget=18000000m, ProjectId=1, NextFollowUpDate = new DateTime(2026, 7, 7, 12, 0, 0) },
+            new Lead { Id=2, Name="Anjali Patel", Email="anjali.p@email.com", Phone="9800000002", Source="Channel Partner", ChannelPartnerId=1, Stage="Contacted", Interest="Green Valley 2BHK", AssignedTo="Amit K.", AgentId=3, Budget=12000000m, ProjectId=2, NextFollowUpDate = new DateTime(2026, 7, 6, 15, 0, 0) },
+            new Lead { Id=3, Name="Suresh Kumar", Email="suresh.k@email.com", Phone="9800000003", Source="Walk-in", Stage="Site Visit Completed", Interest="Skyline Heights 4BHK", AssignedTo="Priya M.", AgentId=2, Budget=32000000m, ProjectId=1, NextFollowUpDate = new DateTime(2026, 7, 8, 11, 0, 0) },
+            new Lead { Id=4, Name="Meera Iyer", Email="meera.i@email.com", Phone="9800000004", Source="Referral", Stage="Negotiation", Interest="Meridian Business Park", AssignedTo="Vikram S.", AgentId=4, Budget=45000000m, ProjectId=3, NextFollowUpDate = null },
+            new Lead { Id=5, Name="Arun Mehta", Email="arun.m@email.com", Phone="9800000005", Source="Online Ad", Stage="Booking Confirmed", Interest="Pearl Residences 3BHK", AssignedTo="Amit K.", AgentId=3, Budget=21000000m, ProjectId=4, NextFollowUpDate = null }
         );
 
         modelBuilder.Entity<ChannelPartner>().HasData(
@@ -162,8 +162,8 @@ public class BuilderProDbContext : DbContext
         );
 
         modelBuilder.Entity<Booking>().HasData(
-            new Booking { Id = 1, BookingNumber = "BK-2026-000001", CustomerId = 1, UnitId = 3, BookingDate = new DateTime(2023, 8, 15), TotalAmount = 13100000m, TokenAmount = 500000m, Status = "Confirmed", AssignedAgent = "Priya Mehta" },
-            new Booking { Id = 2, BookingNumber = "BK-2026-000002", CustomerId = 3, UnitId = 8, BookingDate = new DateTime(2023, 10, 5), TotalAmount = 17800000m, TokenAmount = 1000000m, Status = "Agreement Signed", AssignedAgent = "Amit Kumar" }
+            new Booking { Id = 1, BookingNumber = "BK-2026-000001", CustomerId = 1, UnitId = 3, BookingDate = new DateTime(2023, 8, 15), TotalAmount = 13100000m, TokenAmount = 500000m, Status = "Confirmed", AssignedAgent = "Priya Mehta", AgentId = 2 },
+            new Booking { Id = 2, BookingNumber = "BK-2026-000002", CustomerId = 3, UnitId = 8, BookingDate = new DateTime(2023, 10, 5), TotalAmount = 17800000m, TokenAmount = 1000000m, Status = "Agreement Signed", AssignedAgent = "Amit Kumar", AgentId = 3 }
         );
         
         modelBuilder.Entity<User>().HasData(

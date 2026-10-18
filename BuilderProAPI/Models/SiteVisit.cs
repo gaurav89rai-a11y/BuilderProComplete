@@ -12,6 +12,8 @@ public class SiteVisit
     public DateTime VisitDate { get; set; }
     public string VisitTime { get; set; } = "";
     public string AssignedAgent { get; set; } = "";
+    public int? AgentId { get; set; }
+    public User? Agent { get; set; }
     public string Status { get; set; } = "Scheduled"; // Scheduled, Completed, Cancelled
     public string Interest { get; set; } = "";
     public string Notes { get; set; } = "";
