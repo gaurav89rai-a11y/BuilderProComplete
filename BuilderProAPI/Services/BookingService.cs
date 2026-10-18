@@ -21,21 +21,63 @@ public class BookingService : IBookingService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status)
+    public async Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status, int? channelPartnerId = null, string? role = null)
     {
-        return await _uow.Bookings.GetAllAsync(
+        var permittedStatuses = new[] { "Confirmed", "Agreement Pending", "Agreement Signed" };
+
+        var all = await _uow.Bookings.GetAllAsync(
             b => string.IsNullOrEmpty(status) || b.Status == status,
             orderBy: q => q.OrderByDescending(b => b.BookingDate),
             includeProperties: "Customer,Customer.Project,Unit,Unit.Project,Agent"
         );
+
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && channelPartnerId.HasValue)
+        {
+            var cpId = channelPartnerId.Value;
+            var partnerLeadPhones = (await _uow.Leads.GetAllAsync(l => l.ChannelPartnerId == cpId && !string.IsNullOrEmpty(l.Phone)))
+                .Select(l => l.Phone)
+                .ToHashSet();
+
+            var partnerLeadEmails = (await _uow.Leads.GetAllAsync(l => l.ChannelPartnerId == cpId && !string.IsNullOrEmpty(l.Email)))
+                .Select(l => l.Email)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var partnerBookingIds = (await _uow.Commissions.GetAllAsync(c => c.PartnerId == cpId))
+                .Select(c => c.BookingId)
+                .ToHashSet();
+
+            all = all.Where(b => 
+                permittedStatuses.Contains(b.Status) &&
+                (
+                    partnerBookingIds.Contains(b.Id) ||
+                    (b.Customer != null && (partnerLeadPhones.Contains(b.Customer.Phone) || partnerLeadEmails.Contains(b.Customer.Email)))
+                )
+            );
+        }
+
+        return all;
     }
 
-    public async Task<Booking?> GetBookingByIdAsync(int id)
+    public async Task<Booking?> GetBookingByIdAsync(int id, int? channelPartnerId = null, string? role = null)
     {
-        return await _uow.Bookings.GetFirstOrDefaultAsync(
+        var b = await _uow.Bookings.GetFirstOrDefaultAsync(
             x => x.Id == id,
             includeProperties: "Customer,Customer.Project,Unit,Unit.Project,Agent"
         );
+        if (b == null) return null;
+
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && channelPartnerId.HasValue)
+        {
+            var permittedStatuses = new[] { "Confirmed", "Agreement Pending", "Agreement Signed" };
+            if (!permittedStatuses.Contains(b.Status)) return null;
+
+            var cpId = channelPartnerId.Value;
+            var isPartnerComm = (await _uow.Commissions.GetAllAsync(c => c.PartnerId == cpId && c.BookingId == id)).Any();
+            var isPartnerLead = b.Customer != null && (await _uow.Leads.GetAllAsync(l => l.ChannelPartnerId == cpId && (l.Phone == b.Customer.Phone || l.Email == b.Customer.Email))).Any();
+            if (!isPartnerComm && !isPartnerLead) return null;
+        }
+
+        return b;
     }
 
     public async Task<Booking> CreateBookingAsync(Booking booking)
@@ -140,10 +182,31 @@ public class BookingService : IBookingService
         return booking;
     }
 
-    public async Task<Booking?> UpdateBookingAsync(int id, Booking booking)
+    public async Task<Booking?> UpdateBookingAsync(int id, Booking booking, int? channelPartnerId = null, string? role = null)
     {
         var existing = await _uow.Bookings.GetByIdAsync(id);
         if (existing == null) return null;
+
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            var permittedStatuses = new[] { "Confirmed", "Agreement Pending", "Agreement Signed" };
+            if (!permittedStatuses.Contains(booking.Status))
+            {
+                throw new InvalidOperationException($"Channel Partners are only permitted to update to statuses: {string.Join(", ", permittedStatuses)}");
+            }
+            if (channelPartnerId.HasValue)
+            {
+                var cpId = channelPartnerId.Value;
+                var cust = await _uow.Customers.GetByIdAsync(existing.CustomerId);
+                var isPartnerComm = (await _uow.Commissions.GetAllAsync(c => c.PartnerId == cpId && c.BookingId == id)).Any();
+                var isPartnerLead = cust != null && (await _uow.Leads.GetAllAsync(l => l.ChannelPartnerId == cpId && (l.Phone == cust.Phone || l.Email == cust.Email))).Any();
+                if (!isPartnerComm && !isPartnerLead)
+                {
+                    throw new UnauthorizedAccessException("You can only update your own associated bookings.");
+                }
+            }
+        }
+
         var prevStatus = existing.Status;
         existing.Status = booking.Status;
         existing.TokenAmount = booking.TokenAmount;
@@ -195,8 +258,13 @@ public class BookingService : IBookingService
         return existing;
     }
 
-    public async Task<bool> DeleteBookingAsync(int id)
+    public async Task<bool> DeleteBookingAsync(int id, string? role = null)
     {
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         var b = await _uow.Bookings.GetByIdAsync(id);
         if (b == null) return false;
 

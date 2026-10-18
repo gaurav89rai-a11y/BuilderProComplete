@@ -9,6 +9,7 @@ import { useConfig } from "../../config/ConfigContext.jsx";
 export function UserManagement() {
   const { userRole, getDefault } = useConfig();
   const [users,setUsers]=useState([]);
+  const [partners,setPartners]=useState([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState(null);
   const [showModal,setShowModal]=useState(false);
@@ -18,11 +19,18 @@ export function UserManagement() {
 
   const defaultRole = getDefault("userRole", "Sales Agent");
 
-  const [form,setForm]=useState({name:"",email:"",role:defaultRole,permissions:""});
+  const [form,setForm]=useState({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""});
 
   const load=useCallback(async()=>{
     setLoading(true);setError(null);
-    try { setUsers(await api.getUsers()); }
+    try { 
+      const [uList, pList] = await Promise.all([
+        api.getUsers(),
+        api.getPartners().catch(() => [])
+      ]);
+      setUsers(uList || []);
+      setPartners(pList || []);
+    }
     catch(e){ setError(e.message); }
     finally { setLoading(false); }
   },[]);
@@ -31,6 +39,16 @@ export function UserManagement() {
 
   const f=(k)=>(v)=>setForm(p=>({...p,[k]:v}));
 
+  const handleRoleChange = (newRole) => {
+    setForm(prev => {
+      let permissions = prev.permissions;
+      if (newRole === "Channel Partner" && !permissions) {
+        permissions = "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits";
+      }
+      return { ...prev, role: newRole, permissions };
+    });
+  };
+
   const handleEditClick=(u)=>{
     setEditingId(u.id);
     setForm({
@@ -38,6 +56,7 @@ export function UserManagement() {
       email: u.email || "",
       role: u.role || "Sales Agent",
       permissions: u.permissions || "",
+      channelPartnerId: u.channelPartnerId || "",
     });
     setShowModal(true);
   };
@@ -53,9 +72,15 @@ export function UserManagement() {
 
   const handleSubmit=async()=>{
     if(!form.name||!form.email) return setToast({msg:"Name and Email are required",type:"error"});
+    if(form.role === "Channel Partner" && !form.channelPartnerId) {
+      return setToast({msg:"Please select an associated Channel Partner entity for this partner user",type:"error"});
+    }
     setSaving(true);
     try {
-      const payload={...form};
+      const payload={
+        ...form,
+        channelPartnerId: form.channelPartnerId ? parseInt(form.channelPartnerId) : null
+      };
       if (editingId) {
         await api.updateUser(editingId, { ...payload, id: editingId });
         setToast({msg:"User updated successfully!",type:"success"});
@@ -65,7 +90,7 @@ export function UserManagement() {
       }
       setShowModal(false);
       setEditingId(null);
-      setForm({name:"",email:"",role:defaultRole,permissions:""});
+      setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""});
       load();
     } catch(e){ setToast({msg:e.message,type:"error"}); }
     finally { setSaving(false); }
@@ -90,55 +115,90 @@ export function UserManagement() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u,i)=>(
-              <tr key={u.id} style={{borderBottom:`1px solid ${C.bord}`,background:i%2===0?"transparent":`${C.raise}40`}}>
-                <td style={{padding:"12px 18px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:9}}>
-                    <div style={{width:32,height:32,borderRadius:8,background:`${C.gold}22`,display:"flex",alignItems:"center",justifyContent:"center",color:C.gold,fontWeight:700,fontSize:12}}>
-                      {u.name.split(" ").map(n=>n[0]).join("")}
+            {users.map((u,i)=>{
+              const partnerObj = u.channelPartner || partners.find(p => p.id === u.channelPartnerId);
+              return (
+                <tr key={u.id} style={{borderBottom:`1px solid ${C.bord}`,background:i%2===0?"transparent":`${C.raise}40`}}>
+                  <td style={{padding:"12px 18px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:9}}>
+                      <div style={{width:32,height:32,borderRadius:8,background:`${C.gold}22`,display:"flex",alignItems:"center",justifyContent:"center",color:C.gold,fontWeight:700,fontSize:12}}>
+                        {u.name.split(" ").map(n=>n[0]).join("")}
+                      </div>
+                      <div>
+                        <div style={{color:C.txt,fontWeight:600,fontSize:12}}>{u.name}</div>
+                        {partnerObj && (
+                          <div style={{fontSize:10,color:C.gold,display:"flex",alignItems:"center",gap:3,marginTop:2}}>
+                            <span>🏢</span> {partnerObj.name}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div style={{color:C.txt,fontWeight:600,fontSize:12}}>{u.name}</div>
-                  </div>
-                </td>
-                <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{u.email}</td>
-                <td style={{padding:"12px 18px"}}><Badge s={u.role}/></td>
-                <td style={{padding:"12px 18px",maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                  {u.permissions === "all" ? (
-                    <span style={{color:C.teal,fontSize:11,fontWeight:600}}>All Permissions</span>
-                  ) : (
-                    (u.permissions || "").split(",").map(p => (
-                      <span key={p} style={{background:C.raise,color:C.sub,fontSize:10,padding:"2px 6px",borderRadius:4,marginRight:4,display:"inline-block",marginBottom:2}}>
-                        {p.replace("manage_","").replace("view_","")}
-                      </span>
-                    ))
-                  )}
-                </td>
-                <td style={{padding:"12px 18px"}}>
-                  {u.id !== 1 ? (
-                    <div style={{display:"flex",gap:5}}>
-                      <button onClick={()=>handleEditClick(u)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Edit size={12}/></button>
-                      <button onClick={()=>handleDeleteClick(u.id)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.red,display:"flex"}}><Trash2 size={12}/></button>
-                    </div>
-                  ) : (
-                    <span style={{color:C.mute,fontSize:10}}>System Admin</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{u.email}</td>
+                  <td style={{padding:"12px 18px"}}>
+                    <Badge s={u.role}/>
+                  </td>
+                  <td style={{padding:"12px 18px",maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {u.permissions === "all" ? (
+                      <span style={{color:C.teal,fontSize:11,fontWeight:600}}>All Permissions</span>
+                    ) : (
+                      (u.permissions || "").split(",").map(p => (
+                        <span key={p} style={{background:C.raise,color:C.sub,fontSize:10,padding:"2px 6px",borderRadius:4,marginRight:4,display:"inline-block",marginBottom:2}}>
+                          {p.replace("manage_","").replace("view_","")}
+                        </span>
+                      ))
+                    )}
+                  </td>
+                  <td style={{padding:"12px 18px"}}>
+                    {u.id !== 1 ? (
+                      <div style={{display:"flex",gap:5}}>
+                        <button onClick={()=>handleEditClick(u)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Edit size={12}/></button>
+                        <button onClick={()=>handleDeleteClick(u.id)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.red,display:"flex"}}><Trash2 size={12}/></button>
+                      </div>
+                    ) : (
+                      <span style={{color:C.mute,fontSize:10}}>System Admin</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {showModal&&(
-        <Modal title={editingId ? "Edit User" : "Add User"} onClose={()=>{ setShowModal(false); setEditingId(null); setForm({name:"",email:"",role:"Sales Agent",permissions:""}); }} width={580}>
+        <Modal title={editingId ? "Edit User" : "Add User"} onClose={()=>{ setShowModal(false); setEditingId(null); setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""}); }} width={580}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <Field label="Full Name" required><Input value={form.name} onChange={f("name")} placeholder="e.g. Priyesh Shah"/></Field>
-            <Field label="Email" required><Input type="email" value={form.email} onChange={f("email")} placeholder="email@builderpro.com"/></Field>
+            <Field label="Full Name" required><Input value={form.name} onChange={f("name")} placeholder="e.g. Sanjay Bhatt"/></Field>
+            <Field label="Email" required><Input type="email" value={form.email} onChange={f("email")} placeholder="email@propnest.com"/></Field>
             <div style={{gridColumn:"1/-1"}}>
               <Field label="System Role">
-                <Select value={form.role} onChange={f("role")} options={userRole}/>
+                <Select value={form.role} onChange={handleRoleChange} options={userRole}/>
               </Field>
             </div>
+
+            {form.role === "Channel Partner" && (
+              <div style={{gridColumn:"1/-1"}}>
+                <Field label="Associated Channel Partner Firm" required>
+                  <select 
+                    value={form.channelPartnerId || ""} 
+                    onChange={(e) => setForm(p => ({ ...p, channelPartnerId: e.target.value }))}
+                    style={{
+                      width:"100%", background:C.raise, border:`1px solid ${C.bord}`, borderRadius:8,
+                      padding:"10px 14px", color:C.txt, fontSize:13, outline:"none"
+                    }}
+                  >
+                    <option value="">-- Select Channel Partner Company --</option>
+                    {partners.map(cp => (
+                      <option key={cp.id} value={cp.id}>{cp.name} ({cp.contactPerson || cp.city})</option>
+                    ))}
+                  </select>
+                </Field>
+                <div style={{fontSize:11,color:C.mute,marginTop:4}}>
+                  Channel Partner users will only be granted access to their own submitted leads, associated customers, and permitted booking statuses.
+                </div>
+              </div>
+            )}
             
             {form.role !== "Super Admin" && (
               <div style={{gridColumn:"1/-1"}}>
@@ -171,7 +231,7 @@ export function UserManagement() {
             )}
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:20,paddingTop:16,borderTop:`1px solid ${C.bord}`}}>
-            <Btn v="outline" onClick={()=>{ setShowModal(false); setEditingId(null); setForm({name:"",email:"",role:"Sales Agent",permissions:""}); }}>Cancel</Btn>
+            <Btn v="outline" onClick={()=>{ setShowModal(false); setEditingId(null); setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""}); }}>Cancel</Btn>
             <Btn onClick={handleSubmit} disabled={saving} icon={saving?Loader2:(editingId?Edit:Plus)}>{saving?(editingId?"Saving...":"Creating..."):(editingId?"Update User":"Create User")}</Btn>
           </div>
         </Modal>

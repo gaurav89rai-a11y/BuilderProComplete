@@ -6,7 +6,10 @@ import { fmtCr } from "../../utils/helpers.js";
 import { Badge, Btn, Modal, Field, Input, Select, LoadingState, ErrorState, Toast, STitle } from "../../components/ui";
 import { useConfig } from "../../config/ConfigContext.jsx";
 
-export function Customers() {
+export function Customers({ currentUser }) {
+  const isChannelPartner = currentUser?.role === "Channel Partner";
+  const userCpId = currentUser?.channelPartnerId ? parseInt(currentUser.channelPartnerId) : null;
+
   const { customerStatus, getDefault } = useConfig();
   const [customers,setCustomers]=useState([]);
   const [projects,setProjects]=useState([]);
@@ -25,7 +28,10 @@ export function Customers() {
     setLoading(true);setError(null);
     try {
       const [c,p,l]=await Promise.all([api.getCustomers(),api.getProjects(),api.getLeads()]);
-      const mappedLeads = l.map(lead => ({
+      const filteredLeads = (isChannelPartner && userCpId)
+        ? l.filter(lead => lead.channelPartnerId === userCpId)
+        : l;
+      const mappedLeads = filteredLeads.map(lead => ({
         id: `lead-${lead.id}`,
         isLead: true,
         name: lead.name,
@@ -43,7 +49,7 @@ export function Customers() {
       setCustomers([...c, ...mappedLeads]); setProjects(p);
     } catch(e){ setError(e.message); }
     finally { setLoading(false); }
-  },[]);
+  },[isChannelPartner, userCpId]);
   useEffect(()=>{ load(); },[load]);
 
   const list=customers.filter(c=>
@@ -113,8 +119,45 @@ export function Customers() {
   return (
     <div className="fi">
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}
-      <STitle title="Customer Management" sub="All registered customers"
-        action={<Btn icon={Plus} onClick={()=>setShowModal(true)}>Add Customer</Btn>}/>
+      <STitle 
+        title="Customer Management" 
+        sub={isChannelPartner ? "Associated clients and submitted leads" : "All registered customers"}
+        action={!isChannelPartner && <Btn icon={Plus} onClick={()=>setShowModal(true)}>Add Customer</Btn>}
+      />
+
+      {/* Channel Partner Portal Banner */}
+      {isChannelPartner && (
+        <div style={{
+          background: `linear-gradient(90deg, ${C.card} 0%, ${C.raise} 100%)`,
+          border: `1px solid ${C.gold}40`,
+          borderLeft: `4px solid ${C.gold}`,
+          borderRadius: 10,
+          padding: "12px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: `${C.gold}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <User size={20} color={C.gold} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13.5, color: C.txt }}>
+                Channel Partner Portal • Associated Clients
+              </div>
+              <div style={{ fontSize: 11, color: C.sub }}>
+                Showing clients and buyers associated with your submitted leads and booking commissions.
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 11, background: `${C.gold}15`, color: C.gold, padding: "4px 10px", borderRadius: 6, fontWeight: 700 }}>
+            Partner Directory
+          </span>
+        </div>
+      )}
+
       <div style={{background:C.card,border:`1px solid ${C.bord}`,borderRadius:14,overflow:"hidden"}}>
         <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.bord}`,display:"flex",alignItems:"center",gap:8}}>
           <Search size={14} color={C.mute}/>

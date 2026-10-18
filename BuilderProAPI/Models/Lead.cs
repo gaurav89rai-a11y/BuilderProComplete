@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BuilderProAPI.Models;
 
@@ -23,6 +24,7 @@ public class Lead
     public Project? Project { get; set; }
     public int? UnitId { get; set; }
     public Unit? Unit { get; set; }
+    [NotMapped]
     public int? FlatId { get => UnitId; set => UnitId = value; }
     public string FlatNo { get; set; } = "";
     public DateTime? NextFollowUpDate { get; set; }

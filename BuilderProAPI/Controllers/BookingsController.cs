@@ -19,15 +19,25 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? status)
+    public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int? channelPartnerId)
     {
-        return Ok(await _bookingService.GetAllBookingsAsync(status));
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = channelPartnerId;
+        if (!cpId.HasValue && int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        return Ok(await _bookingService.GetAllBookingsAsync(status, cpId, role));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var b = await _bookingService.GetBookingByIdAsync(id);
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = null;
+        if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        var b = await _bookingService.GetBookingByIdAsync(id, cpId, role);
         if (b == null) return NotFound();
         return Ok(b);
     }
@@ -51,15 +61,32 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] Booking booking)
     {
         if (id != booking.Id) return BadRequest();
-        var updated = await _bookingService.UpdateBookingAsync(id, booking);
-        if (updated == null) return NotFound();
-        return Ok(updated);
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = null;
+        if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        try
+        {
+            var updated = await _bookingService.UpdateBookingAsync(id, booking, cpId, role);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var success = await _bookingService.DeleteBookingAsync(id);
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var success = await _bookingService.DeleteBookingAsync(id, role);
         if (!success) return NotFound();
         return NoContent();
     }

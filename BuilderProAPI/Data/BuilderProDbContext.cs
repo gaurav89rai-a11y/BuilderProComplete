@@ -104,6 +104,12 @@ public class BuilderProDbContext : DbContext
             }
         }
 
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.ChannelPartner)
+            .WithMany()
+            .HasForeignKey(u => u.ChannelPartnerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Seed Data
         modelBuilder.Entity<Project>().HasData(
             new Project { Id=1, Name="Skyline Heights", Location="Bandra West, Mumbai", ReraNumber="P51900034682", Status="Active", Type="Residential", TotalUnits=240, ConstructionPct=78, TotalValue=4850000000m },
@@ -170,7 +176,9 @@ public class BuilderProDbContext : DbContext
             new User { Id=1, Name="Arjun Kapoor", Email="arjun@builderpro.com", Role="Super Admin", Permissions="all" },
             new User { Id=2, Name="Priya Mehta", Email="priya@builderpro.com", Role="Sales Agent", Permissions="view_dashboard,manage_leads,manage_visits" },
             new User { Id=3, Name="Amit Kumar", Email="amit@builderpro.com", Role="Manager", Permissions="view_dashboard,manage_projects,manage_inventory,manage_leads,manage_partners,manage_customers,manage_visits,manage_bookings,manage_hrms,manage_oms" },
-            new User { Id=4, Name="Vikram Sen", Email="vikram@builderpro.com", Role="Support Agent", Permissions="view_dashboard,manage_support" }
+            new User { Id=4, Name="Vikram Sen", Email="vikram@builderpro.com", Role="Support Agent", Permissions="view_dashboard,manage_support" },
+            new User { Id=7, Name="Sanjay Bhatt", Email="sanjay@propnest.com", Role="Channel Partner", Permissions="view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", ChannelPartnerId=1 },
+            new User { Id=8, Name="Rekha Nair", Email="rekha@homefinder.com", Role="Channel Partner", Permissions="view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", ChannelPartnerId=2 }
         );
 
         modelBuilder.Entity<Employee>().HasData(
@@ -330,6 +338,7 @@ public class BuilderProDbContext : DbContext
             new SystemConfig { Id = 78, Category = "UserRole", Value = "Manager", Label = "Manager", IsDefault = false, SortOrder = 2 },
             new SystemConfig { Id = 79, Category = "UserRole", Value = "Sales Agent", Label = "Sales Agent", IsDefault = true, SortOrder = 3 },
             new SystemConfig { Id = 80, Category = "UserRole", Value = "Support Agent", Label = "Support Agent", IsDefault = false, SortOrder = 4 },
+            new SystemConfig { Id = 301, Category = "UserRole", Value = "Channel Partner", Label = "Channel Partner", IsDefault = false, SortOrder = 5 },
 
             // SupportCategory
             new SystemConfig { Id = 81, Category = "SupportCategory", Value = "Maintenance", Label = "Maintenance", IsDefault = true, SortOrder = 1 },

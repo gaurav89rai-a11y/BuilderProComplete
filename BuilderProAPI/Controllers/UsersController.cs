@@ -15,13 +15,13 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        return Ok(await _db.Users.ToListAsync());
+        return Ok(await _db.Users.Include(u => u.ChannelPartner).ToListAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var user = await _db.Users.FindAsync(id);
+        var user = await _db.Users.Include(u => u.ChannelPartner).FirstOrDefaultAsync(u => u.Id == id);
         if (user == null) return NotFound();
         return Ok(user);
     }
@@ -46,6 +46,7 @@ public class UsersController : ControllerBase
         existing.Email = user.Email;
         existing.Role = user.Role;
         existing.Permissions = user.Permissions;
+        existing.ChannelPartnerId = user.ChannelPartnerId;
         await _db.SaveChangesAsync();
         return Ok(existing);
     }

@@ -6,11 +6,11 @@ namespace BuilderProAPI.Services;
 
 public interface IBookingService
 {
-    Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status);
-    Task<Booking?> GetBookingByIdAsync(int id);
+    Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status, int? channelPartnerId = null, string? role = null);
+    Task<Booking?> GetBookingByIdAsync(int id, int? channelPartnerId = null, string? role = null);
     Task<Booking> CreateBookingAsync(Booking booking);
-    Task<Booking?> UpdateBookingAsync(int id, Booking booking);
-    Task<bool> DeleteBookingAsync(int id);
+    Task<Booking?> UpdateBookingAsync(int id, Booking booking, int? channelPartnerId = null, string? role = null);
+    Task<bool> DeleteBookingAsync(int id, string? role = null);
     Task<object> GetBookingStatsAsync();
     Task<byte[]?> GenerateAgreementPdfAsync(int id);
 }

@@ -26,6 +26,16 @@ function notifyConnectionChange() {
 async function req(method, path, body, customHeaders = {}) {
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   const headers = isFormData ? { ...customHeaders } : { "Content-Type": "application/json", ...customHeaders };
+  try {
+    const role = localStorage.getItem("current_user_role");
+    const name = localStorage.getItem("current_user_name");
+    const uid = localStorage.getItem("current_user_id");
+    const cpId = localStorage.getItem("current_channel_partner_id");
+    if (role && !headers["X-User-Role"]) headers["X-User-Role"] = role;
+    if (name && !headers["X-User-Name"]) headers["X-User-Name"] = name;
+    if (uid && !headers["X-User-Id"]) headers["X-User-Id"] = uid;
+    if (cpId && !headers["X-Channel-Partner-Id"]) headers["X-Channel-Partner-Id"] = cpId;
+  } catch {}
   const opts = {
     method,
     headers,
@@ -170,7 +180,9 @@ const SEED_DATA = {
     { id: 3, name: "Amit Kumar", email: "amit@builderpro.com", role: "Manager", permissions: "view_dashboard,manage_projects,manage_inventory,manage_leads,manage_partners,manage_customers,manage_visits,manage_bookings,manage_hrms,manage_oms" },
     { id: 4, name: "Vikram Sen", email: "vikram@builderpro.com", role: "Support Agent", permissions: "view_dashboard,manage_support" },
     { id: 5, name: "Vinod Sharma", email: "vinod@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
-    { id: 6, name: "Vishal Verma", email: "vishal@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" }
+    { id: 6, name: "Vishal Verma", email: "vishal@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
+    { id: 7, name: "Sanjay Bhatt", email: "sanjay@propnest.com", role: "Channel Partner", permissions: "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", channelPartnerId: 1 },
+    { id: 8, name: "Rekha Nair", email: "rekha@homefinder.com", role: "Channel Partner", permissions: "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", channelPartnerId: 2 }
   ],
   employees: [
     { id: 1, employeeCode: "EMP-2026-000001", name: "Raj Patel", email: "raj@builderpro.com", phone: "9812345671", department: "HR", designation: "HR Manager", status: "Active", dateOfJoining: "2024-01-15T00:00:00", salary: 75000 },
@@ -233,12 +245,17 @@ const SEED_DATA = {
     { id: 33, category: "UnitType", value: "1BHK", label: "1BHK", isDefault: false, sortOrder: 1 },
     { id: 34, category: "UnitType", value: "2BHK", label: "2BHK", isDefault: true, sortOrder: 2 },
     { id: 35, category: "UnitType", value: "3BHK", label: "3BHK", isDefault: false, sortOrder: 3 },
-    { id: 36, category: "UnitType", value: "4BHK", label: "4BHK", isDefault: false, sortOrder: 4 }
+    { id: 36, category: "UnitType", value: "4BHK", label: "4BHK", isDefault: false, sortOrder: 4 },
+    { id: 77, category: "UserRole", value: "Super Admin", label: "Super Admin", isDefault: false, sortOrder: 1 },
+    { id: 78, category: "UserRole", value: "Manager", label: "Manager", isDefault: false, sortOrder: 2 },
+    { id: 79, category: "UserRole", value: "Sales Agent", label: "Sales Agent", isDefault: true, sortOrder: 3 },
+    { id: 80, category: "UserRole", value: "Support Agent", label: "Support Agent", isDefault: false, sortOrder: 4 },
+    { id: 301, category: "UserRole", value: "Channel Partner", label: "Channel Partner", isDefault: false, sortOrder: 5 }
   ]
 };
 
 // Local storage versioning & helpers
-const DATA_VERSION = "2.5.6_crm_flats";
+const DATA_VERSION = "2.5.7_channel_partner";
 
 function initStorageVersion() {
   try {
@@ -286,20 +303,39 @@ function setMock(key, data) {
 // ─── CLIENT-SIDE MOCK SERVICE ──────────────────────────────────
 const mockApi = {
   getDashboard: async (params = {}) => {
+    const role = localStorage.getItem("current_user_role");
+    const cpId = params.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+    const isChannelPartner = role === "Channel Partner" && cpId;
+    const parsedCp = isChannelPartner ? parseInt(cpId) : null;
+
     const projectId = params.projectId ? parseInt(params.projectId) : null;
     const allProjects = getMock("projects");
-    const allUnits = getMock("units").filter(u => !projectId || u.projectId === projectId);
-    const allLeads = getMock("leads").filter(l => !projectId || l.projectId === projectId);
-    const allCustomers = getMock("customers").filter(c => !projectId || c.projectId === projectId);
-    const allBookings = getMock("bookings").filter(b => {
+    let allUnits = getMock("units").filter(u => !projectId || u.projectId === projectId);
+    let allLeads = getMock("leads").filter(l => !projectId || l.projectId === projectId);
+    let allCustomers = getMock("customers").filter(c => !projectId || c.projectId === projectId);
+    let allBookings = getMock("bookings").filter(b => {
       if (!projectId) return true;
       const unit = getMock("units").find(u => u.id === b.unitId);
       return unit && unit.projectId === projectId;
     });
+
+    if (isChannelPartner && parsedCp) {
+      allLeads = allLeads.filter(l => l.channelPartnerId === parsedCp);
+      const leadPhones = new Set(allLeads.map(l => l.phone).filter(Boolean));
+      const leadEmails = new Set(allLeads.map(l => (l.email || "").toLowerCase()).filter(Boolean));
+      const commList = getMock("commissions").filter(c => c.partnerId === parsedCp);
+      const commBookingIds = new Set(commList.map(c => c.bookingId));
+      allBookings = allBookings.filter(b => commBookingIds.has(b.id) || b.channelPartnerId === parsedCp);
+      const commCustIds = new Set(allBookings.map(b => b.customerId));
+      allCustomers = allCustomers.filter(c => leadPhones.has(c.phone) || leadEmails.has((c.email || "").toLowerCase()) || commCustIds.has(c.id));
+      // Channel partners only access permitted booking statuses
+      allBookings = allBookings.filter(b => ["Confirmed", "Agreement Pending", "Agreement Signed"].includes(b.status));
+    }
+
     const allPartners = getMock("partners");
-    const allTickets = getMock("tickets");
+    const allTickets = isChannelPartner ? [] : getMock("tickets");
     const allVisits = getMock("visits").filter(v => !projectId || v.projectId === projectId);
-    const allCommissions = getMock("commissions");
+    const allCommissions = isChannelPartner ? getMock("commissions").filter(c => c.partnerId === parsedCp) : getMock("commissions");
 
     const totalRevenue = allBookings.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
 
@@ -445,6 +481,11 @@ const mockApi = {
   // Leads
   getLeads: async (params = {}) => {
     let list = getMock("leads");
+    const role = localStorage.getItem("current_user_role");
+    const cpId = params.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+    if ((role === "Channel Partner" || params.channelPartnerId) && cpId) {
+      list = list.filter(l => l.channelPartnerId === parseInt(cpId));
+    }
     if (params.stage) {
       list = list.filter(l => l.stage === params.stage);
     }
@@ -462,8 +503,13 @@ const mockApi = {
       unit: l.unitId ? (units.find(u => u.id === l.unitId) || null) : (l.flatNo ? (units.find(u => u.unitNumber === l.flatNo && (!l.projectId || u.projectId === l.projectId)) || null) : null)
     }));
   },
-  getLeadsKanban: async () => {
-    const rawLeads = getMock("leads");
+  getLeadsKanban: async (params = {}) => {
+    let rawLeads = getMock("leads");
+    const role = localStorage.getItem("current_user_role");
+    const cpId = params?.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+    if ((role === "Channel Partner" || params?.channelPartnerId) && cpId) {
+      rawLeads = rawLeads.filter(l => l.channelPartnerId === parseInt(cpId));
+    }
     const projects = getMock("projects");
     const partners = getMock("partners");
     const users = getMock("users");
@@ -519,14 +565,24 @@ const mockApi = {
       }
     }
 
+    const role = localStorage.getItem("current_user_role");
+    const storedCpId = localStorage.getItem("current_channel_partner_id");
+    let channelPartnerId = data.channelPartnerId ? parseInt(data.channelPartnerId) : null;
+    let source = data.source || "";
+    if (role === "Channel Partner" && storedCpId) {
+      channelPartnerId = parseInt(storedCpId);
+      source = "Channel Partner";
+    }
+
     const newItem = {
       ...data,
       id: list.length > 0 ? Math.max(...list.map(x => x.id)) + 1 : 1,
+      source: source || data.source,
       assignedTo,
       agentId,
       unitId,
       flatNo,
-      channelPartnerId: data.channelPartnerId ? parseInt(data.channelPartnerId) : null,
+      channelPartnerId,
       projectId: data.projectId ? parseInt(data.projectId) : null,
       budget: parseFloat(data.budget || 0),
       createdAt: new Date().toISOString()
@@ -650,6 +706,19 @@ const mockApi = {
   // Customers
   getCustomers: async (params = {}) => {
     let list = getMock("customers");
+    const role = localStorage.getItem("current_user_role");
+    const cpId = params.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+    if ((role === "Channel Partner" || params.channelPartnerId) && cpId) {
+      const parsedCp = parseInt(cpId);
+      const leads = getMock("leads").filter(l => l.channelPartnerId === parsedCp);
+      const leadPhones = new Set(leads.map(l => l.phone).filter(Boolean));
+      const leadEmails = new Set(leads.map(l => (l.email || "").toLowerCase()).filter(Boolean));
+      const commissions = getMock("commissions").filter(c => c.partnerId === parsedCp);
+      const commBookingIds = new Set(commissions.map(c => c.bookingId));
+      const bookings = getMock("bookings").filter(b => commBookingIds.has(b.id));
+      const commCustIds = new Set(bookings.map(b => b.customerId));
+      list = list.filter(c => leadPhones.has(c.phone) || leadEmails.has((c.email || "").toLowerCase()) || commCustIds.has(c.id));
+    }
     if (params.projectId) {
       list = list.filter(c => c.projectId === parseInt(params.projectId));
     }
@@ -744,8 +813,27 @@ const mockApi = {
   },
 
   // Bookings
-  getBookings: async () => {
-    const bookings = getMock("bookings");
+  getBookings: async (params = {}) => {
+    let bookings = getMock("bookings");
+    const permittedStatuses = ["Confirmed", "Agreement Pending", "Agreement Signed"];
+    const role = localStorage.getItem("current_user_role");
+    const cpId = params?.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+    if ((role === "Channel Partner" || params?.channelPartnerId) && cpId) {
+      const parsedCp = parseInt(cpId);
+      const leads = getMock("leads").filter(l => l.channelPartnerId === parsedCp);
+      const leadPhones = new Set(leads.map(l => l.phone).filter(Boolean));
+      const leadEmails = new Set(leads.map(l => (l.email || "").toLowerCase()).filter(Boolean));
+      const commissions = getMock("commissions").filter(c => c.partnerId === parsedCp);
+      const commBookingIds = new Set(commissions.map(c => c.bookingId));
+      const allCustomers = getMock("customers");
+      bookings = bookings.filter(b => {
+        if (!permittedStatuses.includes(b.status)) return false;
+        if (commBookingIds.has(b.id)) return true;
+        const cust = allCustomers.find(c => c.id === b.customerId);
+        if (cust && (leadPhones.has(cust.phone) || leadEmails.has((cust.email || "").toLowerCase()))) return true;
+        return false;
+      });
+    }
     const users = getMock("users");
     return bookings.map(b => {
       const cust = getMock("customers").find(c => c.id === b.customerId);
@@ -803,11 +891,24 @@ const mockApi = {
     const list = getMock("bookings");
     const idx = list.findIndex(x => x.id === parseInt(id));
     if (idx === -1) throw new Error("Booking not found");
+
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner") {
+      const permittedStatuses = ["Confirmed", "Agreement Pending", "Agreement Signed"];
+      if (data.status && !permittedStatuses.includes(data.status)) {
+        throw new Error("Channel Partners are only permitted to update to statuses: Confirmed, Agreement Pending, Agreement Signed.");
+      }
+    }
+
     list[idx] = { ...list[idx], ...data };
     setMock("bookings", list);
     return list[idx];
   },
   deleteBooking: async (id) => {
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner") {
+      throw new Error("Channel Partners are not authorized to delete bookings.");
+    }
     let list = getMock("bookings");
     list = list.filter(x => x.id !== parseInt(id));
     setMock("bookings", list);
@@ -1242,7 +1343,10 @@ const realApi = {
     const qs = new URLSearchParams(params).toString();
     return req("GET", `/leads${qs ? "?" + qs : ""}`);
   },
-  getLeadsKanban: () => req("GET", "/leads/kanban"),
+  getLeadsKanban: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return req("GET", `/leads/kanban${qs ? "?" + qs : ""}`);
+  },
   createLead: (data) => req("POST", "/leads", data),
   updateLead: (id, data) => req("PUT", `/leads/${id}`, data),
   updateLeadStage: (id, stage, comment, role = "Super Admin", name = "Arjun Kapoor", nextFollowUpDate = null) => 
@@ -1272,7 +1376,10 @@ const realApi = {
   updateVisitStatus: (id, status) => req("PATCH", `/sitevisits/${id}/status`, { status }),
   deleteVisit: (id) => req("DELETE", `/sitevisits/${id}`),
 
-  getBookings: () => req("GET", "/bookings"),
+  getBookings: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return req("GET", `/bookings${qs ? "?" + qs : ""}`);
+  },
   createBooking: (data) => req("POST", "/bookings", data),
   updateBooking: (id, data) => req("PUT", `/bookings/${id}`, data),
   deleteBooking: (id) => req("DELETE", `/bookings/${id}`),

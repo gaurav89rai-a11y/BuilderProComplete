@@ -148,6 +148,14 @@ export default function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const saveUserSession = (u) => {
+    if (!u) return;
+    localStorage.setItem("current_user_id", u.id);
+    localStorage.setItem("current_user_role", u.role || "");
+    localStorage.setItem("current_user_name", u.name || "");
+    localStorage.setItem("current_channel_partner_id", u.channelPartnerId ? u.channelPartnerId.toString() : "");
+  };
+
   const loadUsers = async () => {
     try {
       const u = await api.getUsers();
@@ -156,21 +164,19 @@ export default function App() {
       const match = u.find(x => x.id === parseInt(savedUserId));
       if (match) {
         setCurrentUser(match);
+        saveUserSession(match);
         setIsAuthenticated(true);
       } else {
-        setCurrentUser(u[0] || { id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" });
+        const defaultU = u[0] || { id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" };
+        setCurrentUser(defaultU);
+        saveUserSession(defaultU);
       }
     } catch(e) {
       console.error(e);
       const fallback = { id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" };
       setUsersList([fallback]);
-      const savedUserId = localStorage.getItem("current_user_id");
-      if (savedUserId === "1") {
-        setCurrentUser(fallback);
-        setIsAuthenticated(true);
-      } else {
-        setCurrentUser(fallback);
-      }
+      setCurrentUser(fallback);
+      saveUserSession(fallback);
     }
   };
 
@@ -180,7 +186,7 @@ export default function App() {
 
   const handleUserChange = (u) => {
     setCurrentUser(u);
-    localStorage.setItem("current_user_id", u.id);
+    saveUserSession(u);
     if (!hasPermission(u, mod)) {
       setMod("dashboard");
     }
@@ -189,13 +195,16 @@ export default function App() {
   const handleLogin = (userObj) => {
     setCurrentUser(userObj);
     setIsAuthenticated(true);
-    localStorage.setItem("current_user_id", userObj.id);
+    saveUserSession(userObj);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
     localStorage.removeItem("current_user_id");
+    localStorage.removeItem("current_user_role");
+    localStorage.removeItem("current_user_name");
+    localStorage.removeItem("current_channel_partner_id");
   };
 
   const toggleTheme=()=>{

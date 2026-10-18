@@ -10,7 +10,8 @@ import { useConfig } from "../../config/ConfigContext.jsx";
 
 /* ─── SIDEBAR ───────────────────────────────────────────────────── */
 
-export function Dashboard() {
+export function Dashboard({ currentUser }) {
+  const isChannelPartner = currentUser?.role === "Channel Partner";
   const { configs, badgeColors } = useConfig();
   const [data,setData]=useState(null);
   const [projects,setProjects]=useState([]);
@@ -46,16 +47,51 @@ export function Dashboard() {
 
   const pc=[C.blue,C.teal,C.amb,C.gold,C.red];
   const proj = data.selectedProject;
-  const dashSub = proj
-    ? `${proj.name} · ${proj.location} · ${proj.status} · ${proj.constructionPct}% built`
-    : "Portfolio-wide business overview";
+  const dashSub = isChannelPartner 
+    ? `Channel Partner Portal · ${currentUser?.name || "Partner"} · Submitted leads & referred bookings overview`
+    : (proj ? `${proj.name} · ${proj.location} · ${proj.status} · ${proj.constructionPct}% built` : "Portfolio-wide business overview");
   const revData = (data.monthlyRevenue?.length ? data.monthlyRevenue : REV_DATA);
   const srcData = (data.leadSources?.length ? data.leadSources : SRC_DATA);
 
   return (
     <div className="fi">
+      {isChannelPartner && (
+        <div style={{
+          background: `linear-gradient(90deg, ${C.card} 0%, ${C.raise} 100%)`,
+          border: `1px solid ${C.blue}40`,
+          borderLeft: `4px solid ${C.blue}`,
+          borderRadius: 12,
+          padding: "14px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 18,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: `${C.blue}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Handshake size={24} color={C.blue} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: C.txt }}>
+                Welcome to BuilderPro Partner Workspace, {currentUser?.name}!
+              </div>
+              <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>
+                {currentUser?.channelPartner?.name || "PropNest Realty"} • Access restricted to your own submitted leads, associated customers, and permitted booking stages.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <span style={{ fontSize: 11, background: `${C.blue}18`, color: C.blue, padding: "6px 12px", borderRadius: 8, fontWeight: 700 }}>
+              Channel Partner
+            </span>
+          </div>
+        </div>
+      )}
+
       <STitle
-        title="Executive Dashboard"
+        title={isChannelPartner ? "Partner Workspace Dashboard" : "Executive Dashboard"}
         sub={dashSub}
         action={
           <div style={{display:"flex",alignItems:"center",gap:8}}>

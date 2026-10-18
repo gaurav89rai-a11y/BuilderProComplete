@@ -13,9 +13,25 @@ public class LeadsController : ControllerBase
     public LeadsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? stage, [FromQuery] string? assigned)
+    public async Task<IActionResult> GetAll([FromQuery] string? stage, [FromQuery] string? assigned, [FromQuery] int? channelPartnerId)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = channelPartnerId;
+        if (!cpId.HasValue && int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
         var query = _db.Leads.Include(l => l.Project).Include(l => l.ChannelPartner).Include(l => l.Agent).Include(l => l.Unit).AsQueryable();
+
+        // Enforce Channel Partner role restriction: Access only their own submitted leads
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && cpId.HasValue)
+        {
+            query = query.Where(l => l.ChannelPartnerId == cpId.Value);
+        }
+        else if (cpId.HasValue)
+        {
+            query = query.Where(l => l.ChannelPartnerId == cpId.Value);
+        }
+
         if (!string.IsNullOrEmpty(stage)) query = query.Where(l => l.Stage == stage);
         if (!string.IsNullOrEmpty(assigned)) query = query.Where(l => l.AssignedTo == assigned || (l.AgentId.HasValue && l.AgentId.ToString() == assigned));
         return Ok(await query.OrderByDescending(l => l.CreatedAt).ToListAsync());
@@ -24,8 +40,19 @@ public class LeadsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = null;
+        if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
         var lead = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).Include(l => l.ChannelPartner).Include(l => l.Agent).Include(l => l.Unit).FirstOrDefaultAsync(l => l.Id == id);
         if (lead == null) return NotFound();
+
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && cpId.HasValue)
+        {
+            if (lead.ChannelPartnerId != cpId.Value) return Forbid();
+        }
+
         return Ok(lead);
     }
 
@@ -34,6 +61,14 @@ public class LeadsController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
         lead.CreatedAt = DateTime.UtcNow;
+
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && int.TryParse(cpHeader, out int parsedCp))
+        {
+            lead.ChannelPartnerId = parsedCp;
+            lead.Source = "Channel Partner";
+        }
         if (string.IsNullOrEmpty(lead.Stage))
         {
             lead.Stage = await _db.SystemConfigs.Where(c => c.Category == "LeadStage" && c.IsDefault).Select(c => c.Value).FirstOrDefaultAsync()
@@ -308,6 +343,22 @@ public class LeadsController : ControllerBase
         var prevStage = lead.Stage;
         var role = Request.Headers["X-User-Role"].FirstOrDefault() ?? "Sales Agent";
         var name = Request.Headers["X-User-Name"].FirstOrDefault() ?? "Sales Executive";
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = null;
+        if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        // Channel Partner access restriction
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && cpId.HasValue)
+        {
+            if (lead.ChannelPartnerId != cpId.Value)
+            {
+                return Forbid();
+            }
+            if (dto.Stage == "Closed Won" || dto.Stage == "Closed Lost" || dto.Stage == "Cancelled")
+            {
+                return BadRequest(new { message = "Channel Partners are not authorized to close or cancel leads directly. Please coordinate with your Sales Manager." });
+            }
+        }
 
         // Validate Roles & Permissions
         if ((dto.Stage == "Closed Won" || dto.Stage == "Closed Lost") && role != "Super Admin" && role != "Manager")
@@ -419,6 +470,12 @@ public class LeadsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var lead = await _db.Leads.FindAsync(id);
         if (lead == null) return NotFound();
 
@@ -434,20 +491,38 @@ public class LeadsController : ControllerBase
     }
 
     [HttpGet("kanban")]
-    public async Task<IActionResult> GetKanban()
+    public async Task<IActionResult> GetKanban([FromQuery] int? channelPartnerId)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        int? cpId = channelPartnerId;
+        if (!cpId.HasValue && int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
         var stages = await _db.SystemConfigs
             .Where(c => c.Category == "LeadStage")
             .OrderBy(c => c.SortOrder)
             .Select(c => c.Value)
             .ToArrayAsync();
-        var leads = await _db.Leads
+
+        var query = _db.Leads
             .Include(l => l.Project)
             .Include(l => l.SiteVisits)
             .Include(l => l.ChannelPartner)
             .Include(l => l.Agent)
             .Include(l => l.Unit)
-            .ToListAsync();
+            .AsQueryable();
+
+        // Enforce Channel Partner role restriction on kanban: Access only their own submitted leads
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && cpId.HasValue)
+        {
+            query = query.Where(l => l.ChannelPartnerId == cpId.Value);
+        }
+        else if (cpId.HasValue)
+        {
+            query = query.Where(l => l.ChannelPartnerId == cpId.Value);
+        }
+
+        var leads = await query.ToListAsync();
 
         // Normalize legacy or mismatched stages to prevent leads disappearing from the kanban board
         var stageSet = new HashSet<string>(stages, StringComparer.OrdinalIgnoreCase);

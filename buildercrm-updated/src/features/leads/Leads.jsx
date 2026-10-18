@@ -12,7 +12,10 @@ import { fmtCr } from "../../utils/helpers.js";
 import { Badge, Btn, Modal, Field, Input, Select, LoadingState, ErrorState, Toast, STitle } from "../../components/ui";
 import { useConfig } from "../../config/ConfigContext.jsx";
 
-export function Leads() {
+export function Leads({ currentUser }) {
+  const isChannelPartner = currentUser?.role === "Channel Partner";
+  const userCpId = currentUser?.channelPartnerId ? parseInt(currentUser.channelPartnerId) : null;
+
   const { leadStage: stages, leadSource: sources, getDefault, configs } = useConfig();
   const [kanban, setKanban] = useState({});
   const [projects, setProjects] = useState([]);
@@ -41,7 +44,9 @@ export function Leads() {
   const [filterHighProb, setFilterHighProb] = useState(false);
 
   // Lead pipeline state
-  const [simulatedUser, setSimulatedUser] = useState("Arjun Kapoor|Super Admin");
+  const [simulatedUser, setSimulatedUser] = useState(
+    isChannelPartner ? `${currentUser?.name || "Partner"}|Channel Partner` : "Arjun Kapoor|Super Admin"
+  );
   const draggedLeadRef = useRef(null);
   const [dragOverStage, setDragOverStage] = useState(null);
 
@@ -236,8 +241,8 @@ export function Leads() {
     name: "",
     email: "",
     phone: "",
-    source: defaultSource,
-    channelPartnerId: "",
+    source: isChannelPartner ? "Channel Partner" : defaultSource,
+    channelPartnerId: isChannelPartner && userCpId ? userCpId : "",
     stage: defaultStage,
     interest: "",
     assignedTo: "",
@@ -321,12 +326,14 @@ export function Leads() {
     if (!form.name || !form.phone) return setToast({ msg: "Name and Phone are required", type: "error" });
     setSaving(true);
     try {
+      const finalCpId = isChannelPartner ? userCpId : (form.source === "Channel Partner" && form.channelPartnerId ? +form.channelPartnerId : null);
+      const finalSource = isChannelPartner ? "Channel Partner" : form.source;
       await api.createLead({
         name: form.name,
         email: form.email,
         phone: form.phone,
-        source: form.source,
-        channelPartnerId: form.source === "Channel Partner" && form.channelPartnerId ? +form.channelPartnerId : null,
+        source: finalSource,
+        channelPartnerId: finalCpId,
         stage: form.stage,
         interest: form.interest,
         assignedTo: form.assignedTo,
@@ -342,8 +349,8 @@ export function Leads() {
         name: "",
         email: "",
         phone: "",
-        source: defaultSource,
-        channelPartnerId: "",
+        source: isChannelPartner ? "Channel Partner" : defaultSource,
+        channelPartnerId: isChannelPartner && userCpId ? userCpId : "",
         stage: defaultStage,
         interest: "",
         assignedTo: "",
@@ -393,6 +400,10 @@ export function Leads() {
 
   const executeLeadTransition = async (lead, targetStage) => {
     if (!lead || lead.stage === targetStage) return;
+    if (isChannelPartner && (targetStage === "Closed Lost" || targetStage === "Lost" || targetStage === "Cancelled")) {
+      setToast({ msg: "Channel Partners cannot mark leads as Closed/Lost. Please contact your builder manager.", type: "error" });
+      return;
+    }
     const leadId = lead.id;
     const prevStage = lead.stage;
 
@@ -537,9 +548,12 @@ export function Leads() {
   };
 
   // Flattened leads for global computations
-  const allLeads = Array.isArray(kanban)
+  const allLeadsRaw = Array.isArray(kanban)
     ? kanban.flatMap(x => x.leads || [])
     : Object.values(kanban).flat().filter(Boolean);
+  const allLeads = isChannelPartner && userCpId
+    ? allLeadsRaw.filter(l => l.channelPartnerId === userCpId)
+    : allLeadsRaw;
   const totalLeadsCount = allLeads.length;
   const newLeadsCount = allLeads.filter(l => l.stage === "New Lead").length;
   
@@ -820,6 +834,11 @@ export function Leads() {
       ? kanban.find(s => (s.stage || s.title) === stage)?.leads
       : kanban[stage]) || [];
     return rawLeads.filter(lead => {
+      // Channel Partner restriction: Only access their own submitted leads
+      if (isChannelPartner && userCpId && lead.channelPartnerId !== userCpId) {
+        return false;
+      }
+
       // 1. Search text filter
       const matchesSearch = 
         lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -921,23 +940,68 @@ export function Leads() {
           <STitle title="Lead Pipeline" sub={`CRM Kanban Board · ${totalLeadsCount} Leads`} />
           
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Simulated User Selector matching constraints */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.raise, padding: "4px 10px", borderRadius: 8, border: `1px solid ${C.bord}` }}>
-              <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>Simulate Performer:</span>
-              <select 
-                value={simulatedUser} 
-                onChange={(e) => setSimulatedUser(e.target.value)} 
-                style={{ background: "transparent", border: "none", color: C.gold, fontSize: 11, fontWeight: 700, outline: "none", cursor: "pointer" }}
-              >
-                <option value="Arjun Kapoor|Super Admin" style={{background:C.bg}}>Arjun Kapoor (Admin)</option>
-                <option value="Amit Kumar|Manager" style={{background:C.bg}}>Amit Kumar (Manager)</option>
-                <option value="Priya Mehta|Sales Agent" style={{background:C.bg}}>Priya Mehta (Sales Agent)</option>
-                <option value="Vikram Sen|Support Agent" style={{background:C.bg}}>Vikram Sen (Support)</option>
-              </select>
-            </div>
-            <Btn icon={Plus} onClick={() => setShowModal(true)}>Add Lead</Btn>
+            {isChannelPartner ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, background: `${C.blue}18`, padding: "5px 12px", borderRadius: 8, border: `1px solid ${C.blue}40` }}>
+                <Handshake size={14} color={C.blue} />
+                <span style={{ fontSize: 11, color: C.blue, fontWeight: 700 }}>Channel Partner: {currentUser?.name}</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.raise, padding: "4px 10px", borderRadius: 8, border: `1px solid ${C.bord}` }}>
+                <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>Simulate Performer:</span>
+                <select 
+                  value={simulatedUser} 
+                  onChange={(e) => setSimulatedUser(e.target.value)} 
+                  style={{ background: "transparent", border: "none", color: C.gold, fontSize: 11, fontWeight: 700, outline: "none", cursor: "pointer" }}
+                >
+                  <option value="Arjun Kapoor|Super Admin" style={{background:C.bg}}>Arjun Kapoor (Admin)</option>
+                  <option value="Amit Kumar|Manager" style={{background:C.bg}}>Amit Kumar (Manager)</option>
+                  <option value="Priya Mehta|Sales Agent" style={{background:C.bg}}>Priya Mehta (Sales Agent)</option>
+                  <option value="Vikram Sen|Support Agent" style={{background:C.bg}}>Vikram Sen (Support)</option>
+                </select>
+              </div>
+            )}
+            <Btn icon={Plus} onClick={() => {
+              if (isChannelPartner && userCpId) {
+                setForm(p => ({ ...p, source: "Channel Partner", channelPartnerId: userCpId }));
+              }
+              setShowModal(true);
+            }}>Add Lead</Btn>
           </div>
         </div>
+
+        {/* Channel Partner Portal Banner */}
+        {isChannelPartner && (
+          <div style={{
+            background: `linear-gradient(90deg, ${C.card} 0%, ${C.raise} 100%)`,
+            border: `1px solid ${C.blue}40`,
+            borderLeft: `4px solid ${C.blue}`,
+            borderRadius: 10,
+            padding: "10px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            margin: "2px 0 6px 0"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: `${C.blue}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Handshake size={18} color={C.blue} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: C.txt }}>
+                  Channel Partner Portal • {currentUser?.name || "Partner"}
+                  {currentUser?.channelPartner?.name ? ` (${currentUser.channelPartner.name})` : (partners.find(p => p.id === userCpId)?.name ? ` (${partners.find(p => p.id === userCpId)?.name})` : "")}
+                </div>
+                <div style={{ fontSize: 11, color: C.sub }}>
+                  Access restricted to your own submitted leads. All newly created leads will automatically link to your partner account.
+                </div>
+              </div>
+            </div>
+            <span style={{ fontSize: 11, background: `${C.blue}15`, color: C.blue, padding: "4px 10px", borderRadius: 6, fontWeight: 700 }}>
+              Partner Lead Workspace
+            </span>
+          </div>
+        )}
 
         {/* KPI Cards Dashboard (Move to Top) */}
         <div style={{ 
@@ -1484,20 +1548,31 @@ export function Leads() {
             <Field label="Phone" required><Input value={form.phone} onChange={f("phone")} placeholder="98XXXXXXXX" /></Field>
             <Field label="Email"><Input type="email" value={form.email} onChange={f("email")} placeholder="email@example.com" /></Field>
             <Field label="Source">
-              <Select value={form.source} onChange={f("source")} options={sources} />
+              <Select 
+                value={isChannelPartner ? "Channel Partner" : form.source} 
+                onChange={f("source")} 
+                options={sources} 
+                disabled={isChannelPartner}
+              />
             </Field>
-            {form.source === "Channel Partner" && (
+            {(isChannelPartner || form.source === "Channel Partner") && (
               <div style={{ gridColumn: "1/-1" }}>
                 <Field label="Channel Partner" required>
                   <Select
-                    value={form.channelPartnerId}
+                    value={isChannelPartner && userCpId ? userCpId : form.channelPartnerId}
                     onChange={f("channelPartnerId")}
+                    disabled={isChannelPartner}
                     placeholder="Select Channel Partner"
                     options={partners.map(p => ({
                       value: p.id,
                       label: p.contactPerson ? `${p.name} (${p.contactPerson})` : p.name
                     }))}
                   />
+                  {isChannelPartner && (
+                    <div style={{ fontSize: 10.5, color: C.teal, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                      <Check size={12} /> Registered partner firm affiliation verified
+                    </div>
+                  )}
                 </Field>
               </div>
             )}

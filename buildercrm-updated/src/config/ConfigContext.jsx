@@ -81,7 +81,7 @@ export function ConfigProvider({ children }) {
     documentStatus: getOptions("documentStatus", ["Pending", "Signed", "Active", "Sent"]),
     customerStatus: getOptions("customerStatus", ["Active", "Overdue", "Possession Given"]),
     bookingStatus: getOptions("bookingStatus", ["Confirmed", "Agreement Pending", "Agreement Signed"]),
-    userRole: getOptions("userRole", ["Super Admin", "Manager", "Sales Agent", "Support Agent"]),
+    userRole: getOptions("userRole", ["Super Admin", "Manager", "Sales Agent", "Support Agent", "Channel Partner"]),
     supportCategory: getOptions("supportCategory", ["Maintenance", "Documentation", "General", "Finance", "Legal"]),
     supportPriority: getOptions("supportPriority", ["Critical", "High", "Medium", "Low"]),
     siteVisitStatus: getOptions("siteVisitStatus", ["Scheduled", "Completed", "Cancelled"]),

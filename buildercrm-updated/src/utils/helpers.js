@@ -22,6 +22,7 @@ export const BM = {
   Scheduled:{b:"#0A152E",c:"#4B8CF5"},Completed:{b:"#0A2E1F",c:"#0EC8A4"},Cancelled:{b:"#2E0A0A",c:"#FF4F4F"},
   Signed:{b:"#0A2E1F",c:"#0EC8A4"},Sent:{b:"#0A152E",c:"#4B8CF5"},Pending:{b:"#2E1F0A",c:"#FF9F43"},
   Filed:{b:"#0A2E1F",c:"#0EC8A4"},"N/A":{b:"#151A2E",c:"#8897B8"},
+  "Channel Partner":{b:"#201535",c:"#C9A843"},
 };
 
 export const allPermissionsList = [

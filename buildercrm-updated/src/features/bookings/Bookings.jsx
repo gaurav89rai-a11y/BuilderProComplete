@@ -9,7 +9,11 @@ import { fmtCr } from "../../utils/helpers.js";
 import { Badge, Btn, Modal, Field, Input, Select, LoadingState, ErrorState, Toast, STitle, Stat } from "../../components/ui";
 import { useConfig } from "../../config/ConfigContext.jsx";
 
-export function Bookings() {
+export function Bookings({ currentUser }) {
+  const isChannelPartner = currentUser?.role === "Channel Partner";
+  const userCpId = currentUser?.channelPartnerId ? parseInt(currentUser.channelPartnerId) : null;
+  const permittedStatuses = ["Confirmed", "Agreement Pending", "Agreement Signed"];
+
   const { bookingStatus, getDefault } = useConfig();
   const [bookings, setBookings] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -29,7 +33,7 @@ export function Bookings() {
   const [uploadingBookingId, setUploadingBookingId] = useState(null);
   const [agreementFile, setAgreementFile] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All Statuses");
+  const [statusFilter, setStatusFilter] = useState(isChannelPartner ? "All Permitted Statuses" : "All Statuses");
 
   const defaultStatus = getDefault("bookingStatus", "Confirmed");
 
@@ -267,17 +271,33 @@ export function Bookings() {
   };
 
   const filteredBookings = bookings.filter(b => {
+    if (isChannelPartner) {
+      // 1. Channel partner is restricted to permitted statuses only
+      if (!permittedStatuses.includes(b.status)) return false;
+      // 2. Channel partner is restricted to their associated bookings
+      if (userCpId) {
+        const isAssociated = (
+          b.channelPartnerId === userCpId ||
+          b.commission?.partnerId === userCpId ||
+          leads.some(l => l.channelPartnerId === userCpId && (
+            (b.customer?.phone && l.phone === b.customer.phone) ||
+            (b.customer?.email && l.email && l.email.toLowerCase() === b.customer.email.toLowerCase())
+          ))
+        );
+        if (!isAssociated) return false;
+      }
+    }
     const custName = b.customer?.name || "";
     const bNumber = b.bookingNumber || "";
     const uNum = b.unit?.unitNumber || "";
     const agent = b.assignedAgent || "";
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || custName.toLowerCase().includes(q) || bNumber.toLowerCase().includes(q) || uNum.toLowerCase().includes(q) || agent.toLowerCase().includes(q);
-    const matchesStatus = statusFilter === "All Statuses" || b.status === statusFilter;
+    const matchesStatus = (statusFilter === "All Statuses" || statusFilter === "All Permitted Statuses") || b.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalValue = bookings.reduce((s, b) => s + (b.totalAmount || 0), 0);
+  const totalValue = filteredBookings.reduce((s, b) => s + (b.totalAmount || 0), 0);
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState msg={error} onRetry={load} />;
@@ -288,7 +308,7 @@ export function Bookings() {
       
       <STitle 
         title="Booking Management" 
-        sub={`Active bookings and agreements (${bookings.length} total)`}
+        sub={`Active bookings and agreements (${filteredBookings.length} total)`}
         action={<Btn icon={Plus} onClick={() => {
           setForm({
             customerId: "",
@@ -297,17 +317,50 @@ export function Bookings() {
             totalAmount: 0,
             tokenAmount: 0,
             status: defaultStatus,
-            assignedAgent: "Arjun Kapoor"
+            assignedAgent: currentUser?.name || "Arjun Kapoor"
           });
           setShowModal(true);
         }}>New Booking</Btn>}
       />
 
+      {/* Channel Partner Portal Banner */}
+      {isChannelPartner && (
+        <div style={{
+          background: `linear-gradient(90deg, ${C.card} 0%, ${C.raise} 100%)`,
+          border: `1px solid ${C.teal}40`,
+          borderLeft: `4px solid ${C.teal}`,
+          borderRadius: 10,
+          padding: "12px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: `${C.teal}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Award size={20} color={C.teal} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13.5, color: C.txt }}>
+                Channel Partner Portal • Bookings & Flat Agreements
+              </div>
+              <div style={{ fontSize: 11, color: C.sub }}>
+                Showing active bookings for your referred clients. Permitted booking stages: <strong>Confirmed, Agreement Pending, Agreement Signed</strong>.
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 11, background: `${C.teal}15`, color: C.teal, padding: "4px 10px", borderRadius: 6, fontWeight: 700 }}>
+            Permitted Statuses Only
+          </span>
+        </div>
+      )}
+
       {/* KPI Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 18 }}>
-        <Stat icon={FileText} label="Total Bookings" value={bookings.length} change={25} color={C.blue} />
+        <Stat icon={FileText} label="Total Bookings" value={filteredBookings.length} change={25} color={C.blue} />
         <Stat icon={DollarSign} label="Total Value" value={fmtCr(totalValue)} change={18} color={C.gold} />
-        <Stat icon={CheckCircle} label="Agreements Done" value={bookings.filter(b => b.status === "Agreement Signed").length} change={0} color={C.teal} />
+        <Stat icon={CheckCircle} label="Agreements Done" value={filteredBookings.filter(b => b.status === "Agreement Signed").length} change={0} color={C.teal} />
       </div>
 
       {/* Search and Filters */}
@@ -335,7 +388,10 @@ export function Bookings() {
           <Select 
             value={statusFilter} 
             onChange={(val) => setStatusFilter(val)}
-            options={["All Statuses", "Confirmed", "Agreement Pending", "Agreement Signed", "Cancelled"]}
+            options={isChannelPartner 
+              ? ["All Permitted Statuses", ...permittedStatuses]
+              : ["All Statuses", "Confirmed", "Agreement Pending", "Agreement Signed", "Cancelled"]
+            }
           />
         </div>
       </div>
@@ -586,7 +642,11 @@ export function Bookings() {
 
             <div style={{ gridColumn: "span 2" }}>
               <Field label="Status">
-                <Select value={form.status} onChange={f("status")} options={bookingStatus} />
+                <Select 
+                  value={form.status} 
+                  onChange={f("status")} 
+                  options={isChannelPartner ? permittedStatuses : bookingStatus} 
+                />
               </Field>
             </div>
           </div>

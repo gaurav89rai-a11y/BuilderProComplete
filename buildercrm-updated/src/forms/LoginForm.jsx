@@ -132,9 +132,10 @@ export function LoginForm({ onLogin }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {[
               ["Super Admin", "arjun@builderpro.com"],
-              ["Sales Agent", "priya@builderpro.com"],
               ["Manager", "amit@builderpro.com"],
+              ["Sales Agent", "priya@builderpro.com"],
               ["Support Agent", "vikram@builderpro.com"],
+              ["Channel Partner", "sanjay@propnest.com"],
             ].map(([role, mail]) => (
               <button 
                 key={role}

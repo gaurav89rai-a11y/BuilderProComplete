@@ -50,8 +50,17 @@ export const PERMISSIONS = {
 export const hasPermission = (user, itemId) => {
   if (!user) return true;
   if (user.role === "Super Admin" || user.permissions === "all") return true;
+
+  // Channel Partner access restriction: Portal limited strictly to partner workflow
+  if (user.role === "Channel Partner") {
+    const partnerAllowed = [
+      "dashboard", "leads", "pipeline", "quotations", "customers", "bookings", "visits", "commission", "commissions"
+    ];
+    if (!partnerAllowed.includes(itemId)) return false;
+  }
+
   const required = PERMISSIONS[itemId];
   if (!required) return true;
-  const userPerms = user.permissions.split(",");
+  const userPerms = (user.permissions || "").split(",");
   return userPerms.includes(required);
 };
