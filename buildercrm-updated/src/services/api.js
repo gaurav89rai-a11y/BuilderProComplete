@@ -176,13 +176,14 @@ const SEED_DATA = {
   ],
   users: [
     { id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" },
-    { id: 2, name: "Priya Mehta", email: "priya@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
-    { id: 3, name: "Amit Kumar", email: "amit@builderpro.com", role: "Manager", permissions: "view_dashboard,manage_projects,manage_inventory,manage_leads,manage_partners,manage_customers,manage_visits,manage_bookings,manage_hrms,manage_oms" },
+    { id: 2, name: "Priya Mehta", email: "priya@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_customers,manage_visits,manage_bookings,manage_projects,manage_inventory" },
+    { id: 3, name: "Amit Kumar", email: "amit@builderpro.com", role: "Sales Manager", permissions: "view_dashboard,manage_projects,manage_inventory,manage_leads,manage_partners,manage_customers,manage_visits,manage_bookings" },
     { id: 4, name: "Vikram Sen", email: "vikram@builderpro.com", role: "Support Agent", permissions: "view_dashboard,manage_support" },
-    { id: 5, name: "Vinod Sharma", email: "vinod@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
-    { id: 6, name: "Vishal Verma", email: "vishal@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
+    { id: 5, name: "Vinod Sharma", email: "vinod@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_customers,manage_visits,manage_bookings,manage_projects,manage_inventory" },
+    { id: 6, name: "Vishal Verma", email: "vishal@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_customers,manage_visits,manage_bookings,manage_projects,manage_inventory" },
     { id: 7, name: "Sanjay Bhatt", email: "sanjay@propnest.com", role: "Channel Partner", permissions: "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", channelPartnerId: 1 },
-    { id: 8, name: "Rekha Nair", email: "rekha@homefinder.com", role: "Channel Partner", permissions: "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", channelPartnerId: 2 }
+    { id: 8, name: "Rekha Nair", email: "rekha@homefinder.com", role: "Channel Partner", permissions: "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", channelPartnerId: 2 },
+    { id: 9, name: "Rohan Gupta", email: "rohan@builderpro.com", role: "Accounts", permissions: "view_dashboard,manage_finance,manage_customers,manage_bookings" }
   ],
   employees: [
     { id: 1, employeeCode: "EMP-2026-000001", name: "Raj Patel", email: "raj@builderpro.com", phone: "9812345671", department: "HR", designation: "HR Manager", status: "Active", dateOfJoining: "2024-01-15T00:00:00", salary: 75000 },
@@ -247,15 +248,15 @@ const SEED_DATA = {
     { id: 35, category: "UnitType", value: "3BHK", label: "3BHK", isDefault: false, sortOrder: 3 },
     { id: 36, category: "UnitType", value: "4BHK", label: "4BHK", isDefault: false, sortOrder: 4 },
     { id: 77, category: "UserRole", value: "Super Admin", label: "Super Admin", isDefault: false, sortOrder: 1 },
-    { id: 78, category: "UserRole", value: "Manager", label: "Manager", isDefault: false, sortOrder: 2 },
+    { id: 78, category: "UserRole", value: "Sales Manager", label: "Sales Manager", isDefault: false, sortOrder: 2 },
     { id: 79, category: "UserRole", value: "Sales Agent", label: "Sales Agent", isDefault: true, sortOrder: 3 },
-    { id: 80, category: "UserRole", value: "Support Agent", label: "Support Agent", isDefault: false, sortOrder: 4 },
+    { id: 80, category: "UserRole", value: "Accounts", label: "Accounts", isDefault: false, sortOrder: 4 },
     { id: 301, category: "UserRole", value: "Channel Partner", label: "Channel Partner", isDefault: false, sortOrder: 5 }
   ]
 };
 
 // Local storage versioning & helpers
-const DATA_VERSION = "2.5.7_channel_partner";
+const DATA_VERSION = "2.6.0_roles_permissions";
 
 function initStorageVersion() {
   try {
@@ -482,10 +483,20 @@ const mockApi = {
   getLeads: async (params = {}) => {
     let list = getMock("leads");
     const role = localStorage.getItem("current_user_role");
+    const uid = localStorage.getItem("current_user_id");
+    const uname = localStorage.getItem("current_user_name");
     const cpId = params.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+
+    if (role === "Accounts" || role === "Accountant") {
+      return [];
+    }
+
     if ((role === "Channel Partner" || params.channelPartnerId) && cpId) {
       list = list.filter(l => l.channelPartnerId === parseInt(cpId));
+    } else if (role === "Sales Agent") {
+      list = list.filter(l => (uid && l.agentId === parseInt(uid)) || (uname && l.assignedTo === uname));
     }
+
     if (params.stage) {
       list = list.filter(l => l.stage === params.stage);
     }
@@ -506,10 +517,20 @@ const mockApi = {
   getLeadsKanban: async (params = {}) => {
     let rawLeads = getMock("leads");
     const role = localStorage.getItem("current_user_role");
+    const uid = localStorage.getItem("current_user_id");
+    const uname = localStorage.getItem("current_user_name");
     const cpId = params?.channelPartnerId || localStorage.getItem("current_channel_partner_id");
+
+    if (role === "Accounts" || role === "Accountant") {
+      return {};
+    }
+
     if ((role === "Channel Partner" || params?.channelPartnerId) && cpId) {
       rawLeads = rawLeads.filter(l => l.channelPartnerId === parseInt(cpId));
+    } else if (role === "Sales Agent") {
+      rawLeads = rawLeads.filter(l => (uid && l.agentId === parseInt(uid)) || (uname && l.assignedTo === uname));
     }
+
     const projects = getMock("projects");
     const partners = getMock("partners");
     const users = getMock("users");
@@ -707,6 +728,8 @@ const mockApi = {
   getCustomers: async (params = {}) => {
     let list = getMock("customers");
     const role = localStorage.getItem("current_user_role");
+    const uid = localStorage.getItem("current_user_id");
+    const uname = localStorage.getItem("current_user_name");
     const cpId = params.channelPartnerId || localStorage.getItem("current_channel_partner_id");
     if ((role === "Channel Partner" || params.channelPartnerId) && cpId) {
       const parsedCp = parseInt(cpId);
@@ -718,6 +741,13 @@ const mockApi = {
       const bookings = getMock("bookings").filter(b => commBookingIds.has(b.id));
       const commCustIds = new Set(bookings.map(b => b.customerId));
       list = list.filter(c => leadPhones.has(c.phone) || leadEmails.has((c.email || "").toLowerCase()) || commCustIds.has(c.id));
+    } else if (role === "Sales Agent") {
+      const leads = getMock("leads").filter(l => (uid && l.agentId === parseInt(uid)) || (uname && l.assignedTo === uname));
+      const leadPhones = new Set(leads.map(l => l.phone).filter(Boolean));
+      const leadEmails = new Set(leads.map(l => (l.email || "").toLowerCase()).filter(Boolean));
+      const bookings = getMock("bookings").filter(b => (uid && b.agentId === parseInt(uid)) || (uname && b.assignedAgent === uname));
+      const bookingCustIds = new Set(bookings.map(b => b.customerId));
+      list = list.filter(c => leadPhones.has(c.phone) || leadEmails.has((c.email || "").toLowerCase()) || bookingCustIds.has(c.id));
     }
     if (params.projectId) {
       list = list.filter(c => c.projectId === parseInt(params.projectId));
@@ -740,6 +770,10 @@ const mockApi = {
     return list[idx];
   },
   deleteCustomer: async (id) => {
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner" || role === "Sales Agent" || role === "Accounts" || role === "Accountant") {
+      throw new Error(`${role}s are not authorized to delete customers.`);
+    }
     let list = getMock("customers");
     list = list.filter(x => x.id !== parseInt(id));
     setMock("customers", list);
@@ -749,6 +783,19 @@ const mockApi = {
   // Site Visits
   getVisits: async (params = {}) => {
     let list = getMock("visits").filter(v => v.status !== "TimelineLog");
+    const role = localStorage.getItem("current_user_role");
+    const uid = localStorage.getItem("current_user_id");
+    const uname = localStorage.getItem("current_user_name");
+
+    if (role === "Accounts" || role === "Accountant") {
+      return [];
+    }
+
+    if (role === "Sales Agent") {
+      const leads = getMock("leads").filter(l => (uid && l.agentId === parseInt(uid)) || (uname && l.assignedTo === uname));
+      const leadIds = new Set(leads.map(l => l.id));
+      list = list.filter(v => (uid && v.agentId === parseInt(uid)) || (uname && v.assignedAgent === uname) || leadIds.has(v.leadId));
+    }
     if (params.projectId) {
       list = list.filter(v => v.projectId === parseInt(params.projectId));
     }
@@ -806,6 +853,10 @@ const mockApi = {
     return list[idx];
   },
   deleteVisit: async (id) => {
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner" || role === "Sales Agent" || role === "Accounts" || role === "Accountant") {
+      throw new Error(`${role}s are not authorized to delete site visits.`);
+    }
     let list = getMock("visits");
     list = list.filter(x => x.id !== parseInt(id));
     setMock("visits", list);
@@ -817,6 +868,8 @@ const mockApi = {
     let bookings = getMock("bookings");
     const permittedStatuses = ["Confirmed", "Agreement Pending", "Agreement Signed"];
     const role = localStorage.getItem("current_user_role");
+    const uid = localStorage.getItem("current_user_id");
+    const uname = localStorage.getItem("current_user_name");
     const cpId = params?.channelPartnerId || localStorage.getItem("current_channel_partner_id");
     if ((role === "Channel Partner" || params?.channelPartnerId) && cpId) {
       const parsedCp = parseInt(cpId);
@@ -833,6 +886,8 @@ const mockApi = {
         if (cust && (leadPhones.has(cust.phone) || leadEmails.has((cust.email || "").toLowerCase()))) return true;
         return false;
       });
+    } else if (role === "Sales Agent") {
+      bookings = bookings.filter(b => (uid && b.agentId === parseInt(uid)) || (uname && b.assignedAgent === uname));
     }
     const users = getMock("users");
     return bookings.map(b => {
@@ -906,8 +961,8 @@ const mockApi = {
   },
   deleteBooking: async (id) => {
     const role = localStorage.getItem("current_user_role");
-    if (role === "Channel Partner") {
-      throw new Error("Channel Partners are not authorized to delete bookings.");
+    if (role === "Channel Partner" || role === "Sales Agent" || role === "Accounts" || role === "Accountant") {
+      throw new Error(`${role}s are not authorized to delete bookings.`);
     }
     let list = getMock("bookings");
     list = list.filter(x => x.id !== parseInt(id));
@@ -963,20 +1018,32 @@ const mockApi = {
 
   // Payments
   getPayments: async (params = {}) => {
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner") {
+      return [];
+    }
     let list = getMock("payments");
     if (params.customerId) {
       list = list.filter(p => p.customerId === parseInt(params.customerId));
     }
+    const bookings = getMock("bookings");
     return list.map(p => {
       const cust = getMock("customers").find(c => c.id === p.customerId);
+      const b = bookings.find(x => x.id === p.bookingId || x.customerId === p.customerId);
       return {
         ...p,
+        customer: cust || null,
+        booking: b || null,
         customerName: cust ? cust.name : "Unknown Customer",
         unitNumber: cust ? cust.unitNumber : ""
       };
     });
   },
   createPayment: async (data) => {
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner" || role === "Sales Agent") {
+      throw new Error("You are not authorized to record payments.");
+    }
     const list = getMock("payments");
     const newItem = {
       ...data,
@@ -1000,6 +1067,16 @@ const mockApi = {
       setMock("customers", customers);
     }
     return newItem;
+  },
+  deletePayment: async (id) => {
+    const role = localStorage.getItem("current_user_role");
+    if (role === "Channel Partner" || role === "Sales Agent") {
+      throw new Error("You are not authorized to delete payments.");
+    }
+    let list = getMock("payments");
+    list = list.filter(x => x.id !== parseInt(id));
+    setMock("payments", list);
+    return null;
   },
 
   // Commissions

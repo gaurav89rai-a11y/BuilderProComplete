@@ -23,10 +23,14 @@ public class BookingsController : ControllerBase
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
         var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
         int? cpId = channelPartnerId;
         if (!cpId.HasValue && int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
 
-        return Ok(await _bookingService.GetAllBookingsAsync(status, cpId, role));
+        return Ok(await _bookingService.GetAllBookingsAsync(status, cpId, role, userId, userNameHeader));
     }
 
     [HttpGet("{id}")]
@@ -34,10 +38,14 @@ public class BookingsController : ControllerBase
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
         var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
         int? cpId = null;
         if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
 
-        var b = await _bookingService.GetBookingByIdAsync(id, cpId, role);
+        var b = await _bookingService.GetBookingByIdAsync(id, cpId, role, userId, userNameHeader);
         if (b == null) return NotFound();
         return Ok(b);
     }
@@ -63,12 +71,16 @@ public class BookingsController : ControllerBase
         if (id != booking.Id) return BadRequest();
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
         var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
         int? cpId = null;
         if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
 
         try
         {
-            var updated = await _bookingService.UpdateBookingAsync(id, booking, cpId, role);
+            var updated = await _bookingService.UpdateBookingAsync(id, booking, cpId, role, userId, userNameHeader);
             if (updated == null) return NotFound();
             return Ok(updated);
         }

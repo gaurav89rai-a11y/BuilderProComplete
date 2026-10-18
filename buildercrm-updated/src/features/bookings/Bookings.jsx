@@ -12,6 +12,7 @@ import { useConfig } from "../../config/ConfigContext.jsx";
 export function Bookings({ currentUser }) {
   const isChannelPartner = currentUser?.role === "Channel Partner";
   const userCpId = currentUser?.channelPartnerId ? parseInt(currentUser.channelPartnerId) : null;
+  const isSalesAgent = currentUser?.role === "Sales Agent";
   const permittedStatuses = ["Confirmed", "Agreement Pending", "Agreement Signed"];
 
   const { bookingStatus, getDefault } = useConfig();
@@ -81,7 +82,14 @@ export function Bookings({ currentUser }) {
         api.getProjects(),
         api.getUsers().catch(() => [])
       ]);
-      setBookings(b || []);
+      let fetchedBookings = b || [];
+      if (isSalesAgent && currentUser) {
+        fetchedBookings = fetchedBookings.filter(bk => 
+          (bk.agentId && bk.agentId === currentUser.id) || 
+          (bk.assignedAgent && bk.assignedAgent === currentUser.name)
+        );
+      }
+      setBookings(fetchedBookings);
       setCustomers(c || []);
       setUnits(u || []);
       setLeads(l || []);

@@ -15,6 +15,7 @@ import { useConfig } from "../../config/ConfigContext.jsx";
 export function Leads({ currentUser }) {
   const isChannelPartner = currentUser?.role === "Channel Partner";
   const userCpId = currentUser?.channelPartnerId ? parseInt(currentUser.channelPartnerId) : null;
+  const isSalesAgent = currentUser?.role === "Sales Agent";
 
   const { leadStage: stages, leadSource: sources, getDefault, configs } = useConfig();
   const [kanban, setKanban] = useState({});
@@ -305,7 +306,19 @@ export function Leads({ currentUser }) {
         api.getPartners().catch(() => []),
         api.getUsers().catch(() => [])
       ]);
-      setKanban(normalizeKanban(k));
+      const normalized = normalizeKanban(k);
+      if (isSalesAgent && currentUser) {
+        const scopedKanban = {};
+        Object.keys(normalized).forEach(st => {
+          scopedKanban[st] = (normalized[st] || []).filter(l => 
+            (l.agentId && l.agentId === currentUser.id) || 
+            (l.assignedTo && l.assignedTo === currentUser.name)
+          );
+        });
+        setKanban(scopedKanban);
+      } else {
+        setKanban(normalized);
+      }
       setProjects(p);
       setPartners(parts || []);
       setUsers(usrs || []);

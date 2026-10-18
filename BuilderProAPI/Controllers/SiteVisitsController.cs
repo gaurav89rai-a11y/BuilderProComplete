@@ -15,7 +15,25 @@ public class SiteVisitsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? status)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
+        if (string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var query = _db.SiteVisits.Include(v => v.Lead).Include(v => v.Project).Include(v => v.Agent).AsQueryable();
+
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(v => (userId.HasValue && v.AgentId == userId.Value) || 
+                                     (!string.IsNullOrEmpty(userNameHeader) && v.AssignedAgent == userNameHeader) ||
+                                     (v.Lead != null && ((userId.HasValue && v.Lead.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && v.Lead.AssignedTo == userNameHeader))));
+        }
+
         if (!string.IsNullOrEmpty(status)) query = query.Where(v => v.Status == status);
         return Ok(await query.OrderByDescending(v => v.VisitDate).ToListAsync());
     }
@@ -23,8 +41,27 @@ public class SiteVisitsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
+        if (string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var v = await _db.SiteVisits.Include(x => x.Lead).Include(x => x.Project).Include(x => x.Agent).FirstOrDefaultAsync(x => x.Id == id);
         if (v == null) return NotFound();
+
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            bool isAssigned = (userId.HasValue && v.AgentId == userId.Value) || 
+                              (!string.IsNullOrEmpty(userNameHeader) && v.AssignedAgent == userNameHeader) ||
+                              (v.Lead != null && ((userId.HasValue && v.Lead.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && v.Lead.AssignedTo == userNameHeader)));
+            if (!isAssigned) return Forbid();
+        }
+
         return Ok(v);
     }
 
@@ -197,6 +234,15 @@ public class SiteVisitsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var v = await _db.SiteVisits.FindAsync(id);
         if (v == null) return NotFound();
         _db.SiteVisits.Remove(v);

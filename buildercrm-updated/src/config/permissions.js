@@ -49,14 +49,42 @@ export const PERMISSIONS = {
 
 export const hasPermission = (user, itemId) => {
   if (!user) return true;
+  // Super Admin: Full access to all modules, users, roles, permissions, reports, and settings
   if (user.role === "Super Admin" || user.permissions === "all") return true;
 
-  // Channel Partner access restriction: Portal limited strictly to partner workflow
+  // Channel Partner: Access only their own submitted leads, associated customers, bookings, and permitted booking statuses
   if (user.role === "Channel Partner") {
     const partnerAllowed = [
       "dashboard", "leads", "pipeline", "quotations", "customers", "bookings", "visits", "commission", "commissions"
     ];
-    if (!partnerAllowed.includes(itemId)) return false;
+    return partnerAllowed.includes(itemId);
+  }
+
+  // Sales Manager: Manage authorized team leads, agents, follow-ups, site visits, quotations, bookings, and sales reports
+  if (user.role === "Sales Manager" || user.role === "Manager") {
+    const salesManagerAllowed = [
+      "dashboard", "crm", "leads", "pipeline", "follow_up", "visits", "quotations", "bookings",
+      "customers", "partners", "commission", "commissions", "projects", "inventory", "reports", "sales_rep"
+    ];
+    return salesManagerAllowed.includes(itemId);
+  }
+
+  // Sales Agent: Access assigned leads, customers, follow-ups, site visits, quotations, and permitted bookings
+  if (user.role === "Sales Agent") {
+    const salesAgentAllowed = [
+      "dashboard", "crm", "leads", "pipeline", "follow_up", "visits", "quotations", "bookings",
+      "customers", "projects", "inventory"
+    ];
+    return salesAgentAllowed.includes(itemId);
+  }
+
+  // Accounts: Access authorized payments, receipts, outstanding balances, and financial reports
+  if (user.role === "Accounts" || user.role === "Accountant") {
+    const accountsAllowed = [
+      "dashboard", "finance_group", "payments", "payment_schedule", "invoices", "expenses",
+      "reports", "finance_rep", "commission", "commissions", "customers", "bookings"
+    ];
+    return accountsAllowed.includes(itemId);
   }
 
   const required = PERMISSIONS[itemId];

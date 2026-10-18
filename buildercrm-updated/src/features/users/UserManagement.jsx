@@ -42,7 +42,15 @@ export function UserManagement() {
   const handleRoleChange = (newRole) => {
     setForm(prev => {
       let permissions = prev.permissions;
-      if (newRole === "Channel Partner" && !permissions) {
+      if (newRole === "Super Admin") {
+        permissions = "all";
+      } else if (newRole === "Sales Manager" || newRole === "Manager") {
+        permissions = "view_dashboard,manage_leads,manage_customers,manage_visits,manage_bookings,manage_partners,manage_projects,manage_inventory";
+      } else if (newRole === "Sales Agent") {
+        permissions = "view_dashboard,manage_leads,manage_customers,manage_visits,manage_bookings,manage_projects,manage_inventory";
+      } else if (newRole === "Accounts" || newRole === "Accountant") {
+        permissions = "view_dashboard,manage_finance,manage_customers,manage_bookings";
+      } else if (newRole === "Channel Partner") {
         permissions = "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits";
       }
       return { ...prev, role: newRole, permissions };

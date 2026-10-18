@@ -18,6 +18,12 @@ public class PaymentsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? customerId)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var query = _db.Payments.Include(p => p.Customer).Include(p => p.Booking).AsQueryable();
         if (customerId.HasValue) query = query.Where(p => p.CustomerId == customerId.Value);
         return Ok(await query.OrderByDescending(p => p.PaymentDate).ToListAsync());
@@ -26,6 +32,12 @@ public class PaymentsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var p = await _db.Payments.Include(x => x.Customer).Include(x => x.Booking).FirstOrDefaultAsync(x => x.Id == id);
         if (p == null) return NotFound();
         return Ok(p);
@@ -34,6 +46,13 @@ public class PaymentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] Payment payment)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         if (!ModelState.IsValid) return BadRequest(ModelState);
         payment.CreatedAt = DateTime.UtcNow;
         _db.Payments.Add(payment);
@@ -72,6 +91,13 @@ public class PaymentsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
         var p = await _db.Payments.FindAsync(id);
         if (p == null) return NotFound();
         _db.Payments.Remove(p);

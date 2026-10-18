@@ -21,7 +21,7 @@ public class BookingService : IBookingService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status, int? channelPartnerId = null, string? role = null)
+    public async Task<IEnumerable<Booking>> GetAllBookingsAsync(string? status, int? channelPartnerId = null, string? role = null, int? userId = null, string? userName = null)
     {
         var permittedStatuses = new[] { "Confirmed", "Agreement Pending", "Agreement Signed" };
 
@@ -31,7 +31,14 @@ public class BookingService : IBookingService
             includeProperties: "Customer,Customer.Project,Unit,Unit.Project,Agent"
         );
 
-        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && channelPartnerId.HasValue)
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            all = all.Where(b => 
+                (userId.HasValue && b.AgentId == userId.Value) || 
+                (!string.IsNullOrEmpty(userName) && string.Equals(b.AssignedAgent, userName, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+        else if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && channelPartnerId.HasValue)
         {
             var cpId = channelPartnerId.Value;
             var partnerLeadPhones = (await _uow.Leads.GetAllAsync(l => l.ChannelPartnerId == cpId && !string.IsNullOrEmpty(l.Phone)))
@@ -58,7 +65,7 @@ public class BookingService : IBookingService
         return all;
     }
 
-    public async Task<Booking?> GetBookingByIdAsync(int id, int? channelPartnerId = null, string? role = null)
+    public async Task<Booking?> GetBookingByIdAsync(int id, int? channelPartnerId = null, string? role = null, int? userId = null, string? userName = null)
     {
         var b = await _uow.Bookings.GetFirstOrDefaultAsync(
             x => x.Id == id,
@@ -66,7 +73,13 @@ public class BookingService : IBookingService
         );
         if (b == null) return null;
 
-        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && channelPartnerId.HasValue)
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            var isAssigned = (userId.HasValue && b.AgentId == userId.Value) ||
+                             (!string.IsNullOrEmpty(userName) && string.Equals(b.AssignedAgent, userName, StringComparison.OrdinalIgnoreCase));
+            if (!isAssigned) return null;
+        }
+        else if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && channelPartnerId.HasValue)
         {
             var permittedStatuses = new[] { "Confirmed", "Agreement Pending", "Agreement Signed" };
             if (!permittedStatuses.Contains(b.Status)) return null;
@@ -182,12 +195,21 @@ public class BookingService : IBookingService
         return booking;
     }
 
-    public async Task<Booking?> UpdateBookingAsync(int id, Booking booking, int? channelPartnerId = null, string? role = null)
+    public async Task<Booking?> UpdateBookingAsync(int id, Booking booking, int? channelPartnerId = null, string? role = null, int? userId = null, string? userName = null)
     {
         var existing = await _uow.Bookings.GetByIdAsync(id);
         if (existing == null) return null;
 
-        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            var isAssigned = (userId.HasValue && existing.AgentId == userId.Value) ||
+                             (!string.IsNullOrEmpty(userName) && string.Equals(existing.AssignedAgent, userName, StringComparison.OrdinalIgnoreCase));
+            if (!isAssigned)
+            {
+                throw new UnauthorizedAccessException("Sales agents can only update their assigned bookings.");
+            }
+        }
+        else if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
         {
             var permittedStatuses = new[] { "Confirmed", "Agreement Pending", "Agreement Signed" };
             if (!permittedStatuses.Contains(booking.Status))
@@ -260,7 +282,9 @@ public class BookingService : IBookingService
 
     public async Task<bool> DeleteBookingAsync(int id, string? role = null)
     {
-        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }

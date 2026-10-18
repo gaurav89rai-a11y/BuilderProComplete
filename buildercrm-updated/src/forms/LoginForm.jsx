@@ -24,8 +24,16 @@ export function LoginForm({ onLogin }) {
       }
     } catch (err) {
       console.error(err);
-      if (email.toLowerCase().trim() === "arjun@builderpro.com") {
-        onLogin({ id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" });
+      const quickFallbacks = {
+        "arjun@builderpro.com": { id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" },
+        "amit@builderpro.com": { id: 3, name: "Amit Kumar", email: "amit@builderpro.com", role: "Sales Manager", permissions: "view_dashboard,manage_projects,manage_inventory,manage_leads,manage_partners,manage_customers,manage_visits,manage_bookings" },
+        "priya@builderpro.com": { id: 2, name: "Priya Mehta", email: "priya@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_customers,manage_visits,manage_bookings,manage_projects,manage_inventory" },
+        "rohan@builderpro.com": { id: 9, name: "Rohan Gupta", email: "rohan@builderpro.com", role: "Accounts", permissions: "view_dashboard,manage_finance,manage_customers,manage_bookings" },
+        "sanjay@propnest.com": { id: 7, name: "Sanjay Bhatt", email: "sanjay@propnest.com", role: "Channel Partner", permissions: "view_dashboard,manage_leads,manage_customers,manage_bookings,manage_visits", channelPartnerId: 1 }
+      };
+      const cleanMail = email.toLowerCase().trim();
+      if (quickFallbacks[cleanMail]) {
+        onLogin(quickFallbacks[cleanMail]);
       } else {
         setError("Connection failed. Could not query user database.");
       }
@@ -132,9 +140,9 @@ export function LoginForm({ onLogin }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {[
               ["Super Admin", "arjun@builderpro.com"],
-              ["Manager", "amit@builderpro.com"],
+              ["Sales Manager", "amit@builderpro.com"],
               ["Sales Agent", "priya@builderpro.com"],
-              ["Support Agent", "vikram@builderpro.com"],
+              ["Accounts", "rohan@builderpro.com"],
               ["Channel Partner", "sanjay@propnest.com"],
             ].map(([role, mail]) => (
               <button 

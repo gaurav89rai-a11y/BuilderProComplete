@@ -16,9 +16,18 @@ public class LeadsController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] string? stage, [FromQuery] string? assigned, [FromQuery] int? channelPartnerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
         var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
         int? cpId = channelPartnerId;
         if (!cpId.HasValue && int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        if (string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
 
         var query = _db.Leads.Include(l => l.Project).Include(l => l.ChannelPartner).Include(l => l.Agent).Include(l => l.Unit).AsQueryable();
 
@@ -32,6 +41,12 @@ public class LeadsController : ControllerBase
             query = query.Where(l => l.ChannelPartnerId == cpId.Value);
         }
 
+        // Enforce Sales Agent role restriction: Access only assigned leads
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(l => (userId.HasValue && l.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && l.AssignedTo == userNameHeader));
+        }
+
         if (!string.IsNullOrEmpty(stage)) query = query.Where(l => l.Stage == stage);
         if (!string.IsNullOrEmpty(assigned)) query = query.Where(l => l.AssignedTo == assigned || (l.AgentId.HasValue && l.AgentId.ToString() == assigned));
         return Ok(await query.OrderByDescending(l => l.CreatedAt).ToListAsync());
@@ -41,9 +56,18 @@ public class LeadsController : ControllerBase
     public async Task<IActionResult> GetById(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
         var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
         int? cpId = null;
         if (int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        if (string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
 
         var lead = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).Include(l => l.ChannelPartner).Include(l => l.Agent).Include(l => l.Unit).FirstOrDefaultAsync(l => l.Id == id);
         if (lead == null) return NotFound();
@@ -51,6 +75,12 @@ public class LeadsController : ControllerBase
         if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) && cpId.HasValue)
         {
             if (lead.ChannelPartnerId != cpId.Value) return Forbid();
+        }
+
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            bool isAssigned = (userId.HasValue && lead.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && lead.AssignedTo == userNameHeader);
+            if (!isAssigned) return Forbid();
         }
 
         return Ok(lead);
@@ -361,7 +391,7 @@ public class LeadsController : ControllerBase
         }
 
         // Validate Roles & Permissions
-        if ((dto.Stage == "Closed Won" || dto.Stage == "Closed Lost") && role != "Super Admin" && role != "Manager")
+        if ((dto.Stage == "Closed Won" || dto.Stage == "Closed Lost") && role != "Super Admin" && role != "Manager" && role != "Sales Manager")
         {
             return BadRequest(new { message = "Only Managers or Admins are authorized to close leads." });
         }
@@ -379,7 +409,7 @@ public class LeadsController : ControllerBase
         // Prevent jumping ahead too far (more than 3 stages) for non-managers
         if (prevIdx != -1 && nextIdx != -1)
         {
-            if (nextIdx - prevIdx > 3 && role != "Super Admin" && role != "Manager")
+            if (nextIdx - prevIdx > 3 && role != "Super Admin" && role != "Manager" && role != "Sales Manager")
             {
                 return BadRequest(new { message = $"Workflow jump from '{prevStage}' directly to '{dto.Stage}' is restricted. Transition step-by-step or contact your Manager." });
             }
@@ -471,7 +501,10 @@ public class LeadsController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
-        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(role, "Channel Partner", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
         {
             return Forbid();
         }
@@ -494,9 +527,18 @@ public class LeadsController : ControllerBase
     public async Task<IActionResult> GetKanban([FromQuery] int? channelPartnerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
+        var userIdHeader = Request.Headers["X-User-Id"].FirstOrDefault();
+        var userNameHeader = Request.Headers["X-User-Name"].FirstOrDefault();
+        int? userId = int.TryParse(userIdHeader, out int uid) ? uid : null;
+
         var cpHeader = Request.Headers["X-Channel-Partner-Id"].FirstOrDefault();
         int? cpId = channelPartnerId;
         if (!cpId.HasValue && int.TryParse(cpHeader, out int parsedCp)) cpId = parsedCp;
+
+        if (string.Equals(role, "Accounts", StringComparison.OrdinalIgnoreCase) || string.Equals(role, "Accountant", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
 
         var stages = await _db.SystemConfigs
             .Where(c => c.Category == "LeadStage")
@@ -520,6 +562,12 @@ public class LeadsController : ControllerBase
         else if (cpId.HasValue)
         {
             query = query.Where(l => l.ChannelPartnerId == cpId.Value);
+        }
+
+        // Enforce Sales Agent role restriction on kanban: Access only assigned leads
+        if (string.Equals(role, "Sales Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(l => (userId.HasValue && l.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && l.AssignedTo == userNameHeader));
         }
 
         var leads = await query.ToListAsync();

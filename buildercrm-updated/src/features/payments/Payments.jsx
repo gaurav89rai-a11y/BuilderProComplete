@@ -54,6 +54,48 @@ export function Payments() {
   };
 
   const totalCollected=payments.filter(p=>p.status==="Received").reduce((s,p)=>s+(p.amount||0),0);
+  const totalOutstandingBalance = customers.reduce((acc, c) => {
+    const custPayments = payments.filter(p => p.customerId === c.id && (p.status === "Received" || !p.status)).reduce((s, p) => s + (p.amount || 0), 0);
+    const paid = Math.max(c.paidAmount || 0, custPayments);
+    return acc + Math.max(0, (c.totalAmount || 0) - paid);
+  }, 0);
+
+  const handleDownloadReceipt = (p) => {
+    const custName = p.customer?.name || "Customer";
+    const receiptNo = `REC-${new Date(p.paymentDate || Date.now()).getFullYear()}-${p.id.toString().padStart(4, "0")}`;
+    const content = `=====================================================
+         ABHAY BUILDCON ERP - OFFICIAL PAYMENT RECEIPT
+=====================================================
+Receipt No:      ${receiptNo}
+Transaction Ref: ${p.transactionRef || "TXN" + p.id}
+Date:            ${new Date(p.paymentDate || Date.now()).toLocaleDateString("en-IN")}
+Status:          ${p.status || "Received"}
+
+RECEIVED FROM:
+Customer Name:   ${custName}
+Unit / Flat:     ${p.customer?.unitNumber || "N/A"}
+Booking No:      ${p.booking?.bookingNumber || "N/A"}
+
+PAYMENT PARTICULARS:
+Payment Mode:    ${p.paymentMode}
+Amount Received: INR ${Number(p.amount).toLocaleString("en-IN")}
+Remarks:         ${p.remarks || "Installment Payment toward Flat Purchase"}
+
+-----------------------------------------------------
+Authorized Signatory: Accounts Department (Abhay Buildcon)
+=====================================================`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Receipt_${receiptNo}_${custName.replace(/\s+/g, "_")}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 1500);
+  };
 
   if(loading) return <LoadingState/>;
   if(error) return <ErrorState msg={error} onRetry={load}/>;
@@ -61,21 +103,22 @@ export function Payments() {
   return (
     <div className="fi">
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}
-      <STitle title="Payments & Finance" sub="Collection tracking"
+      <STitle title="Payments & Finance" sub="Authorized receipts, payment ledger and outstanding balance tracking"
         action={<Btn icon={Plus} onClick={()=>setShowModal(true)}>Record Payment</Btn>}/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:18}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(210px, 1fr))",gap:12,marginBottom:18}}>
         <Stat icon={DollarSign} label="Total Collected" value={fmtCr(totalCollected)} change={12} color={C.teal}/>
-        <Stat icon={CreditCard} label="Total Payments" value={payments.length} change={5} color={C.blue}/>
+        <Stat icon={DollarSign} label="Outstanding Balance" value={fmtCr(totalOutstandingBalance)} change={-4} color={C.gold}/>
+        <Stat icon={CreditCard} label="Total Receipts" value={payments.length} change={5} color={C.blue}/>
         <Stat icon={AlertCircle} label="Overdue Customers" value={customers.filter(c=>c.status==="Overdue").length} change={-2} color={C.red}/>
       </div>
       <div style={{background:C.card,border:`1px solid ${C.bord}`,borderRadius:14,overflow:"hidden"}}>
         <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.bord}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <span style={{color:C.txt,fontWeight:600,fontSize:13}}>Payment History</span>
+          <span style={{color:C.txt,fontWeight:600,fontSize:13}}>Authorized Payment Receipts Ledger</span>
         </div>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.raise}}>
-              {["Customer","Booking","Amount","Mode","Date","Status","Document"].map(h=>(
+              {["Customer","Booking","Amount","Mode","Date","Status","Receipt Action"].map(h=>(
                 <th key={h} style={{padding:"10px 18px",textAlign:"left",color:C.mute,fontSize:10,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{h}</th>
               ))}
             </tr>
@@ -83,21 +126,35 @@ export function Payments() {
           <tbody>
             {payments.map((p,i)=>(
               <tr key={p.id} style={{borderBottom:`1px solid ${C.bord}`,background:i%2===0?"transparent":`${C.raise}40`}}>
-                <td style={{padding:"12px 18px",color:C.txt,fontWeight:600,fontSize:12}}>{p.customer?.name||"—"}</td>
+                <td style={{padding:"12px 18px",color:C.txt,fontWeight:600,fontSize:12}}>
+                  <div>{p.customer?.name||"—"}</div>
+                  {p.customer?.unitNumber && <div style={{fontSize:10,color:C.mute}}>Unit {p.customer.unitNumber}</div>}
+                </td>
                 <td style={{padding:"12px 18px",color:C.txt,fontSize:12,fontWeight:500,fontFamily:"monospace"}}>{p.booking?.bookingNumber||"—"}</td>
                 <td style={{padding:"12px 18px",color:C.gold,fontWeight:700,fontSize:12}}>{fmtCr(p.amount)}</td>
                 <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{p.paymentMode}</td>
                 <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{p.paymentDate?.split("T")[0]}</td>
                 <td style={{padding:"12px 18px"}}><Badge s={p.status}/></td>
                 <td style={{padding:"12px 18px"}}>
-                  {p.attachmentUrl ? (
-                    <a href={p.attachmentUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,color:C.gold,textDecoration:"none",fontSize:12,fontWeight:500}}>
-                      <Paperclip size={14}/>
-                      <span>View Receipt</span>
-                    </a>
-                  ) : (
-                    <span style={{color:C.mute,fontSize:12}}>—</span>
-                  )}
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    {p.attachmentUrl ? (
+                      <a href={p.attachmentUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,color:C.gold,textDecoration:"none",fontSize:11,fontWeight:600}}>
+                        <Paperclip size={13}/>
+                        <span>Document</span>
+                      </a>
+                    ) : null}
+                    <button 
+                      onClick={() => handleDownloadReceipt(p)}
+                      title="Download Authorized Receipt"
+                      style={{
+                        background: `${C.gold}18`, border: `1px solid ${C.gold}44`, borderRadius: 6,
+                        color: C.gold, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        display: "inline-flex", alignItems: "center", gap: 4
+                      }}
+                    >
+                      <span>Receipt</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
