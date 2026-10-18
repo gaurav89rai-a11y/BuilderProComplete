@@ -5,11 +5,11 @@ import { Badge, Btn, Modal, Field, Input, Select, Stat, STitle, Toast } from "..
 import { api } from "../../services/api.js";
 
 const INITIAL_FOLLOWUPS = [
-  { id: 1, leadName: "Rahul Sharma", phone: "9800000001", email: "rahul.s@email.com", type: "Call", date: "2026-07-07", time: "11:30 AM", remarks: "Wants to verify home loan approval rates for 3BHK", status: "Scheduled", agent: "Priya M.", project: "Skyline Heights" },
-  { id: 2, leadName: "Anjali Patel", phone: "9800000002", email: "anjali.p@email.com", type: "Site Visit Meet", date: "2026-07-06", time: "03:00 PM", remarks: "Showing sample flat A-101. Final negotiation of parking charges", status: "Completed", agent: "Amit K.", project: "Green Valley Township" },
-  { id: 3, leadName: "Suresh Kumar", phone: "9800000003", email: "suresh.k@email.com", type: "Email", date: "2026-07-03", time: "10:00 AM", remarks: "Send pricing brochure and RERA certificate copy", status: "Completed", agent: "Priya M.", project: "Skyline Heights" },
-  { id: 4, leadName: "Meera Iyer", phone: "9800000004", email: "meera.i@email.com", type: "Meeting", date: "2026-07-05", time: "05:00 PM", remarks: "Negotiation meeting. Client requested 5% discount on floor rise charges", status: "Overdue", agent: "Vikram S.", project: "Meridian Business Park" },
-  { id: 5, leadName: "Arun Mehta", phone: "9800000005", email: "arun.m@email.com", type: "Call", date: "2026-07-08", time: "02:30 PM", remarks: "Follow-up for token payment receipt copy", status: "Scheduled", agent: "Amit K.", project: "Pearl Residences" },
+  { id: 1, leadName: "Rahul Sharma", phone: "9800000001", email: "rahul.s@email.com", type: "Call", date: "2026-07-07", time: "11:30 AM", remarks: "Wants to verify home loan approval rates for 3BHK", status: "Scheduled", agent: "Priya Mehta", project: "Skyline Heights" },
+  { id: 2, leadName: "Anjali Patel", phone: "9800000002", email: "anjali.p@email.com", type: "Site Visit Meet", date: "2026-07-06", time: "03:00 PM", remarks: "Showing sample flat A-101. Final negotiation of parking charges", status: "Completed", agent: "Amit Kumar", project: "Green Valley Township" },
+  { id: 3, leadName: "Suresh Kumar", phone: "9800000003", email: "suresh.k@email.com", type: "Email", date: "2026-07-03", time: "10:00 AM", remarks: "Send pricing brochure and RERA certificate copy", status: "Completed", agent: "Priya Mehta", project: "Skyline Heights" },
+  { id: 4, leadName: "Meera Iyer", phone: "9800000004", email: "meera.i@email.com", type: "Meeting", date: "2026-07-05", time: "05:00 PM", remarks: "Negotiation meeting. Client requested discussion on floor rise charges", status: "Overdue", agent: "Vikram Sen", project: "Meridian Business Park" },
+  { id: 5, leadName: "Arun Mehta", phone: "9800000005", email: "arun.m@email.com", type: "Call", date: "2026-07-08", time: "02:30 PM", remarks: "Follow-up for token payment receipt copy", status: "Scheduled", agent: "Amit Kumar", project: "Pearl Residences" },
 ];
 
 const AUDIT_ICONS = {
@@ -73,7 +73,7 @@ export function FollowUp() {
     time: "",
     remarks: "",
     status: "Scheduled",
-    agent: "Priya M.",
+    agent: "Priya Mehta",
     project: "Skyline Heights"
   });
 

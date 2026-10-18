@@ -377,7 +377,12 @@ public class LeadsController : ControllerBase
             .OrderBy(c => c.SortOrder)
             .Select(c => c.Value)
             .ToArrayAsync();
-        var leads = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).ToListAsync();
+        var leads = await _db.Leads
+            .Include(l => l.Project)
+            .Include(l => l.SiteVisits)
+            .Include(l => l.ChannelPartner)
+            .Include(l => l.Agent)
+            .ToListAsync();
 
         // Normalize legacy or mismatched stages to prevent leads disappearing from the kanban board
         var stageSet = new HashSet<string>(stages, StringComparer.OrdinalIgnoreCase);

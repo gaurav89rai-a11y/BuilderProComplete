@@ -32,7 +32,14 @@ export function SiteVisits() {
       return `Agent #${agentId}`;
     }
     if (assignedAgent) {
-      const u = users.find(x => x.name?.toLowerCase() === assignedAgent?.toLowerCase() || x.id?.toString() === assignedAgent?.toString());
+      const clean = assignedAgent.trim().toLowerCase();
+      const u = users.find(x => {
+        const uName = (x.name || "").toLowerCase();
+        return uName === clean || 
+               x.id.toString() === clean ||
+               uName.startsWith(clean) ||
+               clean.startsWith(uName.split(" ")[0]);
+      });
       if (u) return `${u.name} (ID: ${u.id})`;
       return assignedAgent;
     }

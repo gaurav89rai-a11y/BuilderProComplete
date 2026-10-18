@@ -198,6 +198,21 @@ export function Leads() {
     SC[stage] = C[cfg?.color] || C.sub;
   });
 
+  const normalizeKanban = (data) => {
+    if (!data) return {};
+    if (Array.isArray(data)) {
+      const dict = {};
+      data.forEach(item => {
+        const stageName = item.stage || item.title || item.name;
+        if (stageName) {
+          dict[stageName] = item.leads || [];
+        }
+      });
+      return dict;
+    }
+    return data;
+  };
+
   const getAgentDisplay = (assignedTo, agentId) => {
     if (agentId) {
       const u = users.find(x => x.id === agentId || x.id.toString() === agentId.toString());
@@ -205,7 +220,14 @@ export function Leads() {
       return `Agent #${agentId}`;
     }
     if (assignedTo) {
-      const u = users.find(x => x.name?.toLowerCase() === assignedTo?.toLowerCase() || x.id?.toString() === assignedTo?.toString());
+      const clean = assignedTo.trim().toLowerCase();
+      const u = users.find(x => {
+        const uName = (x.name || "").toLowerCase();
+        return uName === clean || 
+               x.id.toString() === clean ||
+               uName.startsWith(clean) ||
+               clean.startsWith(uName.split(" ")[0]);
+      });
       if (u) return `${u.name} (ID: ${u.id})`;
       return assignedTo;
     }
@@ -222,7 +244,7 @@ export function Leads() {
         api.getPartners().catch(() => []),
         api.getUsers().catch(() => [])
       ]);
-      setKanban(k);
+      setKanban(normalizeKanban(k));
       setProjects(p);
       setPartners(parts || []);
       setUsers(usrs || []);
@@ -450,7 +472,9 @@ export function Leads() {
   };
 
   // Flattened leads for global computations
-  const allLeads = Object.values(kanban).flat();
+  const allLeads = Array.isArray(kanban)
+    ? kanban.flatMap(x => x.leads || [])
+    : Object.values(kanban).flat().filter(Boolean);
   const totalLeadsCount = allLeads.length;
   const newLeadsCount = allLeads.filter(l => l.stage === "New Lead").length;
   
@@ -724,7 +748,9 @@ export function Leads() {
   };
 
   const getFilteredLeadsForStage = (stage) => {
-    const rawLeads = kanban[stage] || [];
+    const rawLeads = (Array.isArray(kanban)
+      ? kanban.find(s => (s.stage || s.title) === stage)?.leads
+      : kanban[stage]) || [];
     return rawLeads.filter(lead => {
       // 1. Search text filter
       const matchesSearch = 
@@ -1393,7 +1419,7 @@ export function Leads() {
                     placeholder="Select Channel Partner"
                     options={partners.map(p => ({
                       value: p.id,
-                      label: p.firmName ? `${p.name} (${p.firmName})` : p.name
+                      label: p.contactPerson ? `${p.name} (${p.contactPerson})` : p.name
                     }))}
                   />
                 </Field>
@@ -1588,7 +1614,7 @@ export function Leads() {
                               <option value="">Select Channel Partner</option>
                               {partners.map(cp => (
                                 <option key={cp.id} value={cp.id}>
-                                  {cp.firmName ? `${cp.name} (${cp.firmName})` : cp.name}
+                                  {cp.contactPerson ? `${cp.name} (${cp.contactPerson})` : cp.name}
                                 </option>
                               ))}
                             </select>

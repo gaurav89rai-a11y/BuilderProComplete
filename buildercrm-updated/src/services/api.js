@@ -111,11 +111,16 @@ const SEED_DATA = {
     { id: 18, projectId: 4, unitNumber: "PR-301", floor: 3, unitType: "3BHK", area: 1150, price: 14000000, status: "Available", view: "City" }
   ],
   leads: [
-    { id: 1, name: "Rahul Sharma", email: "rahul.s@email.com", phone: "9800000001", source: "Website", stage: "New Lead", score: 85, interest: "Skyline Heights 3BHK", assignedTo: "Priya M.", budget: 18000000, projectId: 1, createdAt: "2026-07-01T12:00:00.000Z", nextFollowUpDate: "2026-07-07T12:00:00" },
-    { id: 2, name: "Anjali Patel", email: "anjali.p@email.com", phone: "9800000002", source: "Channel Partner", stage: "Contacted", score: 72, interest: "Green Valley 2BHK", assignedTo: "Amit K.", budget: 12000000, projectId: 2, createdAt: "2026-07-02T10:00:00.000Z", nextFollowUpDate: "2026-07-06T15:00:00" },
-    { id: 3, name: "Suresh Kumar", email: "suresh.k@email.com", phone: "9800000003", source: "Walk-in", stage: "Site Visit Completed", score: 91, interest: "Skyline Heights 4BHK", assignedTo: "Priya M.", budget: 32000000, projectId: 1, createdAt: "2026-07-03T11:00:00.000Z", nextFollowUpDate: "2026-07-08T11:00:00" },
-    { id: 4, name: "Meera Iyer", email: "meera.i@email.com", phone: "9800000004", source: "Referral", stage: "Negotiation", score: 88, interest: "Meridian Business Park", assignedTo: "Vikram S.", budget: 45000000, projectId: 3, createdAt: "2026-07-04T15:00:00.000Z", nextFollowUpDate: null },
-    { id: 5, name: "Arun Mehta", email: "arun.m@email.com", phone: "9800000005", source: "Online Ad", stage: "Booking Confirmed", score: 95, interest: "Pearl Residences 3BHK", assignedTo: "Amit K.", budget: 21000000, projectId: 4, createdAt: "2026-07-05T09:00:00.000Z", nextFollowUpDate: null }
+    { id: 1, name: "Rahul Sharma", email: "rahul.s@email.com", phone: "9800000001", source: "Website", stage: "Site Visit Scheduled", interest: "Skyline Heights 3BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 18000000, projectId: 1, flatNo: "A-101", createdAt: "2026-07-01T12:00:00.000Z", nextFollowUpDate: "2026-07-07T12:00:00" },
+    { id: 2, name: "Anjali Patel", email: "anjali.p@email.com", phone: "9800000002", source: "Channel Partner", channelPartnerId: 1, stage: "Follow-up", interest: "Green Valley 2BHK", assignedTo: "Amit Kumar", agentId: 3, budget: 12000000, projectId: 2, flatNo: "GV-A101", createdAt: "2026-07-02T10:00:00.000Z", nextFollowUpDate: "2026-07-06T15:00:00" },
+    { id: 3, name: "Suresh Kumar", email: "suresh.k@email.com", phone: "9800000003", source: "Walk-in", stage: "Follow-up", interest: "Skyline Heights 4BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 32000000, projectId: 1, flatNo: "D-401", createdAt: "2026-07-03T11:00:00.000Z", nextFollowUpDate: "2026-07-08T11:00:00" },
+    { id: 4, name: "Meera Iyer", email: "meera.i@email.com", phone: "9800000004", source: "Referral", stage: "Negotiation", interest: "Meridian Business Park", assignedTo: "Vikram Sen", agentId: 4, budget: 45000000, projectId: 3, flatNo: "MBP-201", createdAt: "2026-07-04T15:00:00.000Z", nextFollowUpDate: null },
+    { id: 5, name: "Arun Mehta", email: "arun.m@email.com", phone: "9800000005", source: "Online Ad", stage: "Booking Confirmed", interest: "Pearl Residences 3BHK", assignedTo: "Amit Kumar", agentId: 3, budget: 21000000, projectId: 4, flatNo: "PR-301", createdAt: "2026-07-05T09:00:00.000Z", nextFollowUpDate: null },
+    { id: 6, name: "Test Database Persistence Lead", email: "test.persist@builderpro.com", phone: "9000000009", source: "Website", stage: "Follow-up", interest: "Skyline Heights 2BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 15000000, projectId: 1, flatNo: "B-201", createdAt: "2026-07-07T14:59:48.000Z", nextFollowUpDate: null },
+    { id: 7, name: "Rahul", email: "rahul@gmail.com", phone: "9090909090", source: "Channel Partner", channelPartnerId: 1, stage: "Site Visit Scheduled", interest: "Green Valley 3BHK", assignedTo: "Vinod Sharma", agentId: 5, budget: 50000000, projectId: 2, flatNo: "GV-B202", createdAt: "2026-08-08T05:01:40.000Z", nextFollowUpDate: "2026-08-08T06:30:00" },
+    { id: 8, name: "Verification Lead", email: "verify@builderpro.com", phone: "9876543210", source: "Website", stage: "Contacted", interest: "Skyline Heights 2BHK", assignedTo: "Unassigned", agentId: null, budget: 15000000, projectId: 1, flatNo: "C-302", createdAt: "2026-08-20T04:49:51.000Z", nextFollowUpDate: null },
+    { id: 9, name: "dinker", email: "gaurav89rai@gmail.com", phone: "9999999999", source: "Walk-in", stage: "Contacted", interest: "Green Valley 2BHK", assignedTo: "Vishal Verma", agentId: 6, budget: 5000000, projectId: 2, flatNo: "GV-C401", createdAt: "2026-08-20T05:35:06.000Z", nextFollowUpDate: null },
+    { id: 11, name: "Akash Gupta", email: "akash@gmail.com", phone: "8282828282", source: "Referral", stage: "Booking Confirmed", interest: "Skyline Heights 3BHK", assignedTo: "Vinod Sharma", agentId: 5, budget: 50000000, projectId: 1, flatNo: "B-502", createdAt: "2026-09-23T07:41:18.000Z", nextFollowUpDate: null }
   ],
   partners: [
     { id: 1, name: "PropNest Realty", contactPerson: "Sanjay Bhatt", email: "sanjay@propnest.com", phone: "9900000001", city: "Mumbai", status: "Platinum", rating: 4.8, commissionRate: 3.0 },
@@ -129,8 +134,10 @@ const SEED_DATA = {
     { id: 4, name: "Lakshmi Krishnan", email: "lakshmi.k@gmail.com", phone: "9700000004", unitNumber: "C-301", projectId: 1, bookingDate: "2023-09-18T00:00:00", status: "Overdue", totalAmount: 18900000, paidAmount: 7560000 }
   ],
   bookings: [
-    { id: 1, bookingNumber: "BK-2026-000001", customerId: 1, unitId: 3, bookingDate: "2023-08-15T00:00:00", totalAmount: 13100000, tokenAmount: 500000, status: "Confirmed", assignedAgent: "Priya Mehta" },
-    { id: 2, bookingNumber: "BK-2026-000002", customerId: 3, unitId: 8, bookingDate: "2023-10-05T00:00:00", totalAmount: 17800000, tokenAmount: 1000000, status: "Agreement Signed", assignedAgent: "Amit Kumar" }
+    { id: 1, bookingNumber: "BK-2026-000001", customerId: 1, unitId: 3, bookingDate: "2023-08-15T00:00:00", totalAmount: 13100000, tokenAmount: 500000, status: "Confirmed", assignedAgent: "Priya Mehta", agentId: 2, agreementFileName: null },
+    { id: 2, bookingNumber: "BK-2026-000002", customerId: 3, unitId: 8, bookingDate: "2023-10-05T00:00:00", totalAmount: 17800000, tokenAmount: 1000000, status: "Agreement Signed", assignedAgent: "Amit Kumar", agentId: 3, agreementFileName: "Flat_Purchase_Agreement_BK-2026-000002.pdf", agreementUploadedAt: "2023-10-06T11:00:00.000Z" },
+    { id: 3, bookingNumber: "BK2026003", customerId: 1, unitId: 1, bookingDate: "2026-09-23T08:00:00", totalAmount: 13125000, tokenAmount: 250000, status: "Confirmed", assignedAgent: "Vinod Sharma", agentId: 5, agreementFileName: null },
+    { id: 4, bookingNumber: "BK2026004", customerId: 4, unitId: 12, bookingDate: "2026-09-24T10:00:00", totalAmount: 9000000, tokenAmount: 200000, status: "Confirmed", assignedAgent: "Arjun Kapoor", agentId: 1, agreementFileName: null }
   ],
   payments: [
     { id: 1, customerId: 1, amount: 500000, paymentDate: "2023-08-15T10:00:00", paymentMode: "NEFT", transactionRef: "TXN10008472", status: "Received" },
@@ -159,7 +166,9 @@ const SEED_DATA = {
     { id: 1, name: "Arjun Kapoor", email: "arjun@builderpro.com", role: "Super Admin", permissions: "all" },
     { id: 2, name: "Priya Mehta", email: "priya@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
     { id: 3, name: "Amit Kumar", email: "amit@builderpro.com", role: "Manager", permissions: "view_dashboard,manage_projects,manage_inventory,manage_leads,manage_partners,manage_customers,manage_visits,manage_bookings,manage_hrms,manage_oms" },
-    { id: 4, name: "Vikram Sen", email: "vikram@builderpro.com", role: "Support Agent", permissions: "view_dashboard,manage_support" }
+    { id: 4, name: "Vikram Sen", email: "vikram@builderpro.com", role: "Support Agent", permissions: "view_dashboard,manage_support" },
+    { id: 5, name: "Vinod Sharma", email: "vinod@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" },
+    { id: 6, name: "Vishal Verma", email: "vishal@builderpro.com", role: "Sales Agent", permissions: "view_dashboard,manage_leads,manage_visits" }
   ],
   employees: [
     { id: 1, employeeCode: "EMP-2026-000001", name: "Raj Patel", email: "raj@builderpro.com", phone: "9812345671", department: "HR", designation: "HR Manager", status: "Active", dateOfJoining: "2024-01-15T00:00:00", salary: 75000 },
@@ -226,18 +235,50 @@ const SEED_DATA = {
   ]
 };
 
-// Local storage helpers
-function getMock(key) {
-  const data = localStorage.getItem(`bp_${key}`);
-  if (!data) {
-    localStorage.setItem(`bp_${key}`, JSON.stringify(SEED_DATA[key]));
-    return SEED_DATA[key];
+// Local storage versioning & helpers
+const DATA_VERSION = "2.5.2_crm_v5";
+
+function initStorageVersion() {
+  try {
+    const currentVersion = localStorage.getItem("bp_data_version");
+    if (currentVersion !== DATA_VERSION) {
+      const keysToRemove = [
+        "bp_leads", "bp_bookings", "bp_users", "bp_customers", "bp_partners", 
+        "bp_payments", "bp_projects", "bp_units", "bp_visits", "bp_commissions",
+        "bp_documents", "bp_tickets", "bp_employees", "bp_attendances", "bp_leaves",
+        "bp_orders", "bp_materials", "bp_systemConfigs"
+      ];
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem("bp_data_version", DATA_VERSION);
+    }
+  } catch (e) {
+    console.warn("Storage versioning check warning:", e);
   }
-  return JSON.parse(data);
+}
+initStorageVersion();
+
+function getMock(key) {
+  try {
+    const data = localStorage.getItem(`bp_${key}`);
+    if (!data) {
+      if (SEED_DATA[key] !== undefined) {
+        localStorage.setItem(`bp_${key}`, JSON.stringify(SEED_DATA[key]));
+        return JSON.parse(JSON.stringify(SEED_DATA[key]));
+      }
+      return [];
+    }
+    return JSON.parse(data);
+  } catch {
+    return SEED_DATA[key] ? JSON.parse(JSON.stringify(SEED_DATA[key])) : [];
+  }
 }
 
 function setMock(key, data) {
-  localStorage.setItem(`bp_${key}`, JSON.stringify(data));
+  try {
+    localStorage.setItem(`bp_${key}`, JSON.stringify(data));
+  } catch (e) {
+    console.warn("Failed to save to localStorage:", e);
+  }
 }
 
 // ─── CLIENT-SIDE MOCK SERVICE ──────────────────────────────────
@@ -404,27 +445,67 @@ const mockApi = {
     if (params.stage) {
       list = list.filter(l => l.stage === params.stage);
     }
-    return list;
+    const projects = getMock("projects");
+    const partners = getMock("partners");
+    const users = getMock("users");
+    const visits = getMock("visits");
+    return list.map(l => ({
+      ...l,
+      project: projects.find(p => p.id === l.projectId) || null,
+      channelPartner: l.channelPartnerId ? (partners.find(p => p.id === l.channelPartnerId) || null) : null,
+      agent: l.agentId ? (users.find(u => u.id === l.agentId) || null) : null,
+      siteVisits: visits.filter(v => v.leadId === l.id) || []
+    }));
   },
   getLeadsKanban: async () => {
-    const leads = getMock("leads");
-    const stages = [
-      { id: "new", title: "New Leads", stage: "New Lead", color: "text-slate-500 bg-slate-50 border-slate-100" },
-      { id: "contacted", title: "Contacted", stage: "Contacted", color: "text-blue-500 bg-blue-50 border-blue-100" },
-      { id: "visit_scheduled", title: "Site Visit Scheduled", stage: "Site Visit Scheduled", color: "text-amber-500 bg-amber-50 border-amber-100" },
-      { id: "visit_completed", title: "Site Visit Completed", stage: "Site Visit Completed", color: "text-purple-500 bg-purple-50 border-purple-100" },
-      { id: "negotiation", title: "Negotiation", stage: "Negotiation", color: "text-rose-500 bg-rose-50 border-rose-100" }
-    ];
-    return stages.map(st => ({
-      ...st,
-      leads: leads.filter(l => l.stage === st.stage)
+    const rawLeads = getMock("leads");
+    const projects = getMock("projects");
+    const partners = getMock("partners");
+    const users = getMock("users");
+    const visits = getMock("visits");
+
+    const enrichedLeads = rawLeads.map(l => ({
+      ...l,
+      project: projects.find(p => p.id === l.projectId) || null,
+      channelPartner: l.channelPartnerId ? (partners.find(p => p.id === l.channelPartnerId) || null) : null,
+      agent: l.agentId ? (users.find(u => u.id === l.agentId) || null) : null,
+      siteVisits: visits.filter(v => v.leadId === l.id) || []
     }));
+
+    const stages = [
+      "New Lead", "Contacted", "Follow-up", "Site Visit Scheduled", "Site Visit Completed",
+      "Quotation Sent", "Negotiation", "Booking Token Received", "Booking Confirmed",
+      "Documentation", "Agreement Signed", "Home Loan Processing", "Registration",
+      "Closed Won", "Closed Lost"
+    ];
+
+    const kanban = {};
+    stages.forEach(st => {
+      kanban[st] = enrichedLeads.filter(l => l.stage === st);
+    });
+
+    return kanban;
   },
   createLead: async (data) => {
     const list = getMock("leads");
+    const users = getMock("users");
+    let assignedTo = data.assignedTo || "";
+    let agentId = data.agentId ? parseInt(data.agentId) : null;
+    if (agentId && !assignedTo) {
+      const u = users.find(x => x.id === agentId);
+      if (u) assignedTo = u.name;
+    } else if (assignedTo && !agentId) {
+      const u = users.find(x => x.name.toLowerCase() === assignedTo.toLowerCase());
+      if (u) agentId = u.id;
+    }
     const newItem = {
       ...data,
       id: list.length > 0 ? Math.max(...list.map(x => x.id)) + 1 : 1,
+      assignedTo,
+      agentId,
+      channelPartnerId: data.channelPartnerId ? parseInt(data.channelPartnerId) : null,
+      projectId: data.projectId ? parseInt(data.projectId) : null,
+      budget: parseFloat(data.budget || 0),
       createdAt: new Date().toISOString()
     };
     list.push(newItem);
@@ -435,7 +516,25 @@ const mockApi = {
     const list = getMock("leads");
     const idx = list.findIndex(x => x.id === parseInt(id));
     if (idx === -1) throw new Error("Lead not found");
-    list[idx] = { ...list[idx], ...data };
+    const users = getMock("users");
+    let assignedTo = data.assignedTo !== undefined ? data.assignedTo : list[idx].assignedTo;
+    let agentId = data.agentId !== undefined ? (data.agentId ? parseInt(data.agentId) : null) : list[idx].agentId;
+    if (agentId && !assignedTo) {
+      const u = users.find(x => x.id === agentId);
+      if (u) assignedTo = u.name;
+    } else if (assignedTo && !agentId) {
+      const u = users.find(x => x.name.toLowerCase() === assignedTo.toLowerCase());
+      if (u) agentId = u.id;
+    }
+    list[idx] = { 
+      ...list[idx], 
+      ...data,
+      assignedTo,
+      agentId,
+      channelPartnerId: data.channelPartnerId !== undefined ? (data.channelPartnerId ? parseInt(data.channelPartnerId) : null) : list[idx].channelPartnerId,
+      projectId: data.projectId !== undefined ? (data.projectId ? parseInt(data.projectId) : null) : list[idx].projectId,
+      budget: data.budget !== undefined ? parseFloat(data.budget || 0) : list[idx].budget
+    };
     setMock("leads", list);
     return list[idx];
   },
@@ -468,10 +567,10 @@ const mockApi = {
     const logs = getMock("visits").filter(v => v.leadId === parseInt(id));
     return logs.map(l => ({
       id: l.id,
-      activityIcon: l.status === "TimelineLog" ? "📝" : "🚗",
-      activityType: l.status === "TimelineLog" ? "Stage Update" : "Site Visit",
-      timestamp: l.visitDate,
-      userName: "System Agent",
+      icon: l.status === "TimelineLog" ? "📝" : "🚗",
+      activity: l.status === "TimelineLog" ? "Stage Update" : "Site Visit",
+      dateTime: l.visitDate,
+      performedBy: l.agent || "Sales Agent",
       comments: l.feedback || "Site Visit activity completed."
     }));
   },
@@ -542,19 +641,39 @@ const mockApi = {
     if (params.projectId) {
       list = list.filter(v => v.projectId === parseInt(params.projectId));
     }
+    const leads = getMock("leads");
+    const projs = getMock("projects");
+    const users = getMock("users");
     return list.map(v => {
-      const lead = getMock("leads").find(l => l.id === v.leadId);
-      const proj = getMock("projects").find(p => p.id === v.projectId);
+      const lead = leads.find(l => l.id === v.leadId);
+      const proj = projs.find(p => p.id === v.projectId);
+      const agent = v.agentId ? (users.find(u => u.id === v.agentId) || null) : null;
       return {
         ...v,
         leadName: lead ? lead.name : "Unknown Lead",
-        projectName: proj ? proj.name : "Unknown Project"
+        projectName: proj ? proj.name : "Unknown Project",
+        agent: agent || null
       };
     });
   },
   createVisit: async (data) => {
     const list = getMock("visits");
-    const newItem = { ...data, id: list.length > 0 ? Math.max(...list.map(x => x.id)) + 1 : 1 };
+    const users = getMock("users");
+    let assignedAgent = data.assignedAgent || "";
+    let agentId = data.agentId ? parseInt(data.agentId) : null;
+    if (agentId && !assignedAgent) {
+      const u = users.find(x => x.id === agentId);
+      if (u) assignedAgent = u.name;
+    } else if (assignedAgent && !agentId) {
+      const u = users.find(x => x.name.toLowerCase() === assignedAgent.toLowerCase());
+      if (u) agentId = u.id;
+    }
+    const newItem = {
+      ...data,
+      id: list.length > 0 ? Math.max(...list.map(x => x.id)) + 1 : 1,
+      assignedAgent,
+      agentId
+    };
     list.push(newItem);
     setMock("visits", list);
     return newItem;
@@ -585,25 +704,45 @@ const mockApi = {
   // Bookings
   getBookings: async () => {
     const bookings = getMock("bookings");
+    const users = getMock("users");
     return bookings.map(b => {
       const cust = getMock("customers").find(c => c.id === b.customerId);
       const proj = cust ? getMock("projects").find(p => p.id === cust.projectId) : null;
       const unit = getMock("units").find(u => u.id === b.unitId);
+      const agent = b.agentId ? (users.find(u => u.id === b.agentId) || null) : null;
       return {
         ...b,
         customer: cust ? { ...cust, project: proj } : null,
-        unit
+        unit,
+        agent: agent || null
       };
     });
   },
   createBooking: async (data) => {
     const list = getMock("bookings");
+    const users = getMock("users");
     const nextNum = list.length + 1;
+    let assignedAgent = data.assignedAgent || "";
+    let agentId = data.agentId ? parseInt(data.agentId) : null;
+    if (agentId && !assignedAgent) {
+      const u = users.find(x => x.id === agentId);
+      if (u) assignedAgent = u.name;
+    } else if (assignedAgent && !agentId) {
+      const u = users.find(x => x.name.toLowerCase() === assignedAgent.toLowerCase());
+      if (u) agentId = u.id;
+    }
     const newItem = {
       ...data,
       id: list.length > 0 ? Math.max(...list.map(x => x.id)) + 1 : 1,
       bookingNumber: `BK-${new Date().getFullYear()}-${nextNum.toString().padStart(6, "0")}`,
-      bookingDate: new Date().toISOString()
+      bookingDate: data.bookingDate || new Date().toISOString(),
+      assignedAgent,
+      agentId,
+      customerId: parseInt(data.customerId),
+      unitId: parseInt(data.unitId),
+      totalAmount: parseFloat(data.totalAmount || 0),
+      tokenAmount: parseFloat(data.tokenAmount || 0),
+      status: data.status || "Confirmed"
     };
     list.push(newItem);
     setMock("bookings", list);
