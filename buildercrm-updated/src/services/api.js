@@ -108,19 +108,21 @@ const SEED_DATA = {
     { id: 15, projectId: 3, unitNumber: "MBP-201", floor: 2, unitType: "Commercial", area: 2000, price: 35000000, status: "Available", view: "City" },
     { id: 16, projectId: 4, unitNumber: "PR-101", floor: 1, unitType: "2BHK", area: 800, price: 9500000, status: "Available", view: "Garden" },
     { id: 17, projectId: 4, unitNumber: "PR-201", floor: 2, unitType: "3BHK", area: 1100, price: 13500000, status: "Booked", view: "Sea" },
-    { id: 18, projectId: 4, unitNumber: "PR-301", floor: 3, unitType: "3BHK", area: 1150, price: 14000000, status: "Available", view: "City" }
+    { id: 18, projectId: 4, unitNumber: "PR-301", floor: 3, unitType: "3BHK", area: 1150, price: 14000000, status: "Available", view: "City" },
+    { id: 19, projectId: 1, unitNumber: "A-103", floor: 1, unitType: "3BHK", area: 1500, price: 19000000, status: "Available", view: "Garden" },
+    { id: 20, projectId: 1, unitNumber: "A-104", floor: 1, unitType: "2BHK", area: 1200, price: 15500000, status: "Available", view: "Pool" }
   ],
   leads: [
-    { id: 1, name: "Rahul Sharma", email: "rahul.s@email.com", phone: "9800000001", source: "Website", stage: "Site Visit Scheduled", interest: "Skyline Heights 3BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 18000000, projectId: 1, flatNo: "A-101", createdAt: "2026-07-01T12:00:00.000Z", nextFollowUpDate: "2026-07-07T12:00:00" },
-    { id: 2, name: "Anjali Patel", email: "anjali.p@email.com", phone: "9800000002", source: "Channel Partner", channelPartnerId: 1, stage: "Follow-up", interest: "Green Valley 2BHK", assignedTo: "Amit Kumar", agentId: 3, budget: 12000000, projectId: 2, flatNo: "GV-A101", createdAt: "2026-07-02T10:00:00.000Z", nextFollowUpDate: "2026-07-06T15:00:00" },
-    { id: 3, name: "Suresh Kumar", email: "suresh.k@email.com", phone: "9800000003", source: "Walk-in", stage: "Follow-up", interest: "Skyline Heights 4BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 32000000, projectId: 1, flatNo: "D-401", createdAt: "2026-07-03T11:00:00.000Z", nextFollowUpDate: "2026-07-08T11:00:00" },
-    { id: 4, name: "Meera Iyer", email: "meera.i@email.com", phone: "9800000004", source: "Referral", stage: "Negotiation", interest: "Meridian Business Park", assignedTo: "Vikram Sen", agentId: 4, budget: 45000000, projectId: 3, flatNo: "MBP-201", createdAt: "2026-07-04T15:00:00.000Z", nextFollowUpDate: null },
-    { id: 5, name: "Arun Mehta", email: "arun.m@email.com", phone: "9800000005", source: "Online Ad", stage: "Booking Confirmed", interest: "Pearl Residences 3BHK", assignedTo: "Amit Kumar", agentId: 3, budget: 21000000, projectId: 4, flatNo: "PR-301", createdAt: "2026-07-05T09:00:00.000Z", nextFollowUpDate: null },
-    { id: 6, name: "Test Database Persistence Lead", email: "test.persist@builderpro.com", phone: "9000000009", source: "Website", stage: "Follow-up", interest: "Skyline Heights 2BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 15000000, projectId: 1, flatNo: "B-201", createdAt: "2026-07-07T14:59:48.000Z", nextFollowUpDate: null },
-    { id: 7, name: "Rahul", email: "rahul@gmail.com", phone: "9090909090", source: "Channel Partner", channelPartnerId: 1, stage: "Site Visit Scheduled", interest: "Green Valley 3BHK", assignedTo: "Vinod Sharma", agentId: 5, budget: 50000000, projectId: 2, flatNo: "GV-B202", createdAt: "2026-08-08T05:01:40.000Z", nextFollowUpDate: "2026-08-08T06:30:00" },
-    { id: 8, name: "Verification Lead", email: "verify@builderpro.com", phone: "9876543210", source: "Website", stage: "Contacted", interest: "Skyline Heights 2BHK", assignedTo: "Unassigned", agentId: null, budget: 15000000, projectId: 1, flatNo: "C-302", createdAt: "2026-08-20T04:49:51.000Z", nextFollowUpDate: null },
-    { id: 9, name: "dinker", email: "gaurav89rai@gmail.com", phone: "9999999999", source: "Walk-in", stage: "Contacted", interest: "Green Valley 2BHK", assignedTo: "Vishal Verma", agentId: 6, budget: 5000000, projectId: 2, flatNo: "GV-C401", createdAt: "2026-08-20T05:35:06.000Z", nextFollowUpDate: null },
-    { id: 11, name: "Akash Gupta", email: "akash@gmail.com", phone: "8282828282", source: "Referral", stage: "Booking Confirmed", interest: "Skyline Heights 3BHK", assignedTo: "Vinod Sharma", agentId: 5, budget: 50000000, projectId: 1, flatNo: "B-502", createdAt: "2026-09-23T07:41:18.000Z", nextFollowUpDate: null }
+    { id: 1, name: "Rahul Sharma", email: "rahul.s@email.com", phone: "9800000001", source: "Website", stage: "Site Visit Scheduled", interest: "Skyline Heights 3BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 18000000, projectId: 1, unitId: 1, flatNo: "A-101", createdAt: "2026-07-01T12:00:00.000Z", nextFollowUpDate: "2026-07-07T12:00:00" },
+    { id: 2, name: "Anjali Patel", email: "anjali.p@email.com", phone: "9800000002", source: "Channel Partner", channelPartnerId: 1, stage: "Follow-up", interest: "Green Valley 2BHK", assignedTo: "Amit Kumar", agentId: 3, budget: 12000000, projectId: 2, unitId: 9, flatNo: "GV-A101", createdAt: "2026-07-02T10:00:00.000Z", nextFollowUpDate: "2026-07-06T15:00:00" },
+    { id: 3, name: "Suresh Kumar", email: "suresh.k@email.com", phone: "9800000003", source: "Walk-in", stage: "Follow-up", interest: "Skyline Heights 4BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 32000000, projectId: 1, unitId: 7, flatNo: "D-401", createdAt: "2026-07-03T11:00:00.000Z", nextFollowUpDate: "2026-07-08T11:00:00" },
+    { id: 4, name: "Meera Iyer", email: "meera.i@email.com", phone: "9800000004", source: "Referral", stage: "Negotiation", interest: "Meridian Business Park", assignedTo: "Vikram Sen", agentId: 4, budget: 45000000, projectId: 3, unitId: 15, flatNo: "MBP-201", createdAt: "2026-07-04T15:00:00.000Z", nextFollowUpDate: null },
+    { id: 5, name: "Arun Mehta", email: "arun.m@email.com", phone: "9800000005", source: "Online Ad", stage: "Booking Confirmed", interest: "Pearl Residences 3BHK", assignedTo: "Amit Kumar", agentId: 3, budget: 21000000, projectId: 4, unitId: 18, flatNo: "PR-301", createdAt: "2026-07-05T09:00:00.000Z", nextFollowUpDate: null },
+    { id: 6, name: "Test Database Persistence Lead", email: "test.persist@builderpro.com", phone: "9000000009", source: "Website", stage: "Follow-up", interest: "Skyline Heights 2BHK", assignedTo: "Priya Mehta", agentId: 2, budget: 15000000, projectId: 1, unitId: 3, flatNo: "B-201", createdAt: "2026-07-07T14:59:48.000Z", nextFollowUpDate: null },
+    { id: 7, name: "Rahul", email: "rahul@gmail.com", phone: "9090909090", source: "Channel Partner", channelPartnerId: 1, stage: "Site Visit Scheduled", interest: "Green Valley 3BHK", assignedTo: "Vinod Sharma", agentId: 5, budget: 50000000, projectId: 2, unitId: 13, flatNo: "GV-B202", createdAt: "2026-08-08T05:01:40.000Z", nextFollowUpDate: "2026-08-08T06:30:00" },
+    { id: 8, name: "Verification Lead", email: "verify@builderpro.com", phone: "9876543210", source: "Website", stage: "Contacted", interest: "Skyline Heights 2BHK", assignedTo: "Unassigned", agentId: null, budget: 15000000, projectId: 1, unitId: 6, flatNo: "C-302", createdAt: "2026-08-20T04:49:51.000Z", nextFollowUpDate: null },
+    { id: 9, name: "dinker", email: "gaurav89rai@gmail.com", phone: "9999999999", source: "Walk-in", stage: "Contacted", interest: "Green Valley 2BHK", assignedTo: "Vishal Verma", agentId: 6, budget: 5000000, projectId: 2, unitId: 12, flatNo: "GV-C401", createdAt: "2026-08-20T05:35:06.000Z", nextFollowUpDate: null },
+    { id: 11, name: "Akash Gupta", email: "akash@gmail.com", phone: "8282828282", source: "Referral", stage: "Booking Confirmed", interest: "Skyline Heights 3BHK", assignedTo: "Vinod Sharma", agentId: 5, budget: 50000000, projectId: 1, unitId: null, flatNo: "B-502", createdAt: "2026-09-23T07:41:18.000Z", nextFollowUpDate: null }
   ],
   partners: [
     { id: 1, name: "PropNest Realty", contactPerson: "Sanjay Bhatt", email: "sanjay@propnest.com", phone: "9900000001", city: "Mumbai", status: "Platinum", rating: 4.8, commissionRate: 3.0 },
@@ -236,7 +238,7 @@ const SEED_DATA = {
 };
 
 // Local storage versioning & helpers
-const DATA_VERSION = "2.5.2_crm_v5";
+const DATA_VERSION = "2.5.6_crm_flats";
 
 function initStorageVersion() {
   try {
@@ -405,9 +407,10 @@ const mockApi = {
       list = list.filter(u => u.projectId === parseInt(params.projectId));
     }
     if (params.status) {
-      list = list.filter(u => u.status.toLowerCase() === params.status.toLowerCase());
+      const incId = params.includeUnitId ? parseInt(params.includeUnitId) : null;
+      list = list.filter(u => u.status.toLowerCase() === params.status.toLowerCase() || (incId && u.id === incId));
     }
-    return list;
+    return list.sort((a, b) => (a.unitNumber || "").localeCompare(b.unitNumber || ""));
   },
   createUnit: async (data) => {
     const list = getMock("units");
@@ -449,12 +452,14 @@ const mockApi = {
     const partners = getMock("partners");
     const users = getMock("users");
     const visits = getMock("visits");
+    const units = getMock("units");
     return list.map(l => ({
       ...l,
       project: projects.find(p => p.id === l.projectId) || null,
       channelPartner: l.channelPartnerId ? (partners.find(p => p.id === l.channelPartnerId) || null) : null,
       agent: l.agentId ? (users.find(u => u.id === l.agentId) || null) : null,
-      siteVisits: visits.filter(v => v.leadId === l.id) || []
+      siteVisits: visits.filter(v => v.leadId === l.id) || [],
+      unit: l.unitId ? (units.find(u => u.id === l.unitId) || null) : (l.flatNo ? (units.find(u => u.unitNumber === l.flatNo && (!l.projectId || u.projectId === l.projectId)) || null) : null)
     }));
   },
   getLeadsKanban: async () => {
@@ -463,13 +468,15 @@ const mockApi = {
     const partners = getMock("partners");
     const users = getMock("users");
     const visits = getMock("visits");
+    const units = getMock("units");
 
     const enrichedLeads = rawLeads.map(l => ({
       ...l,
       project: projects.find(p => p.id === l.projectId) || null,
       channelPartner: l.channelPartnerId ? (partners.find(p => p.id === l.channelPartnerId) || null) : null,
       agent: l.agentId ? (users.find(u => u.id === l.agentId) || null) : null,
-      siteVisits: visits.filter(v => v.leadId === l.id) || []
+      siteVisits: visits.filter(v => v.leadId === l.id) || [],
+      unit: l.unitId ? (units.find(u => u.id === l.unitId) || null) : (l.flatNo ? (units.find(u => u.unitNumber === l.flatNo && (!l.projectId || u.projectId === l.projectId)) || null) : null)
     }));
 
     const stages = [
@@ -489,6 +496,7 @@ const mockApi = {
   createLead: async (data) => {
     const list = getMock("leads");
     const users = getMock("users");
+    const units = getMock("units");
     let assignedTo = data.assignedTo || "";
     let agentId = data.agentId ? parseInt(data.agentId) : null;
     if (agentId && !assignedTo) {
@@ -498,11 +506,26 @@ const mockApi = {
       const u = users.find(x => x.name.toLowerCase() === assignedTo.toLowerCase());
       if (u) agentId = u.id;
     }
+
+    let unitId = data.unitId ? parseInt(data.unitId) : (data.flatId ? parseInt(data.flatId) : null);
+    let flatNo = data.flatNo || "";
+    if (unitId) {
+      const u = units.find(x => x.id === unitId);
+      if (u) {
+        flatNo = u.unitNumber;
+        if (u.status === "Sold" || u.status === "Booked") {
+          throw new Error(`Flat ${u.unitNumber} is no longer available. Please select another flat.`);
+        }
+      }
+    }
+
     const newItem = {
       ...data,
       id: list.length > 0 ? Math.max(...list.map(x => x.id)) + 1 : 1,
       assignedTo,
       agentId,
+      unitId,
+      flatNo,
       channelPartnerId: data.channelPartnerId ? parseInt(data.channelPartnerId) : null,
       projectId: data.projectId ? parseInt(data.projectId) : null,
       budget: parseFloat(data.budget || 0),
@@ -517,6 +540,7 @@ const mockApi = {
     const idx = list.findIndex(x => x.id === parseInt(id));
     if (idx === -1) throw new Error("Lead not found");
     const users = getMock("users");
+    const units = getMock("units");
     let assignedTo = data.assignedTo !== undefined ? data.assignedTo : list[idx].assignedTo;
     let agentId = data.agentId !== undefined ? (data.agentId ? parseInt(data.agentId) : null) : list[idx].agentId;
     if (agentId && !assignedTo) {
@@ -526,11 +550,29 @@ const mockApi = {
       const u = users.find(x => x.name.toLowerCase() === assignedTo.toLowerCase());
       if (u) agentId = u.id;
     }
+
+    let unitId = data.unitId !== undefined ? (data.unitId ? parseInt(data.unitId) : null) : list[idx].unitId;
+    let flatNo = data.flatNo !== undefined ? data.flatNo : list[idx].flatNo;
+    if (unitId && unitId !== list[idx].unitId) {
+      const u = units.find(x => x.id === unitId);
+      if (u) {
+        flatNo = u.unitNumber;
+        if (u.status === "Sold" || u.status === "Booked") {
+          throw new Error(`Flat ${u.unitNumber} is no longer available. Please select another flat.`);
+        }
+      }
+    } else if (unitId) {
+      const u = units.find(x => x.id === unitId);
+      if (u) flatNo = u.unitNumber;
+    }
+
     list[idx] = { 
       ...list[idx], 
       ...data,
       assignedTo,
       agentId,
+      unitId,
+      flatNo,
       channelPartnerId: data.channelPartnerId !== undefined ? (data.channelPartnerId ? parseInt(data.channelPartnerId) : null) : list[idx].channelPartnerId,
       projectId: data.projectId !== undefined ? (data.projectId ? parseInt(data.projectId) : null) : list[idx].projectId,
       budget: data.budget !== undefined ? parseFloat(data.budget || 0) : list[idx].budget

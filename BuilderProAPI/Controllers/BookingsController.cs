@@ -36,8 +36,15 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] Booking booking)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        var created = await _bookingService.CreateBookingAsync(booking);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        try
+        {
+            var created = await _bookingService.CreateBookingAsync(booking);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]

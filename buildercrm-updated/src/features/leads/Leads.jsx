@@ -174,6 +174,61 @@ export function Leads() {
   const [partners, setPartners] = useState([]);
   const [users, setUsers] = useState([]);
 
+  // Flat Dropdown States
+  const [modalFlats, setModalFlats] = useState([]);
+  const [modalFlatsLoading, setModalFlatsLoading] = useState(false);
+  const [modalFlatsError, setModalFlatsError] = useState(null);
+
+  const [drawerFlats, setDrawerFlats] = useState([]);
+  const [drawerFlatsLoading, setDrawerFlatsLoading] = useState(false);
+  const [drawerFlatsError, setDrawerFlatsError] = useState(null);
+
+  const fetchModalFlats = async (projId) => {
+    if (!projId) {
+      setModalFlats([]);
+      setModalFlatsError(null);
+      return;
+    }
+    setModalFlatsLoading(true);
+    setModalFlatsError(null);
+    try {
+      const units = await api.getUnits({ projectId: projId, status: "Available" });
+      setModalFlats(units || []);
+    } catch (err) {
+      setModalFlatsError(err.message || "Failed to load flats");
+      setModalFlats([]);
+    } finally {
+      setModalFlatsLoading(false);
+    }
+  };
+
+  const fetchDrawerFlats = async (projId, currentUnitId = null, currentFlatNo = null) => {
+    if (!projId) {
+      setDrawerFlats([]);
+      setDrawerFlatsError(null);
+      return;
+    }
+    setDrawerFlatsLoading(true);
+    setDrawerFlatsError(null);
+    try {
+      const units = await api.getUnits({ 
+        projectId: projId, 
+        status: "Available", 
+        includeUnitId: currentUnitId || undefined 
+      });
+      let unitList = units || [];
+      if (currentFlatNo && !unitList.some(u => u.unitNumber.toLowerCase() === currentFlatNo.toLowerCase())) {
+        unitList = [{ id: currentUnitId || "current", unitNumber: currentFlatNo, unitType: "Current Unit", status: "Booked" }, ...unitList];
+      }
+      setDrawerFlats(unitList);
+    } catch (err) {
+      setDrawerFlatsError(err.message || "Failed to load flats");
+      setDrawerFlats([]);
+    } finally {
+      setDrawerFlatsLoading(false);
+    }
+  };
+
   const defaultSource = getDefault("leadSource", "Website");
   const defaultStage = getDefault("leadStage", "New Lead");
 
@@ -189,6 +244,7 @@ export function Leads() {
     agentId: "",
     budget: 0,
     projectId: "",
+    unitId: "",
     flatNo: ""
   });
 
@@ -277,6 +333,8 @@ export function Leads() {
         agentId: form.agentId ? +form.agentId : null,
         budget: +form.budget,
         projectId: form.projectId ? +form.projectId : null,
+        unitId: form.unitId ? +form.unitId : null,
+        flatId: form.unitId ? +form.unitId : null,
         flatNo: form.flatNo
       });
       setShowModal(false);
@@ -292,8 +350,10 @@ export function Leads() {
         agentId: "",
         budget: 0,
         projectId: "",
+        unitId: "",
         flatNo: ""
       });
+      setModalFlats([]);
       setToast({ msg: "Lead added successfully!", type: "success" });
       load();
     } catch (e) {
@@ -437,6 +497,11 @@ export function Leads() {
     setIsEditingInfo(false);
     setInfoForm({ ...lead });
     refreshDrawerData(lead);
+    if (lead.projectId) {
+      fetchDrawerFlats(lead.projectId, lead.unitId, lead.flatNo);
+    } else {
+      setDrawerFlats([]);
+    }
   };
 
   const getNextFollowUp = (lead) => {
@@ -507,6 +572,9 @@ export function Leads() {
         projectId: infoForm.projectId ? parseInt(infoForm.projectId) : null,
         agentId: infoForm.agentId ? parseInt(infoForm.agentId) : null,
         assignedTo: infoForm.assignedTo || null,
+        unitId: infoForm.unitId ? parseInt(infoForm.unitId) : null,
+        flatId: infoForm.unitId ? parseInt(infoForm.unitId) : null,
+        flatNo: infoForm.flatNo || "",
         channelPartnerId: infoForm.source === "Channel Partner" && infoForm.channelPartnerId ? parseInt(infoForm.channelPartnerId) : null
       });
       setSelectedLead(updated);
@@ -1358,6 +1426,14 @@ export function Leads() {
                           <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {lead.project?.name || "General"}
                           </span>
+                          {(lead.flatNo || lead.unit?.unitNumber) && (
+                            <>
+                              <span style={{ color: C.mute }}>·</span>
+                              <span style={{ fontWeight: 700, color: C.blue, background: `${C.blue}15`, padding: "1px 5px", borderRadius: 4, fontSize: 10 }}>
+                                {lead.flatNo || lead.unit?.unitNumber}
+                              </span>
+                            </>
+                          )}
                         </div>
 
                         {/* Representative and Phone */}
@@ -1426,8 +1502,20 @@ export function Leads() {
               </div>
             )}
             <Field label="Project Interest">
-              <Select value={form.projectId} onChange={f("projectId")} placeholder="Select Project"
-                options={projects.map(p => ({ value: p.id, label: p.name }))} />
+              <Select 
+                value={form.projectId} 
+                onChange={(val) => {
+                  setForm(p => ({
+                    ...p,
+                    projectId: val,
+                    unitId: "",
+                    flatNo: ""
+                  }));
+                  fetchModalFlats(val);
+                }} 
+                placeholder="Select Project"
+                options={projects.map(p => ({ value: p.id, label: p.name }))} 
+              />
             </Field>
             <Field label="Assigned Agent">
               <Select 
@@ -1448,7 +1536,38 @@ export function Leads() {
               />
             </Field>
             <Field label="Budget (₹)"><Input type="number" value={form.budget} onChange={f("budget")} placeholder="12000000" /></Field>
-            <Field label="Flat No"><Input value={form.flatNo} onChange={f("flatNo")} placeholder="e.g. A-101" /></Field>
+            <Field label="Flat No">
+              <Select
+                disabled={!form.projectId || modalFlatsLoading}
+                value={form.unitId || ""}
+                onChange={(val) => {
+                  const u = modalFlats.find(x => x.id.toString() === val.toString());
+                  setForm(p => ({
+                    ...p,
+                    unitId: val ? parseInt(val) : "",
+                    flatNo: u ? u.unitNumber : ""
+                  }));
+                }}
+                placeholder={
+                  !form.projectId
+                    ? "Select Project first"
+                    : modalFlatsLoading
+                      ? "Loading flats..."
+                      : modalFlats.length === 0
+                        ? (modalFlatsError ? "Error loading flats" : "No available flats")
+                        : "Select Flat No"
+                }
+                options={modalFlats.map(u => ({
+                  value: u.id,
+                  label: `${u.unitNumber} (${u.unitType}${u.status !== "Available" ? " - " + u.status : ""})`
+                }))}
+              />
+              {modalFlatsError && (
+                <div style={{ fontSize: 11, color: C.red || "#ef4444", marginTop: 4 }}>
+                  {modalFlatsError}
+                </div>
+              )}
+            </Field>
             <div style={{ gridColumn: "1/-1" }}>
               <Field label="Interest Project"><Input value={form.interest} onChange={f("interest")} placeholder="e.g. Skyline Heights 3BHK" /></Field>
             </div>
@@ -1625,7 +1744,11 @@ export function Leads() {
                         <select 
                           value={infoForm.projectId || ""} 
                           disabled={!isEditingInfo}
-                          onChange={e => setInfoForm(p => ({ ...p, projectId: e.target.value }))}
+                          onChange={e => {
+                            const newProjId = e.target.value;
+                            setInfoForm(p => ({ ...p, projectId: newProjId, unitId: "", flatNo: "" }));
+                            fetchDrawerFlats(newProjId, null, null);
+                          }}
                           style={{ width: "100%", background: C.card, border: `1px solid ${C.bord}`, borderRadius: 6, color: C.txt, padding: 8 }}
                         >
                           <option value="">Select Project</option>
@@ -1636,7 +1759,54 @@ export function Leads() {
                         <Input value={infoForm.interest || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, interest: val }))} />
                       </Field>
                       <Field label="Flat No">
-                        <Input value={infoForm.flatNo || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, flatNo: val }))} />
+                        <select 
+                          value={infoForm.unitId || ""} 
+                          disabled={!isEditingInfo || !infoForm.projectId || drawerFlatsLoading}
+                          onChange={e => {
+                            const uid = e.target.value;
+                            const u = drawerFlats.find(x => x.id.toString() === uid.toString());
+                            setInfoForm(p => ({ 
+                              ...p, 
+                              unitId: uid ? parseInt(uid) : null,
+                              flatNo: u ? u.unitNumber : ""
+                            }));
+                          }}
+                          style={{ 
+                            width: "100%", 
+                            background: C.card, 
+                            border: `1px solid ${C.bord}`, 
+                            borderRadius: 6, 
+                            color: C.txt, 
+                            padding: 8,
+                            cursor: (!isEditingInfo || !infoForm.projectId || drawerFlatsLoading) ? "not-allowed" : "pointer",
+                            opacity: (!isEditingInfo || !infoForm.projectId || drawerFlatsLoading) ? 0.7 : 1
+                          }}
+                        >
+                          {!infoForm.projectId ? (
+                            <option value="">Select Project first</option>
+                          ) : drawerFlatsLoading ? (
+                            <option value="">Loading flats...</option>
+                          ) : drawerFlats.length === 0 ? (
+                            <option value="">No available flats</option>
+                          ) : (
+                            <>
+                              <option value="">Select Flat No</option>
+                              {drawerFlats.map(u => (
+                                <option key={u.id} value={u.id}>
+                                  {u.unitNumber} ({u.unitType}{u.status !== "Available" ? ` - ${u.status}` : ""})
+                                </option>
+                              ))}
+                            </>
+                          )}
+                          {!infoForm.unitId && infoForm.flatNo && !drawerFlats.some(u => u.unitNumber.toLowerCase() === (infoForm.flatNo || "").toLowerCase()) && (
+                            <option value="" disabled selected>{infoForm.flatNo}</option>
+                          )}
+                        </select>
+                        {drawerFlatsError && (
+                          <div style={{ fontSize: 11, color: C.red || "#ef4444", marginTop: 4 }}>
+                            {drawerFlatsError}
+                          </div>
+                        )}
                       </Field>
                       <Field label="Budget (₹)">
                         <Input type="number" value={infoForm.budget || ""} disabled={!isEditingInfo} onChange={val => setInfoForm(p => ({ ...p, budget: val }))} />

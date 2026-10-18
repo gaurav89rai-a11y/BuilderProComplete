@@ -13,12 +13,22 @@ public class UnitsController : ControllerBase
     public UnitsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int? projectId, [FromQuery] string? status)
+    public async Task<IActionResult> GetAll([FromQuery] int? projectId, [FromQuery] string? status, [FromQuery] int? includeUnitId)
     {
         var query = _db.Units.Include(u => u.Project).AsQueryable();
         if (projectId.HasValue) query = query.Where(u => u.ProjectId == projectId.Value);
-        if (!string.IsNullOrEmpty(status)) query = query.Where(u => u.Status == status);
-        return Ok(await query.ToListAsync());
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (includeUnitId.HasValue && includeUnitId.Value > 0)
+            {
+                query = query.Where(u => u.Status == status || u.Id == includeUnitId.Value);
+            }
+            else
+            {
+                query = query.Where(u => u.Status == status);
+            }
+        }
+        return Ok(await query.OrderBy(u => u.UnitNumber).ToListAsync());
     }
 
     [HttpGet("{id}")]

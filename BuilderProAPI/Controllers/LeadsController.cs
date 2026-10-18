@@ -15,7 +15,7 @@ public class LeadsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? stage, [FromQuery] string? assigned)
     {
-        var query = _db.Leads.Include(l => l.Project).Include(l => l.ChannelPartner).Include(l => l.Agent).AsQueryable();
+        var query = _db.Leads.Include(l => l.Project).Include(l => l.ChannelPartner).Include(l => l.Agent).Include(l => l.Unit).AsQueryable();
         if (!string.IsNullOrEmpty(stage)) query = query.Where(l => l.Stage == stage);
         if (!string.IsNullOrEmpty(assigned)) query = query.Where(l => l.AssignedTo == assigned || (l.AgentId.HasValue && l.AgentId.ToString() == assigned));
         return Ok(await query.OrderByDescending(l => l.CreatedAt).ToListAsync());
@@ -24,7 +24,7 @@ public class LeadsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var lead = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).Include(l => l.ChannelPartner).Include(l => l.Agent).FirstOrDefaultAsync(l => l.Id == id);
+        var lead = await _db.Leads.Include(l => l.Project).Include(l => l.SiteVisits).Include(l => l.ChannelPartner).Include(l => l.Agent).Include(l => l.Unit).FirstOrDefaultAsync(l => l.Id == id);
         if (lead == null) return NotFound();
         return Ok(lead);
     }
@@ -45,6 +45,32 @@ public class LeadsController : ControllerBase
             lead.Source = await _db.SystemConfigs.Where(c => c.Category == "LeadSource" && c.IsDefault).Select(c => c.Value).FirstOrDefaultAsync()
                            ?? await _db.SystemConfigs.Where(c => c.Category == "LeadSource").OrderBy(c => c.SortOrder).Select(c => c.Value).FirstOrDefaultAsync()
                            ?? "";
+        }
+
+        // Validate flat selection and availability
+        if (lead.UnitId.HasValue && lead.UnitId.Value > 0)
+        {
+            var unit = await _db.Units.FindAsync(lead.UnitId.Value);
+            if (unit == null)
+            {
+                return BadRequest(new { message = $"Selected flat (ID: {lead.UnitId.Value}) does not exist." });
+            }
+            if (lead.ProjectId.HasValue && unit.ProjectId != lead.ProjectId.Value)
+            {
+                return BadRequest(new { message = $"Selected flat {unit.UnitNumber} does not belong to the selected project." });
+            }
+            if (!lead.ProjectId.HasValue)
+            {
+                lead.ProjectId = unit.ProjectId;
+            }
+
+            var hasActiveBooking = await _db.Bookings.AnyAsync(b => b.UnitId == lead.UnitId.Value && b.Status != "Cancelled");
+            if (unit.Status == "Sold" || unit.Status == "Booked" || hasActiveBooking)
+            {
+                return Conflict(new { message = $"Flat {unit.UnitNumber} is no longer available. Please select another flat." });
+            }
+
+            lead.FlatNo = unit.UnitNumber;
         }
 
         // Resolve Agent
@@ -151,7 +177,38 @@ public class LeadsController : ControllerBase
         existing.Interest = lead.Interest;
         existing.Budget = lead.Budget;
         existing.ProjectId = lead.ProjectId;
-        existing.FlatNo = lead.FlatNo;
+
+        // Flat / Unit selection and availability validation
+        if (lead.UnitId.HasValue && lead.UnitId.Value > 0)
+        {
+            var unit = await _db.Units.FindAsync(lead.UnitId.Value);
+            if (unit == null)
+            {
+                return BadRequest(new { message = $"Selected flat (ID: {lead.UnitId.Value}) does not exist." });
+            }
+            if (lead.ProjectId.HasValue && unit.ProjectId != lead.ProjectId.Value)
+            {
+                return BadRequest(new { message = $"Selected flat {unit.UnitNumber} does not belong to the selected project." });
+            }
+
+            if (existing.UnitId != lead.UnitId.Value)
+            {
+                var hasActiveBooking = await _db.Bookings.AnyAsync(b => b.UnitId == lead.UnitId.Value && b.Status != "Cancelled");
+                if (unit.Status == "Sold" || unit.Status == "Booked" || hasActiveBooking)
+                {
+                    return Conflict(new { message = $"Flat {unit.UnitNumber} is no longer available. Please select another flat." });
+                }
+            }
+
+            existing.UnitId = lead.UnitId.Value;
+            existing.FlatNo = unit.UnitNumber;
+        }
+        else if (lead.UnitId == null || lead.UnitId == 0)
+        {
+            existing.UnitId = null;
+            if (!string.IsNullOrEmpty(lead.FlatNo)) existing.FlatNo = lead.FlatNo;
+            else existing.FlatNo = "";
+        }
 
         // Resolve Agent
         if (lead.AgentId.HasValue)
@@ -323,7 +380,7 @@ public class LeadsController : ControllerBase
                     TotalAmount = lead.Budget,
                     PaidAmount = 0,
                     ProjectId = lead.ProjectId ?? 1,
-                    UnitNumber = lead.Interest ?? "A-101"
+                    UnitNumber = !string.IsNullOrEmpty(lead.FlatNo) ? lead.FlatNo : (!string.IsNullOrEmpty(lead.Interest) ? lead.Interest : "A-101")
                 };
                 _db.Customers.Add(customer);
                 await _db.SaveChangesAsync();
@@ -333,11 +390,12 @@ public class LeadsController : ControllerBase
             if (booking == null)
             {
                 var allBookings = await _db.Bookings.ToListAsync();
+                var assignedUnitId = lead.UnitId ?? (await _db.Units.Where(u => u.ProjectId == customer.ProjectId && u.Status == "Available").Select(u => (int?)u.Id).FirstOrDefaultAsync()) ?? 1;
                 booking = new Booking
                 {
                     BookingNumber = $"BK{DateTime.Now.Year}{(allBookings.Count + 1):D3}",
                     CustomerId = customer.Id,
-                    UnitId = 1,
+                    UnitId = assignedUnitId,
                     BookingDate = DateTime.UtcNow,
                     TotalAmount = lead.Budget,
                     TokenAmount = lead.Budget * 0.05m,
@@ -345,6 +403,12 @@ public class LeadsController : ControllerBase
                     AssignedAgent = lead.AssignedTo ?? "System"
                 };
                 _db.Bookings.Add(booking);
+
+                var bookedUnit = await _db.Units.FindAsync(assignedUnitId);
+                if (bookedUnit != null)
+                {
+                    bookedUnit.Status = "Booked";
+                }
                 await _db.SaveChangesAsync();
             }
         }
@@ -382,6 +446,7 @@ public class LeadsController : ControllerBase
             .Include(l => l.SiteVisits)
             .Include(l => l.ChannelPartner)
             .Include(l => l.Agent)
+            .Include(l => l.Unit)
             .ToListAsync();
 
         // Normalize legacy or mismatched stages to prevent leads disappearing from the kanban board

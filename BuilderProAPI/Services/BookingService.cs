@@ -69,28 +69,37 @@ public class BookingService : IBookingService
             }
         }
 
+        // Validate flat availability to prevent duplicate bookings and concurrent booking conflicts
+        var unit = await _uow.Units.GetByIdAsync(booking.UnitId);
+        if (unit == null)
+        {
+            throw new InvalidOperationException($"Unit with ID {booking.UnitId} does not exist.");
+        }
+        if (unit.Status == "Sold" || unit.Status == "Booked")
+        {
+            throw new InvalidOperationException($"Flat {unit.UnitNumber} is no longer available (Status: {unit.Status}).");
+        }
+        var activeBooking = (await _uow.Bookings.GetAllAsync(b => b.UnitId == booking.UnitId && b.Status != "Cancelled")).FirstOrDefault();
+        if (activeBooking != null)
+        {
+            throw new InvalidOperationException($"Flat {unit.UnitNumber} already has an active booking ({activeBooking.BookingNumber}).");
+        }
+
         await _uow.Bookings.AddAsync(booking);
 
         // Mark unit as booked
-        var unit = await _uow.Units.GetByIdAsync(booking.UnitId);
-        if (unit != null)
-        {
-            var bookedStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedUnitStatus")).Select(c => c.Label).FirstOrDefault()
-                               ?? (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "UnitStatus" && c.Value == "Booked")).Select(c => c.Value).FirstOrDefault()
-                               ?? "Booked";
-            unit.Status = bookedStatus;
-            _uow.Units.Update(unit);
-        }
+        var bookedStatus = (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "SystemSetting" && c.Value == "BookedUnitStatus")).Select(c => c.Label).FirstOrDefault()
+                           ?? (await _uow.SystemConfigs.GetAllAsync(c => c.Category == "UnitStatus" && c.Value == "Booked")).Select(c => c.Value).FirstOrDefault()
+                           ?? "Booked";
+        unit.Status = bookedStatus;
+        _uow.Units.Update(unit);
 
         // Link to customer and sync details (Unit, Project, TotalAmount, Token Paid)
         var customer = await _uow.Customers.GetFirstOrDefaultAsync(c => c.Id == booking.CustomerId, includeProperties: "Project");
         if (customer != null)
         {
-            if (unit != null)
-            {
-                customer.UnitNumber = unit.UnitNumber;
-                customer.ProjectId = unit.ProjectId;
-            }
+            customer.UnitNumber = unit.UnitNumber;
+            customer.ProjectId = unit.ProjectId;
             customer.TotalAmount = booking.TotalAmount;
             if (customer.PaidAmount == 0)
             {
@@ -108,11 +117,9 @@ public class BookingService : IBookingService
                                    ?? "Booking Confirmed";
                 var prevStage = lead.Stage;
                 lead.Stage = bookedStage;
-                if (unit != null)
-                {
-                    lead.FlatNo = unit.UnitNumber;
-                    lead.ProjectId = unit.ProjectId;
-                }
+                lead.UnitId = unit.Id;
+                lead.FlatNo = unit.UnitNumber;
+                lead.ProjectId = unit.ProjectId;
                 _uow.Leads.Update(lead);
 
                 await _uow.LeadAuditLogs.AddAsync(new LeadAuditLog
@@ -137,8 +144,19 @@ public class BookingService : IBookingService
     {
         var existing = await _uow.Bookings.GetByIdAsync(id);
         if (existing == null) return null;
+        var prevStatus = existing.Status;
         existing.Status = booking.Status;
         existing.TokenAmount = booking.TokenAmount;
+
+        if (booking.Status == "Cancelled" && prevStatus != "Cancelled")
+        {
+            var unit = await _uow.Units.GetByIdAsync(existing.UnitId);
+            if (unit != null && unit.Status == "Booked")
+            {
+                unit.Status = "Available";
+                _uow.Units.Update(unit);
+            }
+        }
 
         // Resolve Agent
         if (booking.AgentId.HasValue)
