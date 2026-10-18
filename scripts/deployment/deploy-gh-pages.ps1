@@ -1,5 +1,5 @@
-# Automated GitHub Pages Deployment Script for BuilderPro
-$git = (Get-Command git -ErrorAction SilentlyContinue)?.Source ?? "git"
+$gitCmd = Get-Command git -ErrorAction SilentlyContinue
+$git = if ($gitCmd) { $gitCmd.Source } else { "E:\BuilderProComplete\.tools\git\cmd\git.exe" }
 $repo = "https://github.com/gaurav89rai-a11y/BuilderProComplete.git"
 $rootDir = (Resolve-Path "$PSScriptRoot\..\..").Path
 
