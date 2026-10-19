@@ -1679,36 +1679,330 @@ const mockApi = {
   getReportCatalog: async () => {
     const role = localStorage.getItem("current_user_role") || "Super Admin";
     const cpId = localStorage.getItem("current_channel_partner_id");
-    if (role === "Channel Partner") {
-      return [{
+
+    const allReports = [
+      {
+        id: "executive-summary",
+        title: "Executive Portfolio & Financial Summary",
+        description: "Comprehensive overview of construction projects, unit availability, total booked revenue, realized collections, and outstanding receivables.",
+        categoryId: "dashboard",
+        rdlReportName: "ExecutiveSummaryReport",
+        allowedRoles: ["Super Admin", "Manager", "Sales Manager", "Accounts", "Accountant"],
+        parameters: [
+          { name: "ProjectId", label: "Select Project", type: "select" },
+          { name: "FromDate", label: "From Date", type: "date" },
+          { name: "ToDate", label: "To Date", type: "date" }
+        ]
+      },
+      {
+        id: "lead-pipeline",
+        title: "Lead Conversion & Sales Pipeline Funnel",
+        description: "Detailed lead progression audit analyzing lead sources, current stages, budget qualification, assigned sales agents, and conversion outcomes.",
+        categoryId: "sales",
+        rdlReportName: "LeadPipelineReport",
+        allowedRoles: ["Super Admin", "Manager", "Sales Manager", "Sales Agent"],
+        parameters: [
+          { name: "ProjectId", label: "Project", type: "select" },
+          { name: "Stage", label: "Lead Stage", type: "select" },
+          { name: "AssignedTo", label: "Assigned Sales Agent", type: "select" },
+          { name: "FromDate", label: "From Date", type: "date" },
+          { name: "ToDate", label: "To Date", type: "date" },
+          { name: "Search", label: "Search Prospect / Contact", type: "text" }
+        ]
+      },
+      {
+        id: "site-visits",
+        title: "Site Visits & Prospect Engagement Log",
+        description: "Audit of scheduled, completed, and missed on-site customer visits, interest levels, notes, and representative interactions.",
+        categoryId: "sales",
+        rdlReportName: "SiteVisitsReport",
+        allowedRoles: ["Super Admin", "Manager", "Sales Manager", "Sales Agent"],
+        parameters: [
+          { name: "ProjectId", label: "Project", type: "select" },
+          { name: "Status", label: "Visit Status", type: "select" },
+          { name: "AssignedAgent", label: "Assigned Agent", type: "select" },
+          { name: "FromDate", label: "From Date", type: "date" },
+          { name: "ToDate", label: "To Date", type: "date" }
+        ]
+      },
+      {
+        id: "financial-collections",
+        title: "Collections & Financial Realization Ledger",
+        description: "Detailed payment receipt transactions, payment instruments (NEFT, Cheque, Cash), linked customers, and realization status.",
+        categoryId: "financial",
+        rdlReportName: "FinancialCollectionsReport",
+        allowedRoles: ["Super Admin", "Manager", "Accounts", "Accountant"],
+        parameters: [
+          { name: "ProjectId", label: "Project", type: "select" },
+          { name: "PaymentMode", label: "Payment Mode", type: "select" },
+          { name: "Status", label: "Payment Status", type: "select" },
+          { name: "FromDate", label: "From Date", type: "date" },
+          { name: "ToDate", label: "To Date", type: "date" },
+          { name: "Search", label: "Search Customer / Receipt", type: "text" }
+        ]
+      },
+      {
+        id: "customer-receivables",
+        title: "Customer Receivables & Outstanding Aging",
+        description: "Customer payment balances, collection percentages, payment history, and aging analysis of pending installments.",
+        categoryId: "financial",
+        rdlReportName: "CustomerReceivablesReport",
+        allowedRoles: ["Super Admin", "Manager", "Accounts", "Accountant"],
+        parameters: [
+          { name: "ProjectId", label: "Project", type: "select" },
+          { name: "Status", label: "Customer Status", type: "select" },
+          { name: "Search", label: "Search Customer / Unit", type: "text" }
+        ]
+      },
+      {
         id: "partner-commission",
         title: "Channel Partner Performance & Commission Ledger",
         description: "Channel partner sourcing productivity, booked transactions, contracted commission rates, paid disbursements, and payable balances.",
         categoryId: "partners",
-        allowedRoles: ["Channel Partner"]
-      }];
-    }
-    return [
-      { id: "executive-summary", title: "Executive Portfolio & Financial Summary", description: "Overview of construction projects, unit availability, total booked revenue, realized collections, and outstanding receivables.", categoryId: "dashboard", allowedRoles: ["Super Admin", "Manager"] },
-      { id: "lead-pipeline", title: "Lead Conversion & Sales Pipeline Funnel", description: "Lead progression audit analyzing lead sources, current stages, budget qualification, assigned agents, and conversion outcomes.", categoryId: "sales", allowedRoles: ["Super Admin", "Manager", "Sales Agent"] },
-      { id: "financial-collections", title: "Collections & Financial Realization Ledger", description: "Detailed payment receipt transactions, payment instruments (NEFT, Cheque, Cash), linked customers, and realization status.", categoryId: "financial", allowedRoles: ["Super Admin", "Manager", "Accounts"] },
-      { id: "partner-commission", title: "Channel Partner Performance & Commission Ledger", description: "Channel partner sourcing productivity, booked transactions, contracted commission rates, and payouts.", categoryId: "partners", allowedRoles: ["Super Admin", "Manager", "Channel Partner"] },
-      { id: "unit-inventory", title: "Unit Inventory & Availability Matrix", description: "Project unit matrix covering typology, carpet area, base pricing, floor level, and booking availability status.", categoryId: "operations", allowedRoles: ["Super Admin", "Manager", "Sales Agent"] },
-      { id: "user-role-audit", title: "User Security, Roles & Permissions Audit", description: "Enterprise security directory documenting active user accounts, system role assignments, and granular permissions.", categoryId: "governance", allowedRoles: ["Super Admin"] }
+        rdlReportName: "ChannelPartnerCommissionReport",
+        allowedRoles: ["Super Admin", "Manager", "Sales Manager", "Accounts", "Channel Partner"],
+        parameters: [
+          { name: "PartnerId", label: "Channel Partner Firm", type: "select" },
+          { name: "Status", label: "Commission Status", type: "select" },
+          { name: "FromDate", label: "From Date", type: "date" },
+          { name: "ToDate", label: "To Date", type: "date" }
+        ]
+      },
+      {
+        id: "unit-inventory",
+        title: "Unit Inventory & Availability Matrix",
+        description: "Project unit matrix covering typology (1BHK/2BHK/3BHK), carpet area, base pricing, floor level, and booking availability status.",
+        categoryId: "operations",
+        rdlReportName: "UnitInventoryReport",
+        allowedRoles: ["Super Admin", "Manager", "Sales Manager", "Sales Agent"],
+        parameters: [
+          { name: "ProjectId", label: "Project", type: "select" },
+          { name: "Status", label: "Unit Status", type: "select" },
+          { name: "UnitType", label: "Unit Typology", type: "select" }
+        ]
+      },
+      {
+        id: "user-role-audit",
+        title: "User Security, Roles & Permissions Audit",
+        description: "Enterprise security directory documenting active user accounts, system role assignments, granular permissions, and channel partner associations.",
+        categoryId: "governance",
+        rdlReportName: "UserRoleAuditReport",
+        allowedRoles: ["Super Admin"],
+        parameters: [
+          { name: "Role", label: "System Role", type: "select" },
+          { name: "Search", label: "Search User / Email", type: "text" }
+        ]
+      }
     ];
+
+    if (role === "Super Admin") {
+      return allReports;
+    }
+
+    if (role === "Channel Partner") {
+      return allReports.filter(r => r.id === "partner-commission");
+    }
+
+    return allReports.filter(r => (r.allowedRoles || []).some(ar => ar.toLowerCase() === role.toLowerCase()));
   },
-  getReportParameters: async () => [],
-  renderReport: async ({ reportId }) => ({
-    reportId,
-    reportTitle: reportId.replace("-", " ").toUpperCase(),
-    category: "general",
-    generatedAt: new Date().toISOString(),
-    executionEngine: "Enterprise Mock Fallback Engine",
-    kpis: [{ label: "Records", value: "12", subtext: "Active items", color: "gold" }],
-    columns: [{ key: "name", label: "Item", dataType: "string", align: "left" }, { key: "value", label: "Amount (₹)", dataType: "currency", align: "right" }],
-    rows: [{ name: "Sample Item 1", value: 450000 }, { name: "Sample Item 2", value: 1200000 }],
-    totalRows: 2
-  }),
+  getReportParameters: async (reportId) => {
+    const catalog = await mockApi.getReportCatalog();
+    const rep = catalog.find(r => r.id === reportId);
+    if (!rep) return [];
+
+    const projects = (getMock("projects") || []).map(p => ({ value: p.id.toString(), label: p.name }));
+    const partners = (getMock("channelPartners") || []).map(cp => ({ value: cp.id.toString(), label: cp.name }));
+    const employees = (getMock("employees") || []).map(e => ({ value: e.name, label: e.name }));
+
+    return (rep.parameters || []).map(param => {
+      const copy = { ...param, options: [] };
+      if (param.name === "ProjectId") {
+        copy.options = [{ value: "", label: "-- All Projects --" }, ...projects];
+      } else if (param.name === "PartnerId") {
+        copy.options = [{ value: "", label: "-- All Channel Partners --" }, ...partners];
+      } else if (param.name === "Stage") {
+        copy.options = [
+          { value: "", label: "-- All Stages --" },
+          { value: "New Lead", label: "New Lead" },
+          { value: "Contacted", label: "Contacted" },
+          { value: "Site Visit Scheduled", label: "Site Visit Scheduled" },
+          { value: "Negotiation", label: "Negotiation" },
+          { value: "Booking Done", label: "Booking Done" },
+          { value: "Lost", label: "Lost" }
+        ];
+      } else if (param.name === "AssignedTo" || param.name === "AssignedAgent") {
+        copy.options = [{ value: "", label: "-- All Agents --" }, ...employees];
+      } else if (param.name === "Status" && rep.id === "site-visits") {
+        copy.options = [
+          { value: "", label: "-- All Statuses --" },
+          { value: "Scheduled", label: "Scheduled" },
+          { value: "Completed", label: "Completed" },
+          { value: "Cancelled", label: "Cancelled" },
+          { value: "No Show", label: "No Show" }
+        ];
+      } else if (param.name === "PaymentMode") {
+        copy.options = [
+          { value: "", label: "-- All Modes --" },
+          { value: "NEFT/RTGS", label: "NEFT / RTGS" },
+          { value: "Cheque", label: "Cheque" },
+          { value: "UPI", label: "UPI" },
+          { value: "Cash", label: "Cash" }
+        ];
+      } else if (param.name === "Status" && rep.id === "customer-receivables") {
+        copy.options = [
+          { value: "", label: "-- All Statuses --" },
+          { value: "Current", label: "Current" },
+          { value: "Overdue", label: "Overdue" },
+          { value: "Paid", label: "Fully Paid" }
+        ];
+      } else if (param.name === "Status" && rep.id === "unit-inventory") {
+        copy.options = [
+          { value: "", label: "-- All Statuses --" },
+          { value: "Available", label: "Available" },
+          { value: "Booked", label: "Booked" },
+          { value: "Sold", label: "Sold" }
+        ];
+      } else if (param.name === "UnitType") {
+        copy.options = [
+          { value: "", label: "-- All Typologies --" },
+          { value: "1 BHK", label: "1 BHK" },
+          { value: "2 BHK", label: "2 BHK" },
+          { value: "3 BHK", label: "3 BHK" },
+          { value: "Penthouse", label: "Penthouse" },
+          { value: "Commercial Shop", label: "Commercial Shop" }
+        ];
+      } else if (param.name === "Role") {
+        copy.options = [
+          { value: "", label: "-- All Roles --" },
+          { value: "Super Admin", label: "Super Admin" },
+          { value: "Manager", label: "Manager" },
+          { value: "Sales Agent", label: "Sales Agent" },
+          { value: "Accounts", label: "Accounts" },
+          { value: "Channel Partner", label: "Channel Partner" }
+        ];
+      }
+      return copy;
+    });
+  },
+  renderReport: async ({ reportId, parameters = {} }) => {
+    const catalog = await mockApi.getReportCatalog();
+    const rep = catalog.find(r => r.id === reportId);
+    const title = rep ? rep.title : reportId.replace("-", " ").toUpperCase();
+    const generatedAt = new Date().toISOString();
+
+    if (reportId === "site-visits") {
+      const visits = getMock("siteVisits") || [];
+      const rows = visits.map((v, i) => {
+        const lead = (getMock("leads") || []).find(l => l.id === v.leadId);
+        const proj = (getMock("projects") || []).find(p => p.id === v.projectId);
+        return {
+          id: v.id || i + 1,
+          customerName: lead ? lead.customerName : "Prospect " + (i + 1),
+          projectName: proj ? proj.name : "Skyline Heights",
+          visitDate: v.visitDate || "2026-10-15",
+          assignedAgent: v.assignedTo || "Arjun Kapoor",
+          status: v.status || "Completed",
+          feedback: v.feedback || "Interested in 3BHK higher floor"
+        };
+      });
+      return {
+        reportId,
+        reportTitle: title,
+        category: "sales",
+        generatedAt,
+        executionEngine: "Enterprise Mock Fallback Engine",
+        kpis: [
+          { label: "Total Site Visits", value: rows.length.toString(), subtext: "Audited prospect visits", color: "blue" },
+          { label: "Completed Visits", value: rows.filter(r => r.status === "Completed").length.toString(), subtext: "Successful inspections", color: "teal" },
+          { label: "Upcoming / Scheduled", value: rows.filter(r => r.status === "Scheduled").length.toString(), subtext: "Pending execution", color: "gold" }
+        ],
+        columns: [
+          { key: "id", label: "Visit ID", dataType: "number", align: "center" },
+          { key: "customerName", label: "Prospect Name", dataType: "string", align: "left" },
+          { key: "projectName", label: "Project", dataType: "string", align: "left" },
+          { key: "visitDate", label: "Visit Date", dataType: "date", align: "center" },
+          { key: "assignedAgent", label: "Assigned Agent", dataType: "string", align: "left" },
+          { key: "status", label: "Status", dataType: "badge", align: "center" },
+          { key: "feedback", label: "Prospect Feedback", dataType: "string", align: "left" }
+        ],
+        rows,
+        totalRows: rows.length
+      };
+    }
+
+    if (reportId === "customer-receivables") {
+      const customers = getMock("customers") || [];
+      const rows = customers.map((c, i) => {
+        const proj = (getMock("projects") || []).find(p => p.id === c.projectId);
+        const total = c.budget || 8500000;
+        const paid = Math.round(total * 0.4);
+        const outstanding = total - paid;
+        return {
+          id: c.id || i + 1,
+          customerName: c.name,
+          projectName: proj ? proj.name : "Green Valley Phase 2",
+          unitNumber: c.unitNumber || `A-${100 + i}`,
+          totalContractValue: total,
+          totalPaid: paid,
+          outstandingBalance: outstanding,
+          customerStatus: outstanding > 4000000 ? "Overdue" : "Current"
+        };
+      });
+      return {
+        reportId,
+        reportTitle: title,
+        category: "financial",
+        generatedAt,
+        executionEngine: "Enterprise Mock Fallback Engine",
+        kpis: [
+          { label: "Total Receivables Outstanding", value: "₹ 14.85 Cr", subtext: "Balance due across customers", color: "gold" },
+          { label: "Total Realized Collections", value: "₹ 9.90 Cr", subtext: "40.0% of contract value", color: "teal" },
+          { label: "Overdue Accounts", value: rows.filter(r => r.customerStatus === "Overdue").length.toString(), subtext: "Requires urgent reminder", color: "red" }
+        ],
+        columns: [
+          { key: "id", label: "Customer ID", dataType: "number", align: "center" },
+          { key: "customerName", label: "Customer Name", dataType: "string", align: "left" },
+          { key: "projectName", label: "Project", dataType: "string", align: "left" },
+          { key: "unitNumber", label: "Unit / Flat", dataType: "string", align: "center" },
+          { key: "totalContractValue", label: "Contract Value", dataType: "currency", align: "right" },
+          { key: "totalPaid", label: "Paid to Date", dataType: "currency", align: "right" },
+          { key: "outstandingBalance", label: "Outstanding Balance", dataType: "currency", align: "right" },
+          { key: "customerStatus", label: "Status", dataType: "badge", align: "center" }
+        ],
+        rows,
+        totalRows: rows.length
+      };
+    }
+
+    // Default mock renderer for other reports
+    return {
+      reportId,
+      reportTitle: title,
+      category: rep ? rep.categoryId : "general",
+      generatedAt,
+      executionEngine: "Enterprise Mock Fallback Engine",
+      kpis: [
+        { label: "Total Records", value: "18", subtext: "Active portfolio records", color: "blue" },
+        { label: "Realized Volume", value: "₹ 4.28 Cr", subtext: "Realized in financial year", color: "teal" },
+        { label: "Active Operational Items", value: "8", subtext: "In progress", color: "gold" }
+      ],
+      columns: [
+        { key: "id", label: "ID", dataType: "number", align: "center" },
+        { key: "name", label: "Item / Entity", dataType: "string", align: "left" },
+        { key: "category", label: "Category", dataType: "string", align: "left" },
+        { key: "date", label: "Timestamp", dataType: "date", align: "center" },
+        { key: "status", label: "Status", dataType: "badge", align: "center" },
+        { key: "value", label: "Amount (₹)", dataType: "currency", align: "right" }
+      ],
+      rows: [
+        { id: 1, name: "Skyline Heights Tower A", category: "Residential", date: "2026-10-18", status: "Active", value: 18660000 },
+        { id: 2, name: "Green Valley Township", category: "Township", date: "2026-10-17", status: "Active", value: 50800000 },
+        { id: 3, name: "Meridian Business Park", category: "Commercial", date: "2026-10-16", status: "Nearing Handover", value: 60000000 },
+        { id: 4, name: "Pearl Residences", category: "Residential", date: "2026-10-15", status: "Pre-launch", value: 37000000 }
+      ],
+      totalRows: 4
+    };
+  },
   getReportHealth: async () => ({
     isConnected: false,
     serverUrl: "http://localhost/ReportServer",
