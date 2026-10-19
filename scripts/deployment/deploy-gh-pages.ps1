@@ -37,7 +37,7 @@ if (Test-Path ".git") {
 
 Write-Host ""
 Write-Host "-> Pushing to GitHub (this may prompt you to sign in)..." -ForegroundColor Yellow
-& $git push -f $repo master:gh-pages
+& $git push -f $repo HEAD:gh-pages
 
 Write-Host ""
 Write-Host "+---------------------------------------------------+" -ForegroundColor Green
