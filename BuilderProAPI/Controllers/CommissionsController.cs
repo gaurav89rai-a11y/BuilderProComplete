@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ public class CommissionsController : ControllerBase
     public CommissionsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("finance.commissions.view")]
     public async Task<IActionResult> GetAll([FromQuery] string? status)
     {
         var query = _db.Commissions.Include(c => c.Partner).Include(c => c.Booking).AsQueryable();
@@ -24,6 +26,7 @@ public class CommissionsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("finance.commissions.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var c = await _db.Commissions.Include(x => x.Partner).Include(x => x.Booking).FirstOrDefaultAsync(x => x.Id == id);
@@ -32,6 +35,7 @@ public class CommissionsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("finance.commissions.create")]
     public async Task<IActionResult> Create([FromBody] Commission commission)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -42,6 +46,7 @@ public class CommissionsController : ControllerBase
     }
 
     [HttpPatch("{id}/approve")]
+    [RequirePermission("finance.commissions.approve_reject")]
     public async Task<IActionResult> Approve(int id)
     {
         var c = await _db.Commissions.FindAsync(id);
@@ -54,6 +59,7 @@ public class CommissionsController : ControllerBase
     }
 
     [HttpPatch("{id}/pay")]
+    [RequirePermission("finance.commissions.approve_reject")]
     public async Task<IActionResult> MarkPaid(int id)
     {
         var c = await _db.Commissions.FindAsync(id);
@@ -66,6 +72,7 @@ public class CommissionsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("finance.commissions.create")]
     public async Task<IActionResult> Delete(int id)
     {
         var c = await _db.Commissions.FindAsync(id);

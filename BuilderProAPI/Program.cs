@@ -167,6 +167,7 @@ builder.Services.AddScoped<IReportEngineService, ReportEngineService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 // CORS - allow React frontend (restricted to production GitHub Pages, optional FRONTEND_URL, and development localhosts)
 builder.Services.AddCors(options =>
@@ -187,15 +188,25 @@ builder.Services.AddCors(options =>
         allowedOrigins.Add("http://localhost:5174");
         allowedOrigins.Add("http://localhost:3000");
         allowedOrigins.Add("http://127.0.0.1:3000");
+        allowedOrigins.Add("http://localhost:3001");
+        allowedOrigins.Add("http://127.0.0.1:3001");
+        allowedOrigins.Add("http://localhost:3002");
+        allowedOrigins.Add("http://127.0.0.1:3002");
         allowedOrigins.Add("https://localhost:5173");
         allowedOrigins.Add("http://127.0.0.1:5173");
         allowedOrigins.Add("http://localhost:5000");
         allowedOrigins.Add("http://localhost:8080");
 
-        policy.WithOrigins(allowedOrigins.ToArray())
+        policy.SetIsOriginAllowed(origin =>
+              {
+                  if (string.IsNullOrEmpty(origin)) return false;
+                  var uri = new Uri(origin);
+                  return uri.Host == "localhost" || uri.Host == "127.0.0.1" || allowedOrigins.Contains(origin);
+              })
               .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowCredentials()
+              .WithExposedHeaders("Content-Disposition");
     });
 });
 

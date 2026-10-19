@@ -66,6 +66,11 @@ public class BuilderProDbContext : DbContext
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<ServiceTicket> ServiceTickets => Set<ServiceTicket>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
+    public DbSet<PermissionAuditLog> PermissionAuditLogs => Set<PermissionAuditLog>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Attendance> Attendances => Set<Attendance>();
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
@@ -103,6 +108,28 @@ public class BuilderProDbContext : DbContext
                 foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
             }
         }
+
+        modelBuilder.Entity<Role>()
+            .HasIndex(r => r.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Permission>()
+            .HasIndex(p => p.Code)
+            .IsUnique();
+
+        modelBuilder.Entity<RolePermission>()
+            .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+            .IsUnique();
+
+        modelBuilder.Entity<UserPermission>()
+            .HasIndex(up => new { up.UserId, up.PermissionId })
+            .IsUnique();
+
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.UserRole)
+            .WithMany(r => r.Users)
+            .HasForeignKey(u => u.RoleId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<User>()
             .HasOne(u => u.ChannelPartner)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -13,6 +14,7 @@ public class ChannelPartnersController : ControllerBase
     public ChannelPartnersController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("crm.partners.view")]
     public async Task<IActionResult> GetAll()
     {
         var partners = await _db.ChannelPartners
@@ -28,6 +30,7 @@ public class ChannelPartnersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("crm.partners.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var p = await _db.ChannelPartners.Include(x => x.Commissions).FirstOrDefaultAsync(x => x.Id == id);
@@ -36,6 +39,7 @@ public class ChannelPartnersController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("crm.partners.create")]
     public async Task<IActionResult> Create([FromBody] ChannelPartner partner)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -46,6 +50,7 @@ public class ChannelPartnersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("crm.partners.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] ChannelPartner partner)
     {
         if (id != partner.Id) return BadRequest();
@@ -64,6 +69,7 @@ public class ChannelPartnersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("crm.partners.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var p = await _db.ChannelPartners.FindAsync(id);

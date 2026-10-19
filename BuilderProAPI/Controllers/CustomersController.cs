@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -13,6 +14,7 @@ public class CustomersController : ControllerBase
     public CustomersController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("crm.customers.view")]
     public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] string? search, [FromQuery] int? channelPartnerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -41,16 +43,17 @@ public class CustomersController : ControllerBase
                 .Distinct()
                 .ToListAsync();
 
-            var partnerCustIds = await _db.Commissions
-                .Where(c => c.PartnerId == cpId.Value)
-                .Join(_db.Bookings, c => c.BookingId, b => b.Id, (c, b) => b.CustomerId)
+            var partnerBookingCustomerIds = await _db.Commissions
+                .Where(cm => cm.PartnerId == cpId.Value)
+                .Join(_db.Bookings, cm => cm.BookingId, b => b.Id, (cm, b) => b.CustomerId)
                 .Distinct()
                 .ToListAsync();
 
             query = query.Where(c => 
                 partnerLeadPhones.Contains(c.Phone) || 
-                partnerLeadEmails.Contains(c.Email) || 
-                partnerCustIds.Contains(c.Id));
+                partnerLeadEmails.Contains(c.Email) ||
+                partnerBookingCustomerIds.Contains(c.Id)
+            );
         }
 
         // Enforce Sales Agent role restriction: Access only assigned customers
@@ -58,19 +61,17 @@ public class CustomersController : ControllerBase
         {
             var agentLeadPhones = await _db.Leads
                 .Where(l => (userId.HasValue && l.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && l.AssignedTo == userNameHeader))
-                .Where(l => !string.IsNullOrEmpty(l.Phone))
                 .Select(l => l.Phone)
                 .Distinct()
                 .ToListAsync();
 
             var agentLeadEmails = await _db.Leads
                 .Where(l => (userId.HasValue && l.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && l.AssignedTo == userNameHeader))
-                .Where(l => !string.IsNullOrEmpty(l.Email))
                 .Select(l => l.Email!)
                 .Distinct()
                 .ToListAsync();
 
-            var agentBookingCustIds = await _db.Bookings
+            var agentBookingCustomerIds = await _db.Bookings
                 .Where(b => (userId.HasValue && b.AgentId == userId.Value) || (!string.IsNullOrEmpty(userNameHeader) && b.AssignedAgent == userNameHeader))
                 .Select(b => b.CustomerId)
                 .Distinct()
@@ -78,8 +79,9 @@ public class CustomersController : ControllerBase
 
             query = query.Where(c => 
                 agentLeadPhones.Contains(c.Phone) || 
-                agentLeadEmails.Contains(c.Email) || 
-                agentBookingCustIds.Contains(c.Id));
+                agentLeadEmails.Contains(c.Email) ||
+                agentBookingCustomerIds.Contains(c.Id)
+            );
         }
 
         if (!string.IsNullOrEmpty(status)) query = query.Where(c => c.Status == status);
@@ -89,6 +91,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("crm.customers.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -123,6 +126,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("crm.customers.create")]
     public async Task<IActionResult> Create([FromBody] Customer customer)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -133,6 +137,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("crm.customers.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] Customer customer)
     {
         if (id != customer.Id) return BadRequest();
@@ -152,6 +157,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("crm.customers.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();

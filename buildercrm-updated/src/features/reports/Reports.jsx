@@ -638,7 +638,7 @@ export function Reports({ currentUser }) {
                       {[
                         { label: "PDF Document (.pdf)", format: "PDF", icon: "📄" },
                         { label: "Excel Spreadsheet (.xlsx)", format: "EXCEL", icon: "📊" },
-                        { label: "Word Document (.docx)", format: "WORD", icon: "📝" },
+                        { label: "Word Document (.doc)", format: "WORD", icon: "📝" },
                         { label: "CSV Data File (.csv)", format: "CSV", icon: "📑" }
                       ].map(opt => (
                         <div

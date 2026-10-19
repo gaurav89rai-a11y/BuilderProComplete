@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -13,6 +14,7 @@ public class SiteVisitsController : ControllerBase
     public SiteVisitsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("crm.visits.view")]
     public async Task<IActionResult> GetAll([FromQuery] string? status)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -39,6 +41,7 @@ public class SiteVisitsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("crm.visits.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -66,6 +69,7 @@ public class SiteVisitsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("crm.visits.create")]
     public async Task<IActionResult> Create([FromBody] SiteVisit visit)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -145,6 +149,7 @@ public class SiteVisitsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("crm.visits.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] SiteVisit visit)
     {
         if (id != visit.Id) return BadRequest();
@@ -201,6 +206,7 @@ public class SiteVisitsController : ControllerBase
     }
 
     [HttpPatch("{id}/status")]
+    [RequirePermission("crm.visits.change_status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] VisitStatusDto dto)
     {
         var visit = await _db.SiteVisits.FindAsync(id);
@@ -232,6 +238,7 @@ public class SiteVisitsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("crm.visits.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();

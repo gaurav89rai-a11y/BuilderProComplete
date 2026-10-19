@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -13,6 +14,7 @@ public class LeadsController : ControllerBase
     public LeadsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("crm.leads.view")]
     public async Task<IActionResult> GetAll([FromQuery] string? stage, [FromQuery] string? assigned, [FromQuery] int? channelPartnerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -53,6 +55,7 @@ public class LeadsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("crm.leads.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -87,6 +90,7 @@ public class LeadsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("crm.leads.create")]
     public async Task<IActionResult> Create([FromBody] Lead lead)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -224,6 +228,7 @@ public class LeadsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("crm.leads.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] Lead lead)
     {
         if (id != lead.Id) return BadRequest();
@@ -365,6 +370,7 @@ public class LeadsController : ControllerBase
     }
 
     [HttpPatch("{id}/stage")]
+    [RequirePermission("crm.leads.change_status")]
     public async Task<IActionResult> UpdateStage(int id, [FromBody] StageUpdateDto dto)
     {
         var lead = await _db.Leads.FindAsync(id);
@@ -498,6 +504,7 @@ public class LeadsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("crm.leads.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -524,6 +531,7 @@ public class LeadsController : ControllerBase
     }
 
     [HttpGet("kanban")]
+    [RequirePermission("crm.leads.view")]
     public async Task<IActionResult> GetKanban([FromQuery] int? channelPartnerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();

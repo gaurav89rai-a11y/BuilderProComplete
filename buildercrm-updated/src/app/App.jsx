@@ -23,6 +23,11 @@ import { Commission } from "../features/commissions/Commission.jsx";
 import { Documents } from "../features/documents/Documents.jsx";
 import { CustomerService } from "../features/support/CustomerService.jsx";
 import { UserManagement } from "../features/users/UserManagement.jsx";
+import { RoleManagement } from "../features/admin/RoleManagement.jsx";
+import { RolesAndPermissions } from "../features/admin/RolesAndPermissions.jsx";
+import { AdminMasters } from "../features/admin/AdminMasters.jsx";
+import { CompanySettings } from "../features/admin/CompanySettings.jsx";
+import { PermissionsProvider } from "../hooks/usePermissions.jsx";
 import { RERACompliance } from "../features/rera/RERACompliance.jsx";
 import { AIAssistant } from "../features/ai/AIAssistant.jsx";
 import { Workflow } from "../features/ai/Workflow.jsx";
@@ -96,7 +101,11 @@ const MODULES = {
   tickets: CustomerService,
   reports: Reports,
   admin_users: UserManagement,
-  roles_perms: UserManagement,
+  admin_roles: RoleManagement,
+  roles_perms: RoleManagement,
+  permissions_admin: RolesAndPermissions,
+  masters_admin: AdminMasters,
+  company_settings: CompanySettings,
 
   // Functional views loaded with data:
   follow_up: FollowUp,
@@ -121,9 +130,6 @@ const MODULES = {
   expenses: (props) => <PlaceholderView featureName="Construction Expenses Log" icon={DollarSign} {...props} />,
   payroll: (props) => <PlaceholderView featureName="Payroll Registry" icon={DollarSign} {...props} />,
   performance: (props) => <PlaceholderView featureName="Employee Performance Evaluations" icon={Activity} {...props} />,
-  permissions_admin: (props) => <PlaceholderView featureName="Roles & Permissions Control" icon={Shield} {...props} />,
-  masters_admin: (props) => <PlaceholderView featureName="System Masters Registries" icon={FolderOpen} {...props} />,
-  company_settings: (props) => <PlaceholderView featureName="Company Global Settings" icon={Activity} {...props} />,
 };
 
 /* ─── MAIN APP ───────────────────────────────────────────────────── */
@@ -135,6 +141,18 @@ export default function App() {
   const [usersList, setUsersList] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [permTargetRoleId, setPermTargetRoleId] = useState(null);
+  const [permTargetUserId, setPermTargetUserId] = useState(null);
+
+  const navigateToPermissions = (roleId = null, userId = null) => {
+    if (roleId) setPermTargetRoleId(roleId);
+    if (userId) setPermTargetUserId(userId);
+    setMod("permissions_admin");
+  };
+
+  const navigateToRoles = () => {
+    setMod("admin_roles");
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -230,27 +248,37 @@ export default function App() {
   const ActiveModule=MODULES[mod]||Dashboard;
   const isAllowed = hasPermission(currentUser, mod);
   return (
-    <div style={{display:"flex",height:"100vh",background:C.bg,overflow:"hidden",color:C.txt}}>
-      {isMobile && !col && (
-        <div 
-          onClick={() => setCol(true)} 
-          style={{
-            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.5)", zIndex: 999, transition: "opacity 0.25s ease"
-          }}
-        />
-      )}
-      <Sidebar active={mod} setActive={setMod} col={col} setCol={setCol} user={currentUser} usersList={usersList} onSelectUser={handleUserChange} onLogout={handleLogout} isMobile={isMobile}/>
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
-        <TopBar mod={mod} theme={theme} toggleTheme={toggleTheme} user={currentUser} sidebarCollapsed={col} setSidebarCollapsed={setCol} isMobile={isMobile}/>
-        <main style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:isMobile ? 12 : 22}}>
-          {isAllowed ? (
-            <ModuleErrorBoundary moduleKey={mod}>
-              <ActiveModule key={mod} activeModule={mod} currentUser={currentUser}/>
-            </ModuleErrorBoundary>
-          ) : <AccessDeniedView />}
-        </main>
+    <PermissionsProvider currentUser={currentUser}>
+      <div style={{display:"flex",height:"100vh",background:C.bg,overflow:"hidden",color:C.txt}}>
+        {isMobile && !col && (
+          <div 
+            onClick={() => setCol(true)} 
+            style={{
+              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.5)", zIndex: 999, transition: "opacity 0.25s ease"
+            }}
+          />
+        )}
+        <Sidebar active={mod} setActive={setMod} col={col} setCol={setCol} user={currentUser} usersList={usersList} onSelectUser={handleUserChange} onLogout={handleLogout} isMobile={isMobile}/>
+        <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0}}>
+          <TopBar mod={mod} theme={theme} toggleTheme={toggleTheme} user={currentUser} sidebarCollapsed={col} setSidebarCollapsed={setCol} isMobile={isMobile}/>
+          <main style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:isMobile ? 12 : 22}}>
+            {isAllowed ? (
+              <ModuleErrorBoundary moduleKey={mod}>
+                <ActiveModule
+                  key={mod}
+                  activeModule={mod}
+                  currentUser={currentUser}
+                  initialRoleId={permTargetRoleId}
+                  initialUserId={permTargetUserId}
+                  onNavigateToPermissions={navigateToPermissions}
+                  onNavigateToRoles={navigateToRoles}
+                />
+              </ModuleErrorBoundary>
+            ) : <AccessDeniedView />}
+          </main>
+        </div>
       </div>
-    </div>
+    </PermissionsProvider>
   );
 }

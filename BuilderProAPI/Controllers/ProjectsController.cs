@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -13,6 +14,7 @@ public class ProjectsController : ControllerBase
     public ProjectsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("construction.projects.view")]
     public async Task<IActionResult> GetAll()
     {
         var projects = await _db.Projects
@@ -30,6 +32,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("construction.projects.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var p = await _db.Projects.Include(x => x.Units).FirstOrDefaultAsync(x => x.Id == id);
@@ -38,6 +41,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("construction.projects.create")]
     public async Task<IActionResult> Create([FromBody] Project project)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -48,6 +52,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("construction.projects.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] Project project)
     {
         if (id != project.Id) return BadRequest();
@@ -66,6 +71,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("construction.projects.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var p = await _db.Projects.FindAsync(id);
@@ -76,6 +82,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet("stats")]
+    [RequirePermission("construction.projects.view")]
     public async Task<IActionResult> GetStats()
     {
         var stats = new {

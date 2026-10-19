@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using BuilderProAPI.Services;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -59,12 +60,14 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("categories")]
+    [RequirePermission("reports.bi.view")]
     public IActionResult GetCategories()
     {
         return Ok(_reportEngine.GetCategories());
     }
 
     [HttpGet("catalog")]
+    [RequirePermission("reports.bi.view")]
     public IActionResult GetCatalog()
     {
         var (role, partnerId) = GetCallerContext();
@@ -73,6 +76,7 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("{id}/parameters")]
+    [RequirePermission("reports.bi.view")]
     public async Task<IActionResult> GetParameters(string id)
     {
         var (role, partnerId) = GetCallerContext();
@@ -88,6 +92,7 @@ public class ReportsController : ControllerBase
     }
 
     [HttpPost("render")]
+    [RequirePermission("reports.bi.view")]
     public async Task<IActionResult> Render([FromBody] ReportRenderRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.ReportId))
@@ -125,6 +130,7 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("{id}/export")]
+    [RequirePermission("reports.bi.export")]
     public async Task<IActionResult> Export(string id, [FromQuery] string format = "PDF")
     {
         var (role, partnerId) = GetCallerContext();

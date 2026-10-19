@@ -118,25 +118,29 @@ Authorized Signatory: Accounts Department (Abhay Buildcon)
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.raise}}>
-              {["Customer","Booking","Amount","Mode","Date","Status","Receipt Action"].map(h=>(
-                <th key={h} style={{padding:"10px 18px",textAlign:"left",color:C.mute,fontSize:10,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{h}</th>
-              ))}
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Customer</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Booking</th>
+              <th style={{padding:"12px 18px",textAlign:"right",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Amount (₹)</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Mode</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Date</th>
+              <th style={{padding:"12px 18px",textAlign:"center",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Status</th>
+              <th style={{padding:"12px 18px",textAlign:"right",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Receipt Action</th>
             </tr>
           </thead>
           <tbody>
             {payments.map((p,i)=>(
               <tr key={p.id} style={{borderBottom:`1px solid ${C.bord}`,background:i%2===0?"transparent":`${C.raise}40`}}>
-                <td style={{padding:"12px 18px",color:C.txt,fontWeight:600,fontSize:12}}>
+                <td style={{padding:"12px 18px",color:C.txt,fontWeight:600,fontSize:12,verticalAlign:"middle"}}>
                   <div>{p.customer?.name||"—"}</div>
                   {p.customer?.unitNumber && <div style={{fontSize:10,color:C.mute}}>Unit {p.customer.unitNumber}</div>}
                 </td>
-                <td style={{padding:"12px 18px",color:C.txt,fontSize:12,fontWeight:500,fontFamily:"monospace"}}>{p.booking?.bookingNumber||"—"}</td>
-                <td style={{padding:"12px 18px",color:C.gold,fontWeight:700,fontSize:12}}>{fmtCr(p.amount)}</td>
-                <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{p.paymentMode}</td>
-                <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{p.paymentDate?.split("T")[0]}</td>
-                <td style={{padding:"12px 18px"}}><Badge s={p.status}/></td>
-                <td style={{padding:"12px 18px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <td style={{padding:"12px 18px",color:C.txt,fontSize:12,fontWeight:500,fontFamily:"monospace",verticalAlign:"middle"}}>{p.booking?.bookingNumber||"—"}</td>
+                <td style={{padding:"12px 18px",color:C.gold,fontWeight:700,fontSize:12,textAlign:"right",verticalAlign:"middle",fontVariantNumeric:"tabular-nums"}}>{fmtCr(p.amount)}</td>
+                <td style={{padding:"12px 18px",color:C.sub,fontSize:12,verticalAlign:"middle"}}>{p.paymentMode}</td>
+                <td style={{padding:"12px 18px",color:C.sub,fontSize:12,verticalAlign:"middle"}}>{p.paymentDate?.split("T")[0]}</td>
+                <td style={{padding:"12px 18px",textAlign:"center",verticalAlign:"middle"}}><Badge s={p.status}/></td>
+                <td style={{padding:"12px 18px",textAlign:"right",verticalAlign:"middle"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:"flex-end"}}>
                     {p.attachmentUrl ? (
                       <a href={p.attachmentUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:4,color:C.gold,textDecoration:"none",fontSize:11,fontWeight:600}}>
                         <Paperclip size={13}/>
@@ -148,7 +152,7 @@ Authorized Signatory: Accounts Department (Abhay Buildcon)
                       title="Download Authorized Receipt"
                       style={{
                         background: `${C.gold}18`, border: `1px solid ${C.gold}44`, borderRadius: 6,
-                        color: C.gold, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer",
+                        color: C.gold, padding: "5px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer",
                         display: "inline-flex", alignItems: "center", gap: 4
                       }}
                     >

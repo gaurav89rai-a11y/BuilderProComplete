@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -623,8 +624,8 @@ public class ReportEngineService : IReportEngineService
         return normFormat switch
         {
             "CSV" => GenerateCsvFile(dataResult, baseFileName),
-            "EXCEL" or "XLSX" => GenerateExcelXmlFile(dataResult, baseFileName),
-            "WORD" or "DOCX" => GenerateWordHtmlFile(dataResult, baseFileName),
+            "EXCEL" or "XLSX" or "XLS" => GenerateExcelOpenXmlFile(dataResult, baseFileName),
+            "WORD" or "DOCX" or "DOC" => GenerateWordHtmlFile(dataResult, baseFileName),
             _ => GenerateQuestPdf(dataResult, baseFileName)
         };
     }
@@ -633,8 +634,8 @@ public class ReportEngineService : IReportEngineService
     {
         return format switch
         {
-            "EXCEL" or "XLSX" => ("xls", "application/vnd.ms-excel"),
-            "WORD" or "DOCX" => ("doc", "application/msword"),
+            "EXCEL" or "XLSX" or "XLS" => ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            "WORD" or "DOCX" or "DOC" => ("doc", "application/msword"),
             "CSV" => ("csv", "text/csv; charset=utf-8"),
             _ => ("pdf", "application/pdf")
         };
@@ -677,83 +678,173 @@ public class ReportEngineService : IReportEngineService
         };
     }
 
-    private static ReportExportFile GenerateExcelXmlFile(ReportResult r, string baseFileName)
+    private static string EscapeXml(string? input)
     {
-        // Generates Microsoft Excel XML Spreadsheet 2003 / OpenXML compatible workbook
-        var sb = new StringBuilder();
-        sb.AppendLine("<?xml version=\"1.0\"?>");
-        sb.AppendLine("<?mso-application progid=\"Excel.Sheet\"?>");
-        sb.AppendLine("<Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\"");
-        sb.AppendLine(" xmlns:o=\"urn:schemas-microsoft-com:office:office\"");
-        sb.AppendLine(" xmlns:x=\"urn:schemas-microsoft-com:office:excel\"");
-        sb.AppendLine(" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\"");
-        sb.AppendLine(" xmlns:html=\"http://www.w3.org/TR/REC-html40\">");
+        if (string.IsNullOrEmpty(input)) return "";
+        return input.Replace("&", "&amp;")
+                    .Replace("<", "&lt;")
+                    .Replace(">", "&gt;")
+                    .Replace("\"", "&quot;")
+                    .Replace("'", "&apos;");
+    }
 
-        // Styles
-        sb.AppendLine("<Styles>");
-        sb.AppendLine("<Style ss:ID=\"Default\" ss:Name=\"Normal\"><Font ss:FontName=\"Segoe UI\" ss:Size=\"10\"/></Style>");
-        sb.AppendLine("<Style ss:ID=\"TitleStyle\"><Font ss:FontName=\"Segoe UI\" ss:Size=\"14\" ss:Bold=\"1\" ss:Color=\"#B8860B\"/></Style>");
-        sb.AppendLine("<Style ss:ID=\"HeaderStyle\"><Font ss:FontName=\"Segoe UI\" ss:Size=\"10\" ss:Bold=\"1\" ss:Color=\"#FFFFFF\"/><Interior ss:Color=\"#1A1D24\" ss:Pattern=\"Solid\"/><Borders><Border ss:Position=\"Bottom\" ss:LineStyle=\"Continuous\" ss:Weight=\"1\" ss:Color=\"#B8860B\"/></Borders></Style>");
-        sb.AppendLine("<Style ss:ID=\"CurrencyStyle\"><NumberFormat ss:Format=\"&quot;₹&quot;#,##0.00\"/></Style>");
-        sb.AppendLine("<Style ss:ID=\"DateStyle\"><NumberFormat ss:Format=\"dd-mmm-yyyy\"/></Style>");
-        sb.AppendLine("</Styles>");
-
-        sb.AppendLine("<Worksheet ss:Name=\"Report\">");
-        sb.AppendLine("<Table>");
-
-        // Title row
-        sb.AppendLine("<Row><Cell ss:StyleID=\"TitleStyle\"><Data ss:Type=\"String\">" + WebUtility.HtmlEncode(r.ReportTitle) + "</Data></Cell></Row>");
-        sb.AppendLine("<Row><Cell><Data ss:Type=\"String\">Generated on: " + r.GeneratedAt.ToString("dd-MMM-yyyy HH:mm") + " | BuilderPro ERP</Data></Cell></Row>");
-        sb.AppendLine("<Row></Row>");
-
-        // Header Row
-        sb.AppendLine("<Row>");
-        foreach (var c in r.Columns)
+    private static string GetColLetter(int colIndex)
+    {
+        string col = "";
+        while (colIndex > 0)
         {
-            sb.AppendLine($"<Cell ss:StyleID=\"HeaderStyle\"><Data ss:Type=\"String\">{WebUtility.HtmlEncode(c.Label)}</Data></Cell>");
+            int rem = (colIndex - 1) % 26;
+            col = (char)('A' + rem) + col;
+            colIndex = (colIndex - 1) / 26;
         }
-        sb.AppendLine("</Row>");
+        return col;
+    }
 
-        // Data Rows
-        foreach (var row in r.Rows)
+    private static void AddZipEntry(ZipArchive zip, string path, string content)
+    {
+        var entry = zip.CreateEntry(path, CompressionLevel.Fastest);
+        using var stream = entry.Open();
+        using var writer = new StreamWriter(stream, Encoding.UTF8);
+        writer.Write(content);
+    }
+
+    private static ReportExportFile GenerateExcelOpenXmlFile(ReportResult r, string baseFileName)
+    {
+        using var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
-            sb.AppendLine("<Row>");
-            foreach (var c in r.Columns)
+            AddZipEntry(zip, "[Content_Types].xml", @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<Types xmlns=""http://schemas.openxmlformats.org/package/2006/content-types"">
+  <Default Extension=""rels"" ContentType=""application/vnd.openxmlformats-package.relationships+xml""/>
+  <Default Extension=""xml"" ContentType=""application/xml""/>
+  <Override PartName=""/xl/workbook.xml"" ContentType=""application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml""/>
+  <Override PartName=""/xl/worksheets/sheet1.xml"" ContentType=""application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml""/>
+  <Override PartName=""/xl/styles.xml"" ContentType=""application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml""/>
+</Types>");
+
+            AddZipEntry(zip, "_rels/.rels", @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<Relationships xmlns=""http://schemas.openxmlformats.org/package/2006/relationships"">
+  <Relationship Id=""rId1"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"" Target=""xl/workbook.xml""/>
+</Relationships>");
+
+            AddZipEntry(zip, "xl/workbook.xml", @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<workbook xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"" xmlns:r=""http://schemas.openxmlformats.org/officeDocument/2006/relationships"">
+  <sheets>
+    <sheet name=""Report Data"" sheetId=""1"" r:id=""rId1""/>
+  </sheets>
+</workbook>");
+
+            AddZipEntry(zip, "xl/_rels/workbook.xml.rels", @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<Relationships xmlns=""http://schemas.openxmlformats.org/package/2006/relationships"">
+  <Relationship Id=""rId1"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"" Target=""worksheets/sheet1.xml""/>
+  <Relationship Id=""rId2"" Type=""http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"" Target=""styles.xml""/>
+</Relationships>");
+
+            AddZipEntry(zip, "xl/styles.xml", @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<styleSheet xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"">
+  <numFmts count=""1"">
+    <numFmt numFmtId=""164"" formatCode=""#,##0.00""/>
+  </numFmts>
+  <fonts count=""3"">
+    <font><name val=""Segoe UI""/><sz val=""10""/></font>
+    <font><b/><name val=""Segoe UI""/><sz val=""13""/><color rgb=""FFB8860B""/></font>
+    <font><b/><name val=""Segoe UI""/><sz val=""10""/><color rgb=""FFFFFFFF""/></font>
+  </fonts>
+  <fills count=""3"">
+    <fill><patternFill patternType=""none""/></fill>
+    <fill><patternFill patternType=""gray125""/></fill>
+    <fill><patternFill patternType=""solid""><fgColor rgb=""FF1A1D24""/></fill>
+  </fills>
+  <borders count=""2"">
+    <border><left/><right/><top/><bottom/></border>
+    <border><left style=""thin""><color rgb=""FFE0E0E0""/></left><right style=""thin""><color rgb=""FFE0E0E0""/></right><top style=""thin""><color rgb=""FFE0E0E0""/></top><bottom style=""thin""><color rgb=""FFE0E0E0""/></bottom></border>
+  </borders>
+  <cellStyleXfs count=""1""><xf numFmtId=""0"" fontId=""0"" fillId=""0"" borderId=""0""/></cellStyleXfs>
+  <cellXfs count=""4"">
+    <xf numFmtId=""0"" fontId=""0"" fillId=""0"" borderId=""1"" xfId=""0""/>
+    <xf numFmtId=""0"" fontId=""1"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1""/>
+    <xf numFmtId=""0"" fontId=""2"" fillId=""2"" borderId=""1"" xfId=""0"" applyFont=""1"" applyFill=""1"" applyBorder=""1""/>
+    <xf numFmtId=""164"" fontId=""0"" fillId=""0"" borderId=""1"" xfId=""0"" applyNumberFormat=""1"" applyBorder=""1""/>
+  </cellXfs>
+</styleSheet>");
+
+            var sheetSb = new StringBuilder();
+            sheetSb.AppendLine(@"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>");
+            sheetSb.AppendLine(@"<worksheet xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"">");
+            sheetSb.AppendLine(@"<sheetData>");
+
+            sheetSb.AppendLine(@"<row r=""1"">");
+            sheetSb.AppendLine($@"<c r=""A1"" t=""inlineStr"" s=""1""><is><t>{EscapeXml(r.ReportTitle)}</t></is></c>");
+            sheetSb.AppendLine(@"</row>");
+
+            sheetSb.AppendLine(@"<row r=""2"">");
+            sheetSb.AppendLine($@"<c r=""A2"" t=""inlineStr"" s=""0""><is><t>Generated: {r.GeneratedAt:dd-MMM-yyyy HH:mm} UTC | BuilderPro ERP</t></is></c>");
+            sheetSb.AppendLine(@"</row>");
+
+            int headerRowIndex = 4;
+            sheetSb.AppendLine($@"<row r=""{headerRowIndex}"">");
+            for (int c = 0; c < r.Columns.Count; c++)
             {
-                var val = row.ContainsKey(c.Key) ? row[c.Key] : null;
-                if (val == null)
-                {
-                    sb.AppendLine("<Cell><Data ss:Type=\"String\"></Data></Cell>");
-                }
-                else if (val is decimal dec)
-                {
-                    sb.AppendLine($"<Cell ss:StyleID=\"CurrencyStyle\"><Data ss:Type=\"Number\">{dec.ToString(CultureInfo.InvariantCulture)}</Data></Cell>");
-                }
-                else if (val is int i)
-                {
-                    sb.AppendLine($"<Cell><Data ss:Type=\"Number\">{i}</Data></Cell>");
-                }
-                else if (val is DateTime dt)
-                {
-                    sb.AppendLine($"<Cell ss:StyleID=\"DateStyle\"><Data ss:Type=\"DateTime\">{dt:yyyy-MM-ddTHH:mm:ss.fff}</Data></Cell>");
-                }
-                else
-                {
-                    sb.AppendLine($"<Cell><Data ss:Type=\"String\">{WebUtility.HtmlEncode(val.ToString())}</Data></Cell>");
-                }
+                var colRef = GetColLetter(c + 1) + headerRowIndex;
+                sheetSb.AppendLine($@"<c r=""{colRef}"" t=""inlineStr"" s=""2""><is><t>{EscapeXml(r.Columns[c].Label)}</t></is></c>");
             }
-            sb.AppendLine("</Row>");
+            sheetSb.AppendLine(@"</row>");
+
+            int curRow = 5;
+            foreach (var row in r.Rows)
+            {
+                sheetSb.AppendLine($@"<row r=""{curRow}"">");
+                for (int c = 0; c < r.Columns.Count; c++)
+                {
+                    var colDef = r.Columns[c];
+                    var colRef = GetColLetter(c + 1) + curRow;
+                    var val = row.ContainsKey(colDef.Key) ? row[colDef.Key] : null;
+
+                    if (val == null)
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" s=""0""/>");
+                    }
+                    else if (val is decimal dec)
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" s=""3""><v>{dec.ToString(CultureInfo.InvariantCulture)}</v></c>");
+                    }
+                    else if (val is double dbl)
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" s=""3""><v>{dbl.ToString(CultureInfo.InvariantCulture)}</v></c>");
+                    }
+                    else if (val is int iVal)
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" s=""0""><v>{iVal}</v></c>");
+                    }
+                    else if (val is long lVal)
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" s=""0""><v>{lVal}</v></c>");
+                    }
+                    else if (val is DateTime dt)
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" t=""inlineStr"" s=""0""><is><t>{dt:dd-MMM-yyyy}</t></is></c>");
+                    }
+                    else
+                    {
+                        sheetSb.AppendLine($@"<c r=""{colRef}"" t=""inlineStr"" s=""0""><is><t>{EscapeXml(val.ToString())}</t></is></c>");
+                    }
+                }
+                sheetSb.AppendLine(@"</row>");
+                curRow++;
+            }
+
+            sheetSb.AppendLine(@"</sheetData>");
+            sheetSb.AppendLine(@"</worksheet>");
+
+            AddZipEntry(zip, "xl/worksheets/sheet1.xml", sheetSb.ToString());
         }
 
-        sb.AppendLine("</Table>");
-        sb.AppendLine("</Worksheet>");
-        sb.AppendLine("</Workbook>");
-
+        var zipBytes = ms.ToArray();
         return new ReportExportFile
         {
-            Data = Encoding.UTF8.GetBytes(sb.ToString()),
-            FileName = $"{baseFileName}.xls",
-            ContentType = "application/vnd.ms-excel"
+            Data = zipBytes,
+            FileName = $"{baseFileName}.xlsx",
+            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         };
     }
 

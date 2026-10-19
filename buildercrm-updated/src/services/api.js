@@ -1207,6 +1207,248 @@ const mockApi = {
     return null;
   },
 
+  // Roles & Permissions Mock
+  getRoles: async () => [
+    { id: 1, name: "Super Admin", description: "Full system administrative access", isSystemRole: true, userCount: 1, permissionCount: 119 },
+    { id: 2, name: "Sales Manager", description: "Manages sales teams, leads, pipeline, approvals and bookings", isSystemRole: true, userCount: 1, permissionCount: 42 },
+    { id: 3, name: "Sales Agent", description: "Direct customer interaction, site visits, lead follow-ups and bookings", isSystemRole: true, userCount: 2, permissionCount: 28 },
+    { id: 4, name: "Accounts", description: "Financial management, payment receipts, ledgers and commission disbursements", isSystemRole: true, userCount: 1, permissionCount: 25 },
+    { id: 5, name: "Channel Partner", description: "External broker portal access for client submissions and commission tracking", isSystemRole: true, userCount: 1, permissionCount: 15 }
+  ],
+  getRole: async (id) => {
+    const roles = await mockApi.getRoles();
+    return roles.find(r => r.id === parseInt(id));
+  },
+  createRole: async (data) => ({ id: Date.now(), ...data, isSystemRole: false, userCount: 0, permissionCount: 0 }),
+  updateRole: async (id, data) => ({ id: parseInt(id), ...data }),
+  deleteRole: async (id) => true,
+
+  getPermissionsMatrix: async () => ({
+    totalPermissions: 119,
+    modules: [
+      {
+        module: "CRM",
+        submenus: [
+          {
+            submenu: "Leads",
+            permissions: [
+              { id: 1, code: "crm.leads.view", action: "View", name: "View Leads", description: "View leads and pipeline data", isSensitive: false },
+              { id: 2, code: "crm.leads.create", action: "Create", name: "Create Leads", description: "Add new sales leads into CRM", isSensitive: false },
+              { id: 3, code: "crm.leads.edit", action: "Edit", name: "Edit Leads", description: "Update lead details, notes and call history", isSensitive: false },
+              { id: 4, code: "crm.leads.delete", action: "Delete", name: "Delete Leads", description: "Permanently delete leads", isSensitive: true },
+              { id: 5, code: "crm.leads.search_filter", action: "Search / Filter", name: "Search & Filter Leads", description: "Filter leads by project, budget, stage", isSensitive: false },
+              { id: 6, code: "crm.leads.assign_reassign", action: "Assign / Reassign", name: "Assign & Reassign Leads", description: "Transfer lead ownership to sales agents", isSensitive: false },
+              { id: 7, code: "crm.leads.change_status", action: "Change Status", name: "Change Lead Stage", description: "Transition lead through pipeline stages", isSensitive: false },
+              { id: 8, code: "crm.leads.import_export", action: "Import / Export", name: "Import & Export Leads", description: "Bulk CSV export/import of leads", isSensitive: false },
+              { id: 9, code: "crm.leads.upload_download", action: "Upload / Download", name: "Upload & Download Lead Files", description: "Attach KYC and documents to leads", isSensitive: false },
+              { id: 10, code: "crm.leads.view_sensitive_data", action: "View Sensitive Data", name: "View Sensitive Lead Data", description: "View client PAN, budget, confidential notes", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Bookings",
+            permissions: [
+              { id: 11, code: "crm.bookings.view", action: "View", name: "View Bookings", description: "View active customer flat bookings and registry", isSensitive: false },
+              { id: 12, code: "crm.bookings.create", action: "Create", name: "Create Booking", description: "Create new unit flat bookings", isSensitive: false },
+              { id: 13, code: "crm.bookings.edit", action: "Edit", name: "Edit Booking", description: "Modify booking pricing, terms, agent assignments", isSensitive: false },
+              { id: 14, code: "crm.bookings.delete", action: "Delete", name: "Cancel & Delete Booking", description: "Revoke or cancel bookings", isSensitive: true },
+              { id: 15, code: "crm.bookings.search_filter", action: "Search / Filter", name: "Search Bookings", description: "Search bookings by unit, buyer, project", isSensitive: false },
+              { id: 16, code: "crm.bookings.approve_reject", action: "Approve / Reject", name: "Approve & Confirm Booking", description: "Approve booking discounts and confirmation", isSensitive: false },
+              { id: 17, code: "crm.bookings.change_status", action: "Change Status", name: "Change Booking Status", description: "Transition booking status", isSensitive: false },
+              { id: 18, code: "crm.bookings.print", action: "Print", name: "Print Booking Agreement", description: "Generate formal PDF booking agreements", isSensitive: false },
+              { id: 19, code: "crm.bookings.upload_download", action: "Upload / Download", name: "Upload Signed Agreement", description: "Upload client-signed agreement copies", isSensitive: false },
+              { id: 20, code: "crm.bookings.view_sensitive_data", action: "View Sensitive Data", name: "View Sensitive Financial Data", description: "Access discount overrides and customer PAN details", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Customers",
+            permissions: [
+              { id: 21, code: "crm.customers.view", action: "View", name: "View Customers", description: "Access master customer list and buyer ledger", isSensitive: false },
+              { id: 22, code: "crm.customers.create", action: "Create", name: "Create Customer", description: "Register new customer profiles", isSensitive: false },
+              { id: 23, code: "crm.customers.edit", action: "Edit", name: "Edit Customer", description: "Update customer contact, KYC, and details", isSensitive: false },
+              { id: 24, code: "crm.customers.delete", action: "Delete", name: "Delete Customer", description: "Purge customer profile records", isSensitive: true },
+              { id: 25, code: "crm.customers.search_filter", action: "Search / Filter", name: "Search Customers", description: "Query customer registry by name, project, unit", isSensitive: false },
+              { id: 26, code: "crm.customers.import_export", action: "Import / Export", name: "Export Customer Directory", description: "Download CSV customer roster", isSensitive: false },
+              { id: 27, code: "crm.customers.view_sensitive_data", action: "View Sensitive Data", name: "View Customer Financials", description: "View sensitive Aadhaar, PAN, and payment totals", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Site Visits",
+            permissions: [
+              { id: 28, code: "crm.site_visits.view", action: "View", name: "View Site Visits", description: "View schedule of client property visits", isSensitive: false },
+              { id: 29, code: "crm.site_visits.create", action: "Create", name: "Schedule Site Visit", description: "Book new project site visit for lead", isSensitive: false },
+              { id: 30, code: "crm.site_visits.edit", action: "Edit", name: "Edit Site Visit", description: "Reschedule or update visit details", isSensitive: false },
+              { id: 31, code: "crm.site_visits.delete", action: "Delete", name: "Cancel Site Visit", description: "Cancel scheduled property tour", isSensitive: false },
+              { id: 32, code: "crm.site_visits.change_status", action: "Change Status", name: "Mark Visit Outcome", description: "Record Completed / No-Show / Follow-Up status", isSensitive: false }
+            ]
+          },
+          {
+            submenu: "Channel Partners",
+            permissions: [
+              { id: 33, code: "crm.channel_partners.view", action: "View", name: "View Channel Partners", description: "Access broker network directory", isSensitive: false },
+              { id: 34, code: "crm.channel_partners.create", action: "Create", name: "Onboard Partner", description: "Register new broker firm or agent", isSensitive: false },
+              { id: 35, code: "crm.channel_partners.edit", action: "Edit", name: "Edit Partner Details", description: "Update RERA number, tier, contacts", isSensitive: false },
+              { id: 36, code: "crm.channel_partners.delete", action: "Delete", name: "Delete Partner", description: "De-register channel partner firm", isSensitive: true },
+              { id: 37, code: "crm.channel_partners.approve_reject", action: "Approve / Reject", name: "Approve Partner Registration", description: "Authorize broker KYC and agreement", isSensitive: false },
+              { id: 38, code: "crm.channel_partners.change_status", action: "Change Status", name: "Change Tier / Status", description: "Promote or demote tier (Silver/Gold/Platinum)", isSensitive: false },
+              { id: 39, code: "crm.channel_partners.view_sensitive_data", action: "View Sensitive Data", name: "View Contracted Commission Rate", description: "Inspect broker negotiated commission percentages", isSensitive: true }
+            ]
+          }
+        ]
+      },
+      {
+        module: "Finance",
+        submenus: [
+          {
+            submenu: "Receipts & Payments",
+            permissions: [
+              { id: 40, code: "finance.receipts.view", action: "View", name: "View Payment Receipts", description: "Inspect realized payment collections", isSensitive: false },
+              { id: 41, code: "finance.receipts.create", action: "Create", name: "Record Payment", description: "Issue authorized transaction receipt", isSensitive: false },
+              { id: 42, code: "finance.receipts.edit", action: "Edit", name: "Edit Payment Record", description: "Update instrument or reference number", isSensitive: false },
+              { id: 43, code: "finance.receipts.delete", action: "Delete", name: "Void Payment Receipt", description: "Nullify or void bounced cheque receipt", isSensitive: true },
+              { id: 44, code: "finance.receipts.approve_reject", action: "Approve / Reject", name: "Clear / Approve Payment", description: "Bank realization sign-off", isSensitive: false },
+              { id: 45, code: "finance.receipts.print", action: "Print", name: "Print Payment Receipt", description: "Download stamped official payment receipt PDF", isSensitive: false },
+              { id: 46, code: "finance.receipts.view_sensitive_data", action: "View Sensitive Data", name: "View Bank Account Details", description: "Inspect builder escrow accounts and payment refs", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Invoices",
+            permissions: [
+              { id: 47, code: "finance.invoices.view", action: "View", name: "View Invoices", description: "Access demand letters and installment bills", isSensitive: false },
+              { id: 48, code: "finance.invoices.create", action: "Create", name: "Generate Demand Notice", description: "Issue construction milestone invoice", isSensitive: false },
+              { id: 49, code: "finance.invoices.edit", action: "Edit", name: "Modify Demand Notice", description: "Adjust late fee interest or milestone dues", isSensitive: false },
+              { id: 50, code: "finance.invoices.delete", action: "Delete", name: "Cancel Invoice", description: "Revoke milestone demand bill", isSensitive: true },
+              { id: 51, code: "finance.invoices.print", action: "Print", name: "Print Demand Invoice", description: "Download printable PDF demand letter", isSensitive: false }
+            ]
+          },
+          {
+            submenu: "Commission Management",
+            permissions: [
+              { id: 52, code: "finance.commissions.view", action: "View", name: "View Broker Commissions", description: "Track partner commission liabilities", isSensitive: false },
+              { id: 53, code: "finance.commissions.create", action: "Create", name: "Calculate Commission", description: "Compute commission on booking milestone", isSensitive: false },
+              { id: 54, code: "finance.commissions.edit", action: "Edit", name: "Adjust Commission", description: "Update payout calculation or TDS deductions", isSensitive: false },
+              { id: 55, code: "finance.commissions.approve_reject", action: "Approve / Reject", name: "Approve Commission Payout", description: "Authorize broker commission disbursement", isSensitive: false },
+              { id: 56, code: "finance.commissions.submit_cancel", action: "Submit / Cancel", name: "Process Payout Disbursement", description: "Release NEFT/Cheque commission payment", isSensitive: true }
+            ]
+          }
+        ]
+      },
+      {
+        module: "Administration",
+        submenus: [
+          {
+            submenu: "User Management",
+            permissions: [
+              { id: 57, code: "administration.user_management.view", action: "View", name: "View Users", description: "View internal CRM staff and broker accounts", isSensitive: false },
+              { id: 58, code: "administration.user_management.create", action: "Create", name: "Create User", description: "Create login account for sales, accounts, agents", isSensitive: false },
+              { id: 59, code: "administration.user_management.edit", action: "Edit", name: "Edit User", description: "Modify user profile, role, and channel partner association", isSensitive: false },
+              { id: 60, code: "administration.user_management.delete", action: "Delete", name: "Delete User", description: "Permanently delete CRM user profile", isSensitive: true },
+              { id: 61, code: "administration.user_management.activate_deactivate", action: "Activate / Deactivate", name: "Deactivate User", description: "Suspend account login access", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Role Management",
+            permissions: [
+              { id: 62, code: "administration.role_management.view", action: "View", name: "View Roles", description: "Inspect defined security tiers", isSensitive: false },
+              { id: 63, code: "administration.role_management.create", action: "Create", name: "Create Role", description: "Define custom organizational role", isSensitive: false },
+              { id: 64, code: "administration.role_management.edit", action: "Edit", name: "Edit Role", description: "Update role description and attributes", isSensitive: false },
+              { id: 65, code: "administration.role_management.delete", action: "Delete", name: "Delete Role", description: "Remove custom security role", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Permission Management",
+            permissions: [
+              { id: 66, code: "administration.permissions.view", action: "View", name: "View Matrix", description: "Inspect 119 granular action permissions", isSensitive: false },
+              { id: 67, code: "administration.permissions.manage_permissions", action: "Manage Permissions", name: "Update Policies", description: "Grant or revoke granular action privileges", isSensitive: true }
+            ]
+          },
+          {
+            submenu: "Master Data & Dropdowns",
+            permissions: [
+              { id: 68, code: "administration.masters.view", action: "View", name: "View Masters", description: "View dropdown taxonomy and lookup tables", isSensitive: false },
+              { id: 69, code: "administration.masters.configure_settings", action: "Configure Settings", name: "Manage Lookups", description: "Add/edit lead stages, sources, payment modes", isSensitive: false }
+            ]
+          },
+          {
+            submenu: "Audit Logs",
+            permissions: [
+              { id: 70, code: "administration.audit_logs.view", action: "View", name: "View Audit Trail", description: "Inspect immutable security audit log entries", isSensitive: false },
+              { id: 71, code: "administration.audit_logs.import_export", action: "Import / Export", name: "Export Audit Logs", description: "Download compliance security audit trail", isSensitive: false }
+            ]
+          },
+          {
+            submenu: "System Settings",
+            permissions: [
+              { id: 72, code: "administration.system_settings.view", action: "View", name: "View System Settings", description: "View enterprise branding and ERP preferences", isSensitive: false },
+              { id: 73, code: "administration.system_settings.configure_settings", action: "Configure Settings", name: "Configure System Settings", description: "Update company logo, fiscal year, defaults", isSensitive: true }
+            ]
+          }
+        ]
+      }
+    ]
+  }),
+  getRolePermissions: async (roleId) => {
+    if (roleId === 1) {
+      return [
+        "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.delete", "crm.leads.search_filter", "crm.leads.assign_reassign", "crm.leads.change_status", "crm.leads.import_export", "crm.leads.upload_download", "crm.leads.view_sensitive_data",
+        "crm.bookings.view", "crm.bookings.create", "crm.bookings.edit", "crm.bookings.delete", "crm.bookings.search_filter", "crm.bookings.approve_reject", "crm.bookings.change_status", "crm.bookings.print", "crm.bookings.upload_download", "crm.bookings.view_sensitive_data",
+        "crm.customers.view", "crm.customers.create", "crm.customers.edit", "crm.customers.delete", "crm.customers.search_filter", "crm.customers.import_export", "crm.customers.view_sensitive_data",
+        "crm.site_visits.view", "crm.site_visits.create", "crm.site_visits.edit", "crm.site_visits.delete", "crm.site_visits.change_status",
+        "crm.channel_partners.view", "crm.channel_partners.create", "crm.channel_partners.edit", "crm.channel_partners.delete", "crm.channel_partners.approve_reject", "crm.channel_partners.change_status", "crm.channel_partners.view_sensitive_data",
+        "finance.receipts.view", "finance.receipts.create", "finance.receipts.edit", "finance.receipts.delete", "finance.receipts.approve_reject", "finance.receipts.print", "finance.receipts.view_sensitive_data",
+        "finance.invoices.view", "finance.invoices.create", "finance.invoices.edit", "finance.invoices.delete", "finance.invoices.print",
+        "finance.commissions.view", "finance.commissions.create", "finance.commissions.edit", "finance.commissions.approve_reject", "finance.commissions.submit_cancel",
+        "administration.user_management.view", "administration.user_management.create", "administration.user_management.edit", "administration.user_management.delete", "administration.user_management.activate_deactivate",
+        "administration.role_management.view", "administration.role_management.create", "administration.role_management.edit", "administration.role_management.delete",
+        "administration.permissions.view", "administration.permissions.manage_permissions",
+        "administration.masters.view", "administration.masters.configure_settings",
+        "administration.audit_logs.view", "administration.audit_logs.import_export",
+        "administration.system_settings.view", "administration.system_settings.configure_settings"
+      ];
+    } else if (roleId === 2) { // Sales Manager
+      return [
+        "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.search_filter", "crm.leads.assign_reassign", "crm.leads.change_status", "crm.leads.upload_download",
+        "crm.bookings.view", "crm.bookings.create", "crm.bookings.edit", "crm.bookings.search_filter", "crm.bookings.approve_reject", "crm.bookings.change_status", "crm.bookings.print",
+        "crm.customers.view", "crm.customers.create", "crm.customers.edit", "crm.customers.search_filter",
+        "crm.site_visits.view", "crm.site_visits.create", "crm.site_visits.edit", "crm.site_visits.change_status",
+        "crm.channel_partners.view", "crm.channel_partners.create", "crm.channel_partners.edit"
+      ];
+    } else if (roleId === 3) { // Sales Agent
+      return [
+        "crm.leads.view", "crm.leads.create", "crm.leads.edit", "crm.leads.search_filter", "crm.leads.change_status",
+        "crm.bookings.view", "crm.bookings.create", "crm.bookings.search_filter", "crm.bookings.print",
+        "crm.customers.view", "crm.customers.search_filter",
+        "crm.site_visits.view", "crm.site_visits.create", "crm.site_visits.edit", "crm.site_visits.change_status"
+      ];
+    } else if (roleId === 4) { // Accounts
+      return [
+        "finance.receipts.view", "finance.receipts.create", "finance.receipts.edit", "finance.receipts.approve_reject", "finance.receipts.print", "finance.receipts.view_sensitive_data",
+        "finance.invoices.view", "finance.invoices.create", "finance.invoices.edit", "finance.invoices.print",
+        "finance.commissions.view", "finance.commissions.create", "finance.commissions.edit", "finance.commissions.approve_reject",
+        "crm.bookings.view", "crm.customers.view"
+      ];
+    } else if (roleId === 5) { // Channel Partner
+      return [
+        "crm.leads.view", "crm.leads.create",
+        "crm.bookings.view", "crm.bookings.create",
+        "crm.customers.view",
+        "crm.site_visits.view", "crm.site_visits.create",
+        "finance.commissions.view"
+      ];
+    }
+    return [];
+  },
+  saveRolePermissions: async (roleId, data) => ({ success: true, count: data.permissions ? data.permissions.length : 0 }),
+  getUserPermissions: async (userId) => ({ userId, rolePermissions: await mockApi.getRolePermissions(1), userOverrides: [] }),
+  saveUserPermissions: async (userId, data) => ({ success: true, count: data.overrides ? data.overrides.length : 0 }),
+  getPermissionAuditLogs: async () => [
+    { id: 1, action: "Role Permissions Updated", targetType: "Role", targetName: "Sales Manager", performedBy: "Arjun Kapoor", reason: "Standard Q4 Sales policy update", createdAt: new Date().toISOString() },
+    { id: 2, action: "User Override Added", targetType: "User", targetName: "Priya Sharma", performedBy: "Arjun Kapoor", reason: "Granted temporary booking print access", createdAt: new Date(Date.now() - 86400000).toISOString() }
+  ],
+  getMyPermissions: async () => {
+    const role = localStorage.getItem("current_user_role") || "Super Admin";
+    return { role, isSuperAdmin: role === "Super Admin", permissions: {} };
+  },
+
   // Employees
   getEmployees: async () => getMock("employees"),
   createEmployee: async (data) => {
@@ -1394,6 +1636,36 @@ const mockApi = {
     });
     return grouped;
   },
+  getRawSystemConfigs: async (category = "") => {
+    let list = getMock("systemConfigs");
+    if (category) {
+      list = list.filter(c => c.category.toLowerCase() === category.toLowerCase());
+    }
+    return list;
+  },
+  createSystemConfig: async (data) => {
+    const list = getMock("systemConfigs");
+    const newItem = { id: Date.now(), sortOrder: list.length + 1, isActive: true, isDefault: false, ...data };
+    list.push(newItem);
+    setMock("systemConfigs", list);
+    return newItem;
+  },
+  updateSystemConfig: async (id, data) => {
+    const list = getMock("systemConfigs");
+    const idx = list.findIndex(c => c.id === parseInt(id));
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...data };
+      setMock("systemConfigs", list);
+      return list[idx];
+    }
+    return data;
+  },
+  deleteSystemConfig: async (id) => {
+    let list = getMock("systemConfigs");
+    list = list.filter(c => c.id !== parseInt(id));
+    setMock("systemConfigs", list);
+    return true;
+  },
 
   // Reporting Module Mock Fallbacks
   getReportCategories: async () => [
@@ -1445,22 +1717,121 @@ const mockApi = {
   }),
   getReportExportUrl: (id, params = {}, format = "PDF") => `/api/reports/${id}/export?format=${format}`,
   downloadReportFile: async (reportId, params = {}, format = "PDF") => {
-    const extMap = { PDF: "pdf", EXCEL: "xls", XLSX: "xls", WORD: "doc", DOCX: "doc", CSV: "csv" };
-    const ext = extMap[format.toUpperCase()] || format.toLowerCase();
-    const filename = `BuilderPro_${reportId}_mock.${ext}`;
-    const content = `BuilderPro Mock Report: ${reportId}\nExport Format: ${format}\nGenerated At: ${new Date().toISOString()}`;
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    const normFormat = (format || "PDF").toUpperCase();
+    const spec = REPORT_FORMAT_SPECS[normFormat] || REPORT_FORMAT_SPECS.PDF;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `BuilderPro_${reportId}_${dateStr}.${spec.ext}`;
+
+    let content = "";
+    let mime = spec.mime;
+
+    if (normFormat === "CSV") {
+      mime = "text/csv;charset=utf-8";
+      content = "\uFEFF\"Report\",\"" + reportId + "\"\n\"Generated At\",\"" + new Date().toISOString() + "\"\n\n\"ID\",\"Name\",\"Status\",\"Date\",\"Amount\"\n\"1\",\"Skyline Heights Villa\",\"Active\",\"" + dateStr + "\",\"15000000\"\n\"2\",\"Green Valley Phase 2\",\"Confirmed\",\"" + dateStr + "\",\"8500000\"\n";
+    } else if (normFormat === "EXCEL" || normFormat === "XLSX" || normFormat === "XLS") {
+      mime = "text/csv;charset=utf-8";
+      content = "\uFEFF\"Report\",\"" + reportId + " (Mock Export)\"\n\"Generated At\",\"" + new Date().toISOString() + "\"\n\n\"ID\",\"Title\",\"Status\",\"Date\",\"Amount (INR)\"\n\"1\",\"Skyline Heights Villa\",\"Active\",\"" + dateStr + "\",\"15000000\"\n\"2\",\"Green Valley Phase 2\",\"Confirmed\",\"" + dateStr + "\",\"8500000\"\n";
+    } else if (normFormat === "WORD" || normFormat === "DOCX" || normFormat === "DOC") {
+      mime = "application/msword";
+      content = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>" + reportId + "</title></head><body style='font-family: Arial;'><h2>BuilderPro ERP Report: " + reportId + "</h2><p>Generated: " + new Date().toLocaleString() + "</p><table border='1' cellpadding='6' style='border-collapse:collapse;width:100%;'><tr><th>Item</th><th>Description</th><th>Value</th></tr><tr><td>1</td><td>Operational Milestone</td><td>Completed</td></tr></table></body></html>";
+    } else {
+      mime = "application/pdf";
+      content = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n180\n%%EOF";
+    }
+
+    triggerBrowserFileDownload(content, filename, mime);
     return { success: true, filename };
   },
 };
+
+// ─── ROBUST FILE DOWNLOAD & FILENAME HELPERS ───────────────────────
+const REPORT_FORMAT_SPECS = {
+  PDF: { ext: "pdf", mime: "application/pdf" },
+  EXCEL: { ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  XLSX: { ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  XLS: { ext: "xlsx", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  CSV: { ext: "csv", mime: "text/csv;charset=utf-8" },
+  WORD: { ext: "doc", mime: "application/msword" },
+  DOCX: { ext: "doc", mime: "application/msword" },
+  DOC: { ext: "doc", mime: "application/msword" }
+};
+
+function extractFilenameFromHeader(disposition, fallbackName) {
+  if (!disposition || typeof disposition !== "string") return fallbackName;
+
+  // 1. Try RFC 5987 / RFC 6266 filename* with charset
+  const rfcMatch = disposition.match(/filename\*\s*=\s*(?:UTF-8|iso-8859-1)?''?([^;\r\n]+)/i);
+  if (rfcMatch && rfcMatch[1]) {
+    try {
+      const decoded = decodeURIComponent(rfcMatch[1].trim().replace(/^["']|["']$/g, ""));
+      if (decoded && decoded.trim().length > 0) return decoded.trim();
+    } catch {
+      const clean = rfcMatch[1].trim().replace(/^["']|["']$/g, "");
+      if (clean.length > 0) return clean;
+    }
+  }
+
+  // 2. Try standard filename="value" or filename=value
+  const stdMatch = disposition.match(/filename\s*=\s*(?:"([^"]+)"|'([^']+)'|([^;\s\r\n]+))/i);
+  if (stdMatch) {
+    const raw = stdMatch[1] || stdMatch[2] || stdMatch[3];
+    if (raw) {
+      let cleaned = raw.trim().replace(/^["']|["']$/g, "").trim();
+      if (cleaned.includes("%")) {
+        try {
+          cleaned = decodeURIComponent(cleaned);
+        } catch {}
+      }
+      if (cleaned.length > 0) return cleaned;
+    }
+  }
+
+  return fallbackName;
+}
+
+function ensureFileExtension(filename, expectedExt) {
+  if (!filename) return `file.${expectedExt}`;
+  const dotIndex = filename.lastIndexOf(".");
+  if (dotIndex === -1 || dotIndex === filename.length - 1) {
+    return `${filename}.${expectedExt}`;
+  }
+  return filename;
+}
+
+function triggerBrowserFileDownload(data, filename, mimeType) {
+  // Ensure we have a Blob with the designated MIME type without unnecessary File wrapping
+  const blob = data instanceof Blob
+    ? (data.type ? data : new Blob([data], { type: mimeType }))
+    : new Blob([data], { type: mimeType });
+
+  const blobUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.style.position = "fixed";
+  a.style.top = "-9999px";
+  a.style.left = "-9999px";
+  a.style.opacity = "0";
+  a.href = blobUrl;
+  a.download = filename;
+  a.setAttribute("download", filename);
+  document.body.appendChild(a);
+
+  // Trigger download natively
+  try {
+    a.click();
+  } catch {
+    a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+  }
+
+  // Retain element in DOM and defer URL revocation so browser download thread has fully consumed stream & headers
+  setTimeout(() => {
+    try {
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {}
+  }, 30000);
+}
 
 // ─── INTEGRATED API EXPORTS ────────────────────────────────────
 const realApi = {
@@ -1528,27 +1899,40 @@ const realApi = {
   deleteBooking: (id) => req("DELETE", `/bookings/${id}`),
   downloadBookingAgreement: async (id, bookingNumber = "Agreement") => {
     const cleanNumber = (bookingNumber || "Agreement").toString().replace(/[^a-zA-Z0-9_-]/g, "_");
-    const fileName = `Agreement_${cleanNumber}.pdf`;
-    const endpointUrl = `/api/bookings/${id}/agreement`;
+    const defaultFileName = `Agreement_${cleanNumber}.pdf`;
+    const endpointUrl = `${currentBaseUrl}/bookings/${id}/agreement`;
 
-    // Trigger direct native browser download using the server endpoint URL.
-    // By using the direct endpoint URL instead of an in-memory blob URL, the browser's download manager
-    // natively respects the server's Content-Disposition header (Agreement_BK2026003.pdf)
-    // and saves the file with the proper .pdf extension.
-    const link = document.createElement("a");
-    link.style.display = "none";
-    link.href = endpointUrl;
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
+    const role = localStorage.getItem("current_user_role") || "Super Admin";
+    const name = localStorage.getItem("current_user_name");
+    const uid = localStorage.getItem("current_user_id");
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token");
 
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-    }, 2000);
+    const headers = {};
+    if (role) headers["X-User-Role"] = role;
+    if (name) headers["X-User-Name"] = name;
+    if (uid) headers["X-User-Id"] = uid;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    return true;
+    console.info(`[Booking Agreement Download Request] Endpoint: ${endpointUrl}`);
+    const res = await fetch(endpointUrl, { method: "GET", headers });
+    console.info(`[Booking Agreement Download Response] HTTP ${res.status} ${res.statusText}`);
+
+    if (!res.ok) {
+      let errText = `Server error (${res.status})`;
+      try {
+        const errJson = await res.json();
+        errText = errJson.message || errJson.error || errText;
+      } catch {}
+      throw new Error(errText);
+    }
+
+    const contentType = res.headers.get("Content-Type") || "application/pdf";
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const filename = extractFilenameFromHeader(disposition, defaultFileName);
+    const arrayBuffer = await res.arrayBuffer();
+
+    triggerBrowserFileDownload(new Blob([arrayBuffer], { type: contentType }), filename, contentType);
+    return { success: true, filename };
   },
   uploadBookingAgreement: (id, file) => {
     const formData = new FormData();
@@ -1587,6 +1971,22 @@ const realApi = {
   updateUser: (id, data) => req("PUT", `/users/${id}`, data),
   deleteUser: (id) => req("DELETE", `/users/${id}`),
 
+  // Roles Management
+  getRoles: () => req("GET", "/roles"),
+  getRole: (id) => req("GET", `/roles/${id}`),
+  createRole: (data) => req("POST", "/roles", data),
+  updateRole: (id, data) => req("PUT", `/roles/${id}`, data),
+  deleteRole: (id) => req("DELETE", `/roles/${id}`),
+
+  // Permissions System
+  getPermissionsMatrix: () => req("GET", "/permissions/matrix"),
+  getRolePermissions: (roleId) => req("GET", `/permissions/role/${roleId}`),
+  saveRolePermissions: (roleId, data) => req("POST", `/permissions/role/${roleId}`, data),
+  getUserPermissions: (userId) => req("GET", `/permissions/user/${userId}`),
+  saveUserPermissions: (userId, data) => req("POST", `/permissions/user/${userId}`, data),
+  getPermissionAuditLogs: () => req("GET", "/permissions/audit"),
+  getMyPermissions: () => req("GET", "/permissions/my-permissions"),
+
   getEmployees: () => req("GET", "/employees"),
   createEmployee: (data) => req("POST", "/employees", data),
   updateEmployee: (id, data) => req("PUT", `/employees/${id}`, data),
@@ -1618,6 +2018,10 @@ const realApi = {
   getBrands: () => req("GET", "/materials/brands"),
 
   getSystemConfigs: () => req("GET", "/systemconfigs"),
+  getRawSystemConfigs: (category = "") => req("GET", `/systemconfigs/raw${category ? `?category=${category}` : ""}`),
+  createSystemConfig: (data) => req("POST", "/systemconfigs", data),
+  updateSystemConfig: (id, data) => req("PUT", `/systemconfigs/${id}`, data),
+  deleteSystemConfig: (id) => req("DELETE", `/systemconfigs/${id}`),
 
   // SSRS & Enterprise Reporting Module
   getReportCategories: () => req("GET", "/reports/categories"),
@@ -1645,9 +2049,13 @@ const realApi = {
     const channelPartnerId = localStorage.getItem("current_channel_partner_id");
     const name = localStorage.getItem("current_user_name");
     const uid = localStorage.getItem("current_user_id");
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token");
+
+    const normFormat = (format || "PDF").toUpperCase();
+    const spec = REPORT_FORMAT_SPECS[normFormat] || REPORT_FORMAT_SPECS.PDF;
 
     const query = new URLSearchParams({
-      format,
+      format: normFormat,
       role,
       ...(channelPartnerId ? { channelPartnerId } : {}),
       ...cleanParams
@@ -1658,10 +2066,16 @@ const realApi = {
     if (name) headers["X-User-Name"] = name;
     if (uid) headers["X-User-Id"] = uid;
     if (channelPartnerId) headers["X-Channel-Partner-Id"] = channelPartnerId;
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const requestUrl = `${currentBaseUrl}/reports/${reportId}/export?${query}`;
+
+    // Diagnostic Logging: Requested API endpoint
+    console.info(`[Report Export Request] Endpoint: ${requestUrl} | Format: ${normFormat}`);
 
     let res;
     try {
-      res = await fetch(`${currentBaseUrl}/reports/${reportId}/export?${query}`, {
+      res = await fetch(requestUrl, {
         method: "GET",
         headers
       });
@@ -1669,51 +2083,76 @@ const realApi = {
       const altUrl = getAlternativeBaseUrl(currentBaseUrl);
       if (altUrl) {
         currentBaseUrl = altUrl;
-        res = await fetch(`${currentBaseUrl}/reports/${reportId}/export?${query}`, {
+        const retryUrl = `${currentBaseUrl}/reports/${reportId}/export?${query}`;
+        console.warn(`[Report Export Retry] Trying alternative base: ${retryUrl}`);
+        res = await fetch(retryUrl, {
           method: "GET",
           headers
         });
       } else {
+        console.error(`[Report Export Network Error]`, netErr);
         throw netErr;
       }
     }
 
+    // Diagnostic Logging: HTTP Status and Headers
+    const contentTypeHeader = res.headers.get("Content-Type") || "";
+    const dispositionHeader = res.headers.get("Content-Disposition") || "";
+    console.info(`[Report Export Response] HTTP ${res.status} ${res.statusText} | Content-Type: ${contentTypeHeader} | Content-Disposition: ${dispositionHeader}`);
+
+    // Check response.ok
     if (!res.ok) {
       let errorMsg = `Server error (${res.status})`;
       try {
-        const errJson = await res.json();
-        errorMsg = errJson.error || errJson.details || errJson.message || errorMsg;
-      } catch {
-        const errText = await res.text().catch(() => "");
-        if (errText) errorMsg = errText.slice(0, 150);
-      }
+        if (contentTypeHeader.includes("application/json")) {
+          const errJson = await res.json();
+          errorMsg = errJson.error || errJson.details || errJson.message || errorMsg;
+        } else {
+          const errText = await res.text();
+          if (errText) errorMsg = errText.slice(0, 200);
+        }
+      } catch {}
+      console.error(`[Report Export Failed] Status ${res.status}: ${errorMsg}`);
       throw new Error(errorMsg);
     }
 
-    let filename = "";
-    const disposition = res.headers.get("Content-Disposition");
-    if (disposition) {
-      const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
-      if (match && match[1]) {
-        filename = decodeURIComponent(match[1].trim());
+    // Detect if server returned 200 OK but with JSON or HTML error payload instead of genuine binary
+    if (contentTypeHeader.includes("application/json") || contentTypeHeader.includes("text/html")) {
+      if (normFormat !== "WORD" && normFormat !== "DOC" && normFormat !== "DOCX") {
+        const textPayload = await res.text();
+        console.error(`[Report Export Error] Received text/JSON response with HTTP 200 for binary format ${normFormat}:`, textPayload.slice(0, 300));
+        let errorDetail = "Server returned an invalid non-binary response.";
+        try {
+          const parsed = JSON.parse(textPayload);
+          if (parsed.error || parsed.message) errorDetail = parsed.error || parsed.message;
+        } catch {}
+        throw new Error(errorDetail);
       }
     }
-    if (!filename) {
-      const extMap = { PDF: "pdf", EXCEL: "xls", XLSX: "xls", WORD: "doc", DOCX: "doc", CSV: "csv" };
-      const ext = extMap[format.toUpperCase()] || format.toLowerCase();
-      filename = `BuilderPro_${reportId}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+
+    // Read full binary ArrayBuffer
+    const arrayBuffer = await res.arrayBuffer();
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      console.error(`[Report Export Error] Received empty 0-byte binary response from server.`);
+      throw new Error("Exported file is empty (0 bytes).");
     }
 
-    const blob = await res.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-    return { success: true, filename };
+    console.info(`[Report Export Success] Received ${arrayBuffer.byteLength} bytes binary payload.`);
+
+    // Extract filename safely from Content-Disposition
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const defaultFallbackName = `BuilderPro_${reportId}_${dateStr}.${spec.ext}`;
+    let filename = extractFilenameFromHeader(dispositionHeader, defaultFallbackName);
+    filename = ensureFileExtension(filename, spec.ext);
+
+    // MIME type
+    const finalMime = spec.mime || contentTypeHeader || "application/octet-stream";
+
+    // Trigger browser file download with pure typed Blob
+    const blob = new Blob([arrayBuffer], { type: finalMime });
+    triggerBrowserFileDownload(blob, filename, finalMime);
+
+    return { success: true, filename, byteLength: arrayBuffer.byteLength };
   },
 };
 
@@ -1733,6 +2172,12 @@ const createFallbackApi = () => {
           return await realApi[methodName](...args);
         }
       } catch (err) {
+        // Critical: Do NOT silently replace failed production export/download with mock data!
+        if (methodName === "downloadReportFile" || methodName.startsWith("download")) {
+          console.error(`❌ Export/Download operation '${methodName}' failed:`, err);
+          throw err;
+        }
+
         console.warn(`⚠️ API call failed for '${methodName}'. Falling back to local mock data. Error:`, err);
         connectionState = { isConnected: false, url: currentBaseUrl, isMock: true, error: err.message };
         notifyConnectionChange();

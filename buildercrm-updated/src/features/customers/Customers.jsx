@@ -167,9 +167,13 @@ export function Customers({ currentUser }) {
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.raise}}>
-              {["Customer","Unit","Project","Booking Date","Payment","Status","Actions"].map(h=>(
-                <th key={h} style={{padding:"10px 18px",textAlign:"left",color:C.mute,fontSize:10,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{h}</th>
-              ))}
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Customer</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Unit</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Project</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Booking Date</th>
+              <th style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Realization Progress</th>
+              <th style={{padding:"12px 18px",textAlign:"center",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Status</th>
+              <th style={{padding:"12px 18px",textAlign:"right",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -177,7 +181,7 @@ export function Customers({ currentUser }) {
               const pct=c.totalAmount?Math.round(c.paidAmount/c.totalAmount*100):0;
               return (
                 <tr key={c.id} style={{borderBottom:`1px solid ${C.bord}`,background:i%2===0?"transparent":`${C.raise}40`}}>
-                  <td style={{padding:"12px 18px"}}>
+                  <td style={{padding:"12px 18px",verticalAlign:"middle"}}>
                     <div style={{display:"flex",alignItems:"center",gap:9}}>
                       <div style={{width:32,height:32,borderRadius:8,background:`${C.blue}22`,display:"flex",alignItems:"center",justifyContent:"center",color:C.blue,fontWeight:700,fontSize:12}}>{c.name[0]}</div>
                       <div>
@@ -186,22 +190,22 @@ export function Customers({ currentUser }) {
                       </div>
                     </div>
                   </td>
-                  <td style={{padding:"12px 18px",color:C.gold,fontWeight:600,fontSize:12}}>{c.unitNumber}</td>
-                  <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{c.project?.name||"—"}</td>
-                  <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{c.bookingDate?.split("T")[0]}</td>
-                  <td style={{padding:"12px 18px"}}>
+                  <td style={{padding:"12px 18px",color:C.gold,fontWeight:600,fontSize:12,verticalAlign:"middle"}}>{c.unitNumber}</td>
+                  <td style={{padding:"12px 18px",color:C.sub,fontSize:11,verticalAlign:"middle"}}>{c.project?.name||"—"}</td>
+                  <td style={{padding:"12px 18px",color:C.sub,fontSize:11,verticalAlign:"middle"}}>{c.bookingDate?.split("T")[0]}</td>
+                  <td style={{padding:"12px 18px",verticalAlign:"middle"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <div style={{flex:1,background:C.raise,borderRadius:4,height:4,overflow:"hidden"}}>
                         <div style={{width:`${pct}%`,height:"100%",background:pct===100?C.teal:pct>50?C.gold:C.blue}}/>
                       </div>
-                      <span style={{color:C.sub,fontSize:10}}>{pct}%</span>
+                      <span style={{color:C.sub,fontSize:10,fontWeight:600}}>{pct}%</span>
                     </div>
                   </td>
-                  <td style={{padding:"12px 18px"}}><Badge s={c.status}/></td>
-                  <td style={{padding:"12px 18px"}}>
-                    <div style={{display:"flex",gap:5}}>
-                      <button onClick={()=>setViewCustomer(c)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Eye size={12}/></button>
-                      <button onClick={()=>handleEditClick(c)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Edit size={12}/></button>
+                  <td style={{padding:"12px 18px",textAlign:"center",verticalAlign:"middle"}}><Badge s={c.status}/></td>
+                  <td style={{padding:"12px 18px",textAlign:"right",verticalAlign:"middle"}}>
+                    <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}>
+                      <button onClick={()=>setViewCustomer(c)} title="View Customer Details" style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Eye size={12}/></button>
+                      <button onClick={()=>handleEditClick(c)} title="Edit Customer Details" style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Edit size={12}/></button>
                     </div>
                   </td>
                 </tr>

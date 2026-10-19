@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,6 +17,7 @@ public class PaymentsController : ControllerBase
     public PaymentsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("finance.payments.view")]
     public async Task<IActionResult> GetAll([FromQuery] int? customerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -30,6 +32,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("finance.payments.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -44,6 +47,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("finance.payments.create")]
     public async Task<IActionResult> Create([FromBody] Payment payment)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -89,6 +93,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("finance.payments.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -106,6 +111,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpGet("stats")]
+    [RequirePermission("finance.payments.view")]
     public async Task<IActionResult> GetStats()
     {
         var stats = new {

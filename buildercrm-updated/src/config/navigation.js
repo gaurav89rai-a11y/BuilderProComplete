@@ -17,7 +17,8 @@ export const NAV = [
     items: [
       { id: "leads", label: "Leads" },
       { id: "bookings", label: "Booking" },
-      { id: "customers", label: "Customers" }
+      { id: "customers", label: "Customers" },
+      { id: "partners", label: "Channel Partners" }
     ]
   },
   {
@@ -57,8 +58,7 @@ export const NAV = [
       { id: "payments", label: "Receipts" },
       { id: "payment_schedule", label: "Payment Schedule" },
       { id: "invoices", label: "Invoice" },
-      { id: "expenses", label: "Expenses" },
-      { id: "reports", label: "Reports" }
+      { id: "expenses", label: "Expenses" }
     ]
   },
   {
@@ -92,11 +92,11 @@ export const NAV = [
     icon: Shield,
     isGroup: true,
     items: [
-      { id: "admin_users", label: "Users" },
-      { id: "roles_perms", label: "Roles" },
-      { id: "permissions_admin", label: "Permissions" },
-      { id: "masters_admin", label: "Masters" },
-      { id: "company_settings", label: "Settings" }
+      { id: "admin_users", label: "User Management" },
+      { id: "admin_roles", label: "Role Management" },
+      { id: "permissions_admin", label: "Permission Matrix" },
+      { id: "masters_admin", label: "Master Data & Dropdowns" },
+      { id: "company_settings", label: "System Settings & Audit" }
     ]
   }
 ];
@@ -107,6 +107,7 @@ export const LABELS = {
   follow_up: "Follow-up & Site Visit Tracker",
   bookings: "Booking Registry",
   customers: "Customer Directory",
+  partners: "Channel Partners CRM",
   material_master: "Material Master Register",
   stock: "Material Stock Levels",
   orders_oms: "Material Procurement Orders",
@@ -128,12 +129,12 @@ export const LABELS = {
   hrms_leaves: "Leave Management",
   payroll: "Salary & Payroll processing",
   performance: "Employee Performance Evaluations",
-  partners: "Channel Partners CRM",
   tickets: "Customer Support Tickets",
-  reports: "Business Intelligence & Reports",
+  reports: "Business Intelligence & SSRS Reports",
   admin_users: "User Account Administration",
-  roles_perms: "User Role Assignments",
-  permissions_admin: "Permissions Map Setup",
-  masters_admin: "ERP Core Masters",
-  company_settings: "ERP System Settings"
+  admin_roles: "Security Role Administration",
+  roles_perms: "Security Role Administration",
+  permissions_admin: "Permission Administration Matrix",
+  masters_admin: "Master Data & Dropdowns Management",
+  company_settings: "Company & System Settings"
 };

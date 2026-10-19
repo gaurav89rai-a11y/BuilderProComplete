@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BuilderProAPI.Data;
 using BuilderProAPI.Models;
+using BuilderProAPI.Middlewares;
 
 namespace BuilderProAPI.Controllers;
 
@@ -13,6 +14,7 @@ public class UnitsController : ControllerBase
     public UnitsController(BuilderProDbContext db) => _db = db;
 
     [HttpGet]
+    [RequirePermission("construction.units.view")]
     public async Task<IActionResult> GetAll([FromQuery] int? projectId, [FromQuery] string? status, [FromQuery] int? includeUnitId)
     {
         var query = _db.Units.Include(u => u.Project).AsQueryable();
@@ -32,6 +34,7 @@ public class UnitsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("construction.units.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var unit = await _db.Units.Include(u => u.Project).FirstOrDefaultAsync(u => u.Id == id);
@@ -40,6 +43,7 @@ public class UnitsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("construction.units.create")]
     public async Task<IActionResult> Create([FromBody] Unit unit)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -50,6 +54,7 @@ public class UnitsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("construction.units.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] Unit unit)
     {
         if (id != unit.Id) return BadRequest();
@@ -67,6 +72,7 @@ public class UnitsController : ControllerBase
     }
 
     [HttpPatch("{id}/status")]
+    [RequirePermission("construction.units.change_status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] StatusUpdateDto dto)
     {
         var unit = await _db.Units.FindAsync(id);
@@ -77,6 +83,7 @@ public class UnitsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("construction.units.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var unit = await _db.Units.FindAsync(id);

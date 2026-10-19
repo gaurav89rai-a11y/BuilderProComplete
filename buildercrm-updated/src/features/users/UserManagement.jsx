@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
-import { Users, Plus, Edit, Trash2, Loader2, X, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Users, Plus, Edit, Trash2, Loader2, X, RefreshCw, Shield, Key, CheckCircle2 } from "lucide-react";
 import { api } from "../../services/api.js";
 import { C } from "../../config/theme.js";
 import { allPermissionsList } from "../../utils/helpers.js";
 import { Badge, Btn, Modal, Field, Input, Select, LoadingState, ErrorState, Toast, STitle } from "../../components/ui";
 import { useConfig } from "../../config/ConfigContext.jsx";
 
-export function UserManagement() {
+export function UserManagement({ onNavigateToPermissions, onNavigateToRoles }) {
   const { userRole, partnerStatus, getDefault } = useConfig();
   const [users,setUsers]=useState([]);
   const [partners,setPartners]=useState([]);
+  const [availableRoles, setAvailableRoles] = useState([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState(null);
   const [showModal,setShowModal]=useState(false);
@@ -36,18 +37,27 @@ export function UserManagement() {
   const load=useCallback(async()=>{
     setLoading(true);setError(null);
     try { 
-      const [uList, pList] = await Promise.all([
+      const [uList, pList, rList] = await Promise.all([
         api.getUsers(),
-        api.getPartners().catch(() => [])
+        api.getPartners().catch(() => []),
+        api.getRoles().catch(() => [])
       ]);
       setUsers(uList || []);
       setPartners(pList || []);
+      setAvailableRoles(rList || []);
     }
     catch(e){ setError(e.message); }
     finally { setLoading(false); }
   },[]);
   
   useEffect(()=>{ load(); },[load]);
+
+  const computedRoleOptions = useMemo(() => {
+    if (availableRoles && availableRoles.length > 0) {
+      return availableRoles.map(r => ({ value: r.name, label: `${r.name} ${r.isSystemRole ? "(System)" : "(Custom)"}` }));
+    }
+    return userRole;
+  }, [availableRoles, userRole]);
 
   const f=(k)=>(v)=>setForm(p=>({...p,[k]:v}));
   const fCp=(k)=>(v)=>setCpDetails(p=>({...p,[k]:v}));
@@ -198,15 +208,33 @@ export function UserManagement() {
   return (
     <div className="fi">
       {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}
-      <STitle title="User Management" sub={`${users.length} registered user profiles`}
-        action={<Btn icon={Plus} onClick={()=>setShowModal(true)}>New User</Btn>}/>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+        <div>
+          <STitle title="User Account Administration" sub={`${users.length} registered personnel profiles with role mappings`} />
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {onNavigateToRoles && (
+            <Btn variant="outline" onClick={onNavigateToRoles} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Shield size={14} color={C.gold} /> Security Roles
+            </Btn>
+          )}
+          {onNavigateToPermissions && (
+            <Btn variant="outline" onClick={() => onNavigateToPermissions()} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Key size={14} color={C.gold} /> Permission Matrix
+            </Btn>
+          )}
+          <Btn icon={Plus} onClick={()=>setShowModal(true)} style={{ background: C.gold, color: "#000", fontWeight: 700 }}>
+            New User
+          </Btn>
+        </div>
+      </div>
       
       <div style={{background:C.card,border:`1px solid ${C.bord}`,borderRadius:14,overflow:"hidden"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.raise}}>
-              {["User","Email","Role","Permissions","Actions"].map(h=>(
-                <th key={h} style={{padding:"10px 18px",textAlign:"left",color:C.mute,fontSize:10,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{h}</th>
+              {["User","Email","Role","Permissions Mode","Actions"].map(h=>(
+                <th key={h} style={{padding:"12px 18px",textAlign:"left",color:C.mute,fontSize:11,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",verticalAlign:"middle"}}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -215,13 +243,13 @@ export function UserManagement() {
               const partnerObj = u.channelPartner || partners.find(p => p.id === u.channelPartnerId);
               return (
                 <tr key={u.id} style={{borderBottom:`1px solid ${C.bord}`,background:i%2===0?"transparent":`${C.raise}40`}}>
-                  <td style={{padding:"12px 18px"}}>
+                  <td style={{padding:"12px 18px",verticalAlign:"middle"}}>
                     <div style={{display:"flex",alignItems:"center",gap:9}}>
                       <div style={{width:32,height:32,borderRadius:8,background:`${C.gold}22`,display:"flex",alignItems:"center",justifyContent:"center",color:C.gold,fontWeight:700,fontSize:12}}>
-                        {u.name.split(" ").map(n=>n[0]).join("")}
+                        {(u.name || "U").trim().split(/\s+/).filter(Boolean).map(n=>n[0]).join("")}
                       </div>
                       <div>
-                        <div style={{color:C.txt,fontWeight:600,fontSize:12}}>{u.name}</div>
+                        <div style={{color:C.txt,fontWeight:600,fontSize:12}}>{u.name || "Unnamed User"}</div>
                         {partnerObj && (
                           <div style={{fontSize:10,color:C.gold,display:"flex",alignItems:"center",gap:3,marginTop:2}}>
                             <span>🏢</span> {partnerObj.name}
@@ -230,29 +258,50 @@ export function UserManagement() {
                       </div>
                     </div>
                   </td>
-                  <td style={{padding:"12px 18px",color:C.sub,fontSize:11}}>{u.email}</td>
-                  <td style={{padding:"12px 18px"}}>
+                  <td style={{padding:"12px 18px",color:C.sub,fontSize:12,verticalAlign:"middle"}}>{u.email}</td>
+                  <td style={{padding:"12px 18px",verticalAlign:"middle"}}>
                     <Badge s={u.role}/>
                   </td>
-                  <td style={{padding:"12px 18px",maxWidth:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {u.permissions === "all" ? (
-                      <span style={{color:C.teal,fontSize:11,fontWeight:600}}>All Permissions</span>
+                  <td style={{padding:"12px 18px",verticalAlign:"middle"}}>
+                    {u.role === "Super Admin" || u.permissions === "all" ? (
+                      <span style={{color:C.teal,fontSize:11,fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}>
+                        <CheckCircle2 size={13} /> Full Access (All 119)
+                      </span>
                     ) : (
-                      (u.permissions || "").split(",").map(p => (
-                        <span key={p} style={{background:C.raise,color:C.sub,fontSize:10,padding:"2px 6px",borderRadius:4,marginRight:4,display:"inline-block",marginBottom:2}}>
-                          {p.replace("manage_","").replace("view_","")}
-                        </span>
-                      ))
+                      <span style={{color:C.sub,fontSize:11}}>
+                        Role Inherited Policy
+                      </span>
                     )}
                   </td>
-                  <td style={{padding:"12px 18px"}}>
+                  <td style={{padding:"12px 18px",verticalAlign:"middle"}}>
                     {u.id !== 1 ? (
-                      <div style={{display:"flex",gap:5}}>
-                        <button onClick={()=>handleEditClick(u)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Edit size={12}/></button>
-                        <button onClick={()=>handleDeleteClick(u.id)} style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.red,display:"flex"}}><Trash2 size={12}/></button>
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        {onNavigateToPermissions && (
+                          <button
+                            onClick={() => onNavigateToPermissions(null, u.id)}
+                            title="Configure User Permission Overrides"
+                            style={{
+                              background:`${C.gold}14`,
+                              border:`1px solid ${C.gold}40`,
+                              borderRadius:6,
+                              padding:"5px 8px",
+                              cursor:"pointer",
+                              color:C.gold,
+                              display:"flex",
+                              alignItems:"center",
+                              gap:4,
+                              fontSize:11,
+                              fontWeight:600
+                            }}
+                          >
+                            <Key size={11}/> Overrides
+                          </button>
+                        )}
+                        <button onClick={()=>handleEditClick(u)} title="Edit User" style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.sub,display:"flex"}}><Edit size={12}/></button>
+                        <button onClick={()=>handleDeleteClick(u.id)} title="Delete User" style={{background:C.raise,border:"none",borderRadius:6,padding:6,cursor:"pointer",color:C.red,display:"flex"}}><Trash2 size={12}/></button>
                       </div>
                     ) : (
-                      <span style={{color:C.mute,fontSize:10}}>System Admin</span>
+                      <span style={{color:C.gold,fontSize:11,fontWeight:700}}>Super Admin (Protected)</span>
                     )}
                   </td>
                 </tr>
@@ -263,13 +312,13 @@ export function UserManagement() {
       </div>
 
       {showModal&&(
-        <Modal title={editingId ? "Edit User" : "Add User"} onClose={resetAllForms} width={620}>
+        <Modal title={editingId ? "Edit User Profile" : "Create New User Account"} onClose={resetAllForms} width={620}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
             <Field label="Full Name" required><Input value={form.name} onChange={f("name")} placeholder="e.g. Sanjay Bhatt"/></Field>
-            <Field label="Email" required><Input type="email" value={form.email} onChange={f("email")} placeholder="email@propnest.com"/></Field>
+            <Field label="Email Address" required><Input type="email" value={form.email} onChange={f("email")} placeholder="email@propnest.com"/></Field>
             <div style={{gridColumn:"1/-1"}}>
-              <Field label="System Role">
-                <Select value={form.role} onChange={handleRoleChange} options={userRole}/>
+              <Field label="Assigned System Security Role">
+                <Select value={form.role} onChange={handleRoleChange} options={computedRoleOptions}/>
               </Field>
             </div>
 

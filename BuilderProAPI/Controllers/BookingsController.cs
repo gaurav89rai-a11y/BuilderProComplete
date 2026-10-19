@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using BuilderProAPI.Models;
 using BuilderProAPI.Services;
+using BuilderProAPI.Middlewares;
 using System.Threading.Tasks;
 
 namespace BuilderProAPI.Controllers;
@@ -19,6 +20,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission("crm.bookings.view")]
     public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] int? channelPartnerId)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -34,6 +36,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [RequirePermission("crm.bookings.view")]
     public async Task<IActionResult> GetById(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -51,6 +54,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("crm.bookings.create")]
     public async Task<IActionResult> Create([FromBody] Booking booking)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -66,6 +70,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("crm.bookings.edit")]
     public async Task<IActionResult> Update(int id, [FromBody] Booking booking)
     {
         if (id != booking.Id) return BadRequest();
@@ -95,6 +100,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("crm.bookings.delete")]
     public async Task<IActionResult> Delete(int id)
     {
         var role = Request.Headers["X-User-Role"].FirstOrDefault();
@@ -104,12 +110,14 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("stats")]
+    [RequirePermission("crm.bookings.view")]
     public async Task<IActionResult> GetStats()
     {
         return Ok(await _bookingService.GetBookingStatsAsync());
     }
 
     [HttpPost("{id}/agreement/upload")]
+    [RequirePermission("crm.bookings.upload_download")]
     [RequestSizeLimit(30 * 1024 * 1024)] // 30 MB limit
     public async Task<IActionResult> UploadAgreement(int id, IFormFile file)
     {
@@ -184,6 +192,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("{id}/agreement/view")]
+    [RequirePermission("crm.bookings.view")]
     public async Task<IActionResult> ViewAgreement(int id)
     {
         var booking = await _bookingService.GetBookingByIdAsync(id);
@@ -218,6 +227,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpDelete("{id}/agreement")]
+    [RequirePermission("crm.bookings.delete")]
     public async Task<IActionResult> DeleteAgreement(int id)
     {
         var booking = await _bookingService.GetBookingByIdAsync(id);
@@ -237,6 +247,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("{id}/agreement")]
+    [RequirePermission("crm.bookings.upload_download")]
     public async Task<IActionResult> DownloadAgreement(int id)
     {
         _logger.LogInformation("Agreement download requested for booking ID: {BookingId}", id);

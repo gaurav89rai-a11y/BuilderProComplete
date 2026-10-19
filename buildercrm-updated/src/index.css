@@ -19,18 +19,74 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 0.4; }
 .fi { display: flex; flex-direction: column; gap: 0; animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-button:focus-visible, input:focus-visible, select:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid #C9A843;
   outline-offset: 2px;
 }
 
 select option { background: var(--raise); color: var(--txt); }
 
-/* Grid styles */
+/* ─── STANDARDIZED DATA TABLES & GRIDS ─────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th, td {
+  vertical-align: middle;
+  padding: 12px 16px;
+  line-height: 1.4;
+}
+
+th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #8E9DB8;
+  background: inherit;
+}
+
+/* Numeric alignment: right-aligned with tabular numbers */
+.cell-num, .col-numeric, th.col-numeric, td.col-numeric,
+th[data-align="right"], td[data-align="right"],
+th[align="right"], td[align="right"] {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Center alignment for badges, counters, statuses */
+.cell-center, .col-center, th.col-center, td.col-center,
+th[data-align="center"], td[data-align="center"] {
+  text-align: center !important;
+}
+
+/* Action button cells */
+.cell-action, .col-action, th.col-action, td.col-action {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+/* Row Hovering & Zebra striping consistency */
+tbody tr {
+  transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ─── RESPONSIVE CARD & FORM GRIDS ─────────────────────────────── */
 .grid-4 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 14px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
 }
 .grid-2-1 {
   display: grid;
@@ -42,17 +98,27 @@ select option { background: var(--raise); color: var(--txt); }
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
 
 /* Mobile responsive rules */
 @media (max-width: 768px) {
-  /* Collapse grids to single column */
-  .grid-4, .grid-2-1, .grid-2 {
+  /* Collapse heavy content grids */
+  .grid-4, .grid-3, .grid-2-1 {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
-  
-  /* Fallback override for other inline grids that get squished */
-  div[style*="display: grid"], div[style*="display:grid"] {
+
+  /* Form two-column layouts stack on small screens */
+  .grid-form-stack {
     grid-template-columns: 1fr !important;
   }
 
@@ -72,7 +138,6 @@ select option { background: var(--raise); color: var(--txt); }
     justify-content: space-between;
   }
   
-  /* General mobile details page padding */
   main {
     padding: 12px !important;
   }
@@ -124,4 +189,3 @@ select option { background: var(--raise); color: var(--txt); }
     font-weight: bold !important;
   }
 }
-
