@@ -161,6 +161,7 @@ builder.Services.AddDbContext<BuilderProDbContext>(options =>
 // SSRS Reporting Configuration & Services
 builder.Services.Configure<BuilderProAPI.Models.SSRSConfig>(builder.Configuration.GetSection("SSRS"));
 builder.Services.AddScoped<ISSRSReportService, SSRSReportService>();
+builder.Services.AddScoped<IReportEngineService, ReportEngineService>();
 
 // Dependency Injection Scopes
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

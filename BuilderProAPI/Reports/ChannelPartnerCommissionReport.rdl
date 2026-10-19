@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BuilderProDataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=localhost\SQLEXPRESS;Initial Catalog=BuilderProDB;Integrated Security=True</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>e1a2b3c4-0004-4000-8000-000000000004</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="PartnerCommissionDataSet">
+      <Query>
+        <DataSourceName>BuilderProDataSource</DataSourceName>
+        <CommandType>StoredProcedure</CommandType>
+        <CommandText>sp_Rpt_ChannelPartnerCommission</CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@PartnerId"><Value>=Parameters!PartnerId.Value</Value></QueryParameter>
+          <QueryParameter Name="@Status"><Value>=Parameters!Status.Value</Value></QueryParameter>
+          <QueryParameter Name="@FromDate"><Value>=Parameters!FromDate.Value</Value></QueryParameter>
+          <QueryParameter Name="@ToDate"><Value>=Parameters!ToDate.Value</Value></QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="PartnerId"><DataField>PartnerId</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="PartnerFirmName"><DataField>PartnerFirmName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ContactPerson"><DataField>ContactPerson</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Phone"><DataField>Phone</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Email"><DataField>Email</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="City"><DataField>City</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="PartnerTier"><DataField>PartnerTier</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ContractedRatePct"><DataField>ContractedRatePct</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Rating"><DataField>Rating</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TotalLeadsSubmitted"><DataField>TotalLeadsSubmitted</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="TotalDealsBooked"><DataField>TotalDealsBooked</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="TotalCommissionEarned"><DataField>TotalCommissionEarned</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="CommissionPaidOut"><DataField>CommissionPaidOut</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="CommissionPending"><DataField>CommissionPending</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="PartnerId"><DataType>Integer</DataType><Nullable>true</Nullable><Prompt>Partner ID</Prompt></ReportParameter>
+    <ReportParameter Name="Status"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Commission Status</Prompt></ReportParameter>
+    <ReportParameter Name="FromDate"><DataType>DateTime</DataType><Nullable>true</Nullable><Prompt>From Date</Prompt></ReportParameter>
+    <ReportParameter Name="ToDate"><DataType>DateTime</DataType><Nullable>true</Nullable><Prompt>To Date</Prompt></ReportParameter>
+  </ReportParameters>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="HeaderTitle">
+            <Top>0.2in</Top><Left>0.2in</Left><Height>0.35in</Height><Width>8.0in</Width>
+            <Paragraphs><Paragraph><TextRuns><TextRun><Value>CHANNEL PARTNER PERFORMANCE &amp; COMMISSION LEDGER</Value><Style><FontFamily>Segoe UI</FontFamily><FontSize>16pt</FontSize><FontWeight>Bold</FontWeight><Color>#B8860B</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs>
+          </Textbox>
+          <Tablix Name="PartnerTablix">
+            <Top>0.7in</Top><Left>0.2in</Left><Height>0.6in</Height><Width>8.0in</Width>
+            <DataSetName>PartnerCommissionDataSet</DataSetName>
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>0.8in</Width></TablixColumn>
+                <TablixColumn><Width>0.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>1.1in</Width></TablixColumn>
+                <TablixColumn><Width>1.1in</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="H_Firm"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Partner Firm</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Contact"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Contact Person</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Tier"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Tier</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Deals"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Deals</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Earned"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Total Earned (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Paid"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Paid Out (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Pending"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Pending (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="D_Firm"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!PartnerFirmName.Value</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Contact"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!ContactPerson.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Tier"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!PartnerTier.Value</Value><Style><FontFamily>Segoe UI</FontFamily><Color>#B8860B</Color><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Deals"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!TotalDealsBooked.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Earned"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!TotalCommissionEarned.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Paid"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!CommissionPaidOut.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><Color>#006600</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Pending"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!CommissionPending.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><Color>#B8860B</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixColumnHierarchy>
+            <TablixRowHierarchy><TablixMembers><TablixMember/><TablixMember><Group Name="PartnerDetails"/></TablixMember></TablixMembers></TablixRowHierarchy>
+          </Tablix>
+        </ReportItems>
+        <Height>3.5in</Height>
+      </Body>
+      <Width>8.5in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight><PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.25in</LeftMargin><RightMargin>0.25in</RightMargin><TopMargin>0.5in</TopMargin><BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

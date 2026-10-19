@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BuilderProDataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=localhost\SQLEXPRESS;Initial Catalog=BuilderProDB;Integrated Security=True</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>e1a2b3c4-0001-4000-8000-000000000001</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="ExecutiveSummaryDataSet">
+      <Query>
+        <DataSourceName>BuilderProDataSource</DataSourceName>
+        <CommandType>StoredProcedure</CommandType>
+        <CommandText>sp_Rpt_ExecutiveSummary</CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@ProjectId">
+            <Value>=Parameters!ProjectId.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@FromDate">
+            <Value>=Parameters!FromDate.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@ToDate">
+            <Value>=Parameters!ToDate.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="ProjectId"><DataField>ProjectId</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="ProjectName"><DataField>ProjectName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Location"><DataField>Location</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ReraNumber"><DataField>ReraNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectStatus"><DataField>ProjectStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectType"><DataField>ProjectType</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ConstructionPct"><DataField>ConstructionPct</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="TotalUnits"><DataField>TotalUnits</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="AvailableUnits"><DataField>AvailableUnits</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="BookedUnits"><DataField>BookedUnits</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="SoldUnits"><DataField>SoldUnits</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="TotalInventoryValue"><DataField>TotalInventoryValue</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="RealizedCollections"><DataField>RealizedCollections</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="PendingReceivables"><DataField>PendingReceivables</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="ProjectId">
+      <DataType>Integer</DataType>
+      <Nullable>true</Nullable>
+      <Prompt>Project ID</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="FromDate">
+      <DataType>DateTime</DataType>
+      <Nullable>true</Nullable>
+      <Prompt>From Date</Prompt>
+    </ReportParameter>
+    <ReportParameter Name="ToDate">
+      <DataType>DateTime</DataType>
+      <Nullable>true</Nullable>
+      <Prompt>To Date</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="HeaderTitle">
+            <Top>0.2in</Top>
+            <Left>0.2in</Left>
+            <Height>0.35in</Height>
+            <Width>7.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>ABHAY BUILDCON ERP — EXECUTIVE PORTFOLIO SUMMARY</Value>
+                    <Style>
+                      <FontFamily>Segoe UI</FontFamily>
+                      <FontSize>16pt</FontSize>
+                      <FontWeight>Bold</FontWeight>
+                      <Color>#B8860B</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+          <Textbox Name="SubHeader">
+            <Top>0.6in</Top>
+            <Left>0.2in</Left>
+            <Height>0.25in</Height>
+            <Width>7.8in</Width>
+            <Paragraphs>
+              <Paragraph>
+                <TextRuns>
+                  <TextRun>
+                    <Value>="Generated on: " &amp; Format(Globals!ExecutionTime, "dd-MMM-yyyy hh:mm tt") &amp; " | SQL Server Reporting Services"</Value>
+                    <Style>
+                      <FontFamily>Segoe UI</FontFamily>
+                      <FontSize>9pt</FontSize>
+                      <Color>#666666</Color>
+                    </Style>
+                  </TextRun>
+                </TextRuns>
+              </Paragraph>
+            </Paragraphs>
+          </Textbox>
+          <Tablix Name="PortfolioTablix">
+            <Top>0.95in</Top>
+            <Left>0.2in</Left>
+            <Height>0.6in</Height>
+            <Width>7.8in</Width>
+            <DataSetName>ExecutiveSummaryDataSet</DataSetName>
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>0.8in</Width></TablixColumn>
+                <TablixColumn><Width>0.8in</Width></TablixColumn>
+                <TablixColumn><Width>0.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="H_Project"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Project</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Location"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Location</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Units"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Total</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Available"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Avail</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Sold"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Sold</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Collections"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Realized (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Receivables"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Pending (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="D_Project"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!ProjectName.Value</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Location"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Location.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><PaddingLeft>4pt</PaddingLeft><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Units"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!TotalUnits.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Available"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!AvailableUnits.Value</Value><Style><FontFamily>Segoe UI</FontFamily><Color>#008080</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Sold"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!SoldUnits.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Collections"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!RealizedCollections.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight><Color>#006600</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Receivables"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!PendingReceivables.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><Color>#B8860B</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixColumnHierarchy>
+            <TablixRowHierarchy><TablixMembers><TablixMember/><TablixMember><Group Name="Details"/></TablixMember></TablixMembers></TablixRowHierarchy>
+          </Tablix>
+        </ReportItems>
+        <Height>3.5in</Height>
+      </Body>
+      <Width>8.2in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight>
+        <PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.25in</LeftMargin>
+        <RightMargin>0.25in</RightMargin>
+        <TopMargin>0.5in</TopMargin>
+        <BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

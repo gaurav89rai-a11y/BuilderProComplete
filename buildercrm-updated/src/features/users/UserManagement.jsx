@@ -7,7 +7,7 @@ import { Badge, Btn, Modal, Field, Input, Select, LoadingState, ErrorState, Toas
 import { useConfig } from "../../config/ConfigContext.jsx";
 
 export function UserManagement() {
-  const { userRole, getDefault } = useConfig();
+  const { userRole, partnerStatus, getDefault } = useConfig();
   const [users,setUsers]=useState([]);
   const [partners,setPartners]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -18,8 +18,20 @@ export function UserManagement() {
   const [editingId,setEditingId]=useState(null);
 
   const defaultRole = getDefault("userRole", "Sales Agent");
+  const defaultPartnerStatus = getDefault("partnerStatus", "Silver");
 
   const [form,setForm]=useState({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""});
+  const [partnerMode, setPartnerMode] = useState("new"); // "new" or "existing"
+  const [cpDetails, setCpDetails] = useState({
+    nameOfFirm: "",
+    contactPerson: "",
+    phone: "",
+    email: "",
+    city: "Mumbai",
+    status: defaultPartnerStatus,
+    commissionRate: "2.5",
+    rating: "4.0"
+  });
 
   const load=useCallback(async()=>{
     setLoading(true);setError(null);
@@ -38,6 +50,7 @@ export function UserManagement() {
   useEffect(()=>{ load(); },[load]);
 
   const f=(k)=>(v)=>setForm(p=>({...p,[k]:v}));
+  const fCp=(k)=>(v)=>setCpDetails(p=>({...p,[k]:v}));
 
   const handleRoleChange = (newRole) => {
     setForm(prev => {
@@ -55,6 +68,14 @@ export function UserManagement() {
       }
       return { ...prev, role: newRole, permissions };
     });
+
+    if (newRole === "Channel Partner" && !cpDetails.contactPerson && form.name) {
+      setCpDetails(prev => ({
+        ...prev,
+        contactPerson: form.name,
+        email: prev.email || form.email
+      }));
+    }
   };
 
   const handleEditClick=(u)=>{
@@ -66,6 +87,24 @@ export function UserManagement() {
       permissions: u.permissions || "",
       channelPartnerId: u.channelPartnerId || "",
     });
+    if (u.role === "Channel Partner" && u.channelPartnerId) {
+      setPartnerMode("existing");
+      const existingPartner = u.channelPartner || partners.find(p => p.id === u.channelPartnerId);
+      if (existingPartner) {
+        setCpDetails({
+          nameOfFirm: existingPartner.name || "",
+          contactPerson: existingPartner.contactPerson || u.name || "",
+          phone: existingPartner.phone || "",
+          email: existingPartner.email || u.email || "",
+          city: existingPartner.city || "Mumbai",
+          status: existingPartner.status || defaultPartnerStatus,
+          commissionRate: existingPartner.commissionRate?.toString() || "2.5",
+          rating: existingPartner.rating?.toString() || "4.0"
+        });
+      }
+    } else {
+      setPartnerMode("new");
+    }
     setShowModal(true);
   };
 
@@ -78,27 +117,76 @@ export function UserManagement() {
     } catch(e){ setToast({msg:e.message,type:"error"}); }
   };
 
+  const resetAllForms = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""});
+    setPartnerMode("new");
+    setCpDetails({
+      nameOfFirm: "",
+      contactPerson: "",
+      phone: "",
+      email: "",
+      city: "Mumbai",
+      status: defaultPartnerStatus,
+      commissionRate: "2.5",
+      rating: "4.0"
+    });
+  };
+
   const handleSubmit=async()=>{
     if(!form.name||!form.email) return setToast({msg:"Name and Email are required",type:"error"});
-    if(form.role === "Channel Partner" && !form.channelPartnerId) {
-      return setToast({msg:"Please select an associated Channel Partner entity for this partner user",type:"error"});
-    }
+    
     setSaving(true);
     try {
+      let resolvedPartnerId = form.channelPartnerId ? parseInt(form.channelPartnerId) : null;
+
+      // When role is Channel Partner and user is creating a new partner directly
+      if (form.role === "Channel Partner") {
+        if (partnerMode === "new") {
+          if (!cpDetails.nameOfFirm?.trim()) {
+            setSaving(false);
+            return setToast({ msg: "Channel Partner Firm Name is required", type: "error" });
+          }
+          if (!cpDetails.phone?.trim()) {
+            setSaving(false);
+            return setToast({ msg: "Channel Partner Phone number is required", type: "error" });
+          }
+
+          // Create the Channel Partner directly in the database
+          const partnerPayload = {
+            name: cpDetails.nameOfFirm.trim(),
+            contactPerson: cpDetails.contactPerson?.trim() || form.name.trim(),
+            phone: cpDetails.phone.trim(),
+            email: cpDetails.email?.trim() || form.email.trim(),
+            city: cpDetails.city?.trim() || "Mumbai",
+            status: cpDetails.status || "Silver",
+            commissionRate: parseFloat(cpDetails.commissionRate) || 2.5,
+            rating: parseFloat(cpDetails.rating) || 4.0
+          };
+
+          const newPartner = await api.createPartner(partnerPayload);
+          resolvedPartnerId = newPartner.id;
+        } else if (partnerMode === "existing" && !resolvedPartnerId) {
+          setSaving(false);
+          return setToast({ msg: "Please select an existing Channel Partner firm or switch to create directly", type: "error" });
+        }
+      }
+
       const payload={
         ...form,
-        channelPartnerId: form.channelPartnerId ? parseInt(form.channelPartnerId) : null
+        channelPartnerId: resolvedPartnerId
       };
+
       if (editingId) {
         await api.updateUser(editingId, { ...payload, id: editingId });
-        setToast({msg:"User updated successfully!",type:"success"});
+        setToast({msg:"User and partner profile updated successfully!",type:"success"});
       } else {
         await api.createUser(payload);
-        setToast({msg:"User created successfully!",type:"success"});
+        setToast({msg: form.role === "Channel Partner" ? "Channel Partner entity and User created successfully!" : "User created successfully!",type:"success"});
       }
-      setShowModal(false);
-      setEditingId(null);
-      setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""});
+
+      resetAllForms();
       load();
     } catch(e){ setToast({msg:e.message,type:"error"}); }
     finally { setSaving(false); }
@@ -175,7 +263,7 @@ export function UserManagement() {
       </div>
 
       {showModal&&(
-        <Modal title={editingId ? "Edit User" : "Add User"} onClose={()=>{ setShowModal(false); setEditingId(null); setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""}); }} width={580}>
+        <Modal title={editingId ? "Edit User" : "Add User"} onClose={resetAllForms} width={620}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
             <Field label="Full Name" required><Input value={form.name} onChange={f("name")} placeholder="e.g. Sanjay Bhatt"/></Field>
             <Field label="Email" required><Input type="email" value={form.email} onChange={f("email")} placeholder="email@propnest.com"/></Field>
@@ -186,24 +274,123 @@ export function UserManagement() {
             </div>
 
             {form.role === "Channel Partner" && (
-              <div style={{gridColumn:"1/-1"}}>
-                <Field label="Associated Channel Partner Firm" required>
-                  <select 
-                    value={form.channelPartnerId || ""} 
-                    onChange={(e) => setForm(p => ({ ...p, channelPartnerId: e.target.value }))}
-                    style={{
-                      width:"100%", background:C.raise, border:`1px solid ${C.bord}`, borderRadius:8,
-                      padding:"10px 14px", color:C.txt, fontSize:13, outline:"none"
-                    }}
-                  >
-                    <option value="">-- Select Channel Partner Company --</option>
-                    {partners.map(cp => (
-                      <option key={cp.id} value={cp.id}>{cp.name} ({cp.contactPerson || cp.city})</option>
-                    ))}
-                  </select>
-                </Field>
-                <div style={{fontSize:11,color:C.mute,marginTop:4}}>
-                  Channel Partner users will only be granted access to their own submitted leads, associated customers, and permitted booking statuses.
+              <div style={{gridColumn:"1/-1", background:`${C.gold}0c`, border:`1px solid ${C.gold}33`, borderRadius:10, padding:14, marginTop:4}}>
+                <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12}}>
+                  <div>
+                    <div style={{color:C.gold, fontWeight:700, fontSize:13, display:"flex", alignItems:"center", gap:6}}>
+                      <span>🤝</span> Channel Partner Details
+                    </div>
+                    <div style={{color:C.sub, fontSize:11, marginTop:2}}>
+                      Enter partner company information directly to create the Channel Partner and user simultaneously.
+                    </div>
+                  </div>
+                  {partners.length > 0 && (
+                    <div style={{display:"flex", background:C.raise, borderRadius:6, padding:2, border:`1px solid ${C.bord}`}}>
+                      <button
+                        type="button"
+                        onClick={()=>setPartnerMode("new")}
+                        style={{
+                          background: partnerMode==="new" ? C.gold : "transparent",
+                          color: partnerMode==="new" ? "#000" : C.sub,
+                          border:"none", borderRadius:4, padding:"4px 10px", fontSize:10, fontWeight:700, cursor:"pointer"
+                        }}
+                      >
+                        Enter Directly
+                      </button>
+                      <button
+                        type="button"
+                        onClick={()=>setPartnerMode("existing")}
+                        style={{
+                          background: partnerMode==="existing" ? C.gold : "transparent",
+                          color: partnerMode==="existing" ? "#000" : C.sub,
+                          border:"none", borderRadius:4, padding:"4px 10px", fontSize:10, fontWeight:700, cursor:"pointer"
+                        }}
+                      >
+                        Existing Firm ({partners.length})
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {partnerMode === "new" ? (
+                  <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                    <Field label="Partner Firm / Company Name" required>
+                      <Input 
+                        value={cpDetails.nameOfFirm} 
+                        onChange={fCp("nameOfFirm")} 
+                        placeholder="e.g. PropNest Realty & Associates"
+                      />
+                    </Field>
+                    <Field label="Contact Person / Owner">
+                      <Input 
+                        value={cpDetails.contactPerson || form.name} 
+                        onChange={fCp("contactPerson")} 
+                        placeholder="Owner name"
+                      />
+                    </Field>
+                    <Field label="Phone / Mobile No." required>
+                      <Input 
+                        value={cpDetails.phone} 
+                        onChange={fCp("phone")} 
+                        placeholder="e.g. 9820011223"
+                      />
+                    </Field>
+                    <Field label="Firm Email">
+                      <Input 
+                        type="email" 
+                        value={cpDetails.email || form.email} 
+                        onChange={fCp("email")} 
+                        placeholder="office@propnest.com"
+                      />
+                    </Field>
+                    <Field label="City / Region">
+                      <Input 
+                        value={cpDetails.city} 
+                        onChange={fCp("city")} 
+                        placeholder="e.g. Mumbai, Navi Mumbai, Pune"
+                      />
+                    </Field>
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8}}>
+                      <Field label="Tier / Status">
+                        <Select 
+                          value={cpDetails.status} 
+                          onChange={fCp("status")} 
+                          options={partnerStatus}
+                        />
+                      </Field>
+                      <Field label="Commission %">
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          value={cpDetails.commissionRate} 
+                          onChange={fCp("commissionRate")} 
+                          placeholder="2.5"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Field label="Select Existing Channel Partner Entity" required>
+                      <select 
+                        value={form.channelPartnerId || ""} 
+                        onChange={(e) => setForm(p => ({ ...p, channelPartnerId: e.target.value }))}
+                        style={{
+                          width:"100%", background:C.raise, border:`1px solid ${C.bord}`, borderRadius:8,
+                          padding:"10px 14px", color:C.txt, fontSize:13, outline:"none"
+                        }}
+                      >
+                        <option value="">-- Select Channel Partner Company --</option>
+                        {partners.map(cp => (
+                          <option key={cp.id} value={cp.id}>{cp.name} ({cp.contactPerson || cp.city}) - {cp.phone}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                )}
+
+                <div style={{fontSize:11, color:C.mute, marginTop:8, display:"flex", alignItems:"center", gap:5}}>
+                  <span>🔒</span> Channel Partner users will be automatically isolated and restricted to their own leads, bookings, and commission ledgers.
                 </div>
               </div>
             )}
@@ -239,7 +426,7 @@ export function UserManagement() {
             )}
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:20,paddingTop:16,borderTop:`1px solid ${C.bord}`}}>
-            <Btn v="outline" onClick={()=>{ setShowModal(false); setEditingId(null); setForm({name:"",email:"",role:defaultRole,permissions:"",channelPartnerId:""}); }}>Cancel</Btn>
+            <Btn v="outline" onClick={resetAllForms}>Cancel</Btn>
             <Btn onClick={handleSubmit} disabled={saving} icon={saving?Loader2:(editingId?Edit:Plus)}>{saving?(editingId?"Saving...":"Creating..."):(editingId?"Update User":"Create User")}</Btn>
           </div>
         </Modal>

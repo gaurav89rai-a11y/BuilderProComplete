@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BuilderProDataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=localhost\SQLEXPRESS;Initial Catalog=BuilderProDB;Integrated Security=True</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>e1a2b3c4-0003-4000-8000-000000000003</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="FinancialCollectionsDataSet">
+      <Query>
+        <DataSourceName>BuilderProDataSource</DataSourceName>
+        <CommandType>StoredProcedure</CommandType>
+        <CommandText>sp_Rpt_FinancialCollections</CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@ProjectId"><Value>=Parameters!ProjectId.Value</Value></QueryParameter>
+          <QueryParameter Name="@PaymentMode"><Value>=Parameters!PaymentMode.Value</Value></QueryParameter>
+          <QueryParameter Name="@Status"><Value>=Parameters!Status.Value</Value></QueryParameter>
+          <QueryParameter Name="@FromDate"><Value>=Parameters!FromDate.Value</Value></QueryParameter>
+          <QueryParameter Name="@ToDate"><Value>=Parameters!ToDate.Value</Value></QueryParameter>
+          <QueryParameter Name="@Search"><Value>=Parameters!Search.Value</Value></QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="PaymentId"><DataField>PaymentId</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="ReceiptNumber"><DataField>ReceiptNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="PaymentDate"><DataField>PaymentDate</DataField><rd:TypeName>System.DateTime</rd:TypeName></Field>
+        <Field Name="CustomerName"><DataField>CustomerName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CustomerPhone"><DataField>CustomerPhone</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UnitNumber"><DataField>UnitNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectName"><DataField>ProjectName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Amount"><DataField>Amount</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="PaymentMode"><DataField>PaymentMode</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="TransactionReference"><DataField>TransactionReference</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="PaymentStatus"><DataField>PaymentStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="ProjectId"><DataType>Integer</DataType><Nullable>true</Nullable><Prompt>Project ID</Prompt></ReportParameter>
+    <ReportParameter Name="PaymentMode"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Payment Mode</Prompt></ReportParameter>
+    <ReportParameter Name="Status"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Payment Status</Prompt></ReportParameter>
+    <ReportParameter Name="FromDate"><DataType>DateTime</DataType><Nullable>true</Nullable><Prompt>From Date</Prompt></ReportParameter>
+    <ReportParameter Name="ToDate"><DataType>DateTime</DataType><Nullable>true</Nullable><Prompt>To Date</Prompt></ReportParameter>
+    <ReportParameter Name="Search"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Search Keyword</Prompt></ReportParameter>
+  </ReportParameters>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="HeaderTitle">
+            <Top>0.2in</Top><Left>0.2in</Left><Height>0.35in</Height><Width>8.0in</Width>
+            <Paragraphs><Paragraph><TextRuns><TextRun><Value>FINANCIAL COLLECTIONS &amp; PAYMENT REALIZATION REPORT</Value><Style><FontFamily>Segoe UI</FontFamily><FontSize>16pt</FontSize><FontWeight>Bold</FontWeight><Color>#B8860B</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs>
+          </Textbox>
+          <Tablix Name="CollectionsTablix">
+            <Top>0.7in</Top><Left>0.2in</Left><Height>0.6in</Height><Width>8.0in</Width>
+            <DataSetName>FinancialCollectionsDataSet</DataSetName>
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>1.1in</Width></TablixColumn>
+                <TablixColumn><Width>1.1in</Width></TablixColumn>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>0.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>1.0in</Width></TablixColumn>
+                <TablixColumn><Width>1.0in</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="H_Receipt"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Receipt No.</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Date"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Date</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Customer"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Customer</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Unit"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Unit</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Amount"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Amount (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Mode"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Mode</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Status"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Status</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="D_Receipt"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!ReceiptNumber.Value</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight><Color>#B8860B</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Date"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!PaymentDate.Value, "dd-MMM-yyyy")</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Customer"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!CustomerName.Value</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Unit"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!UnitNumber.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Amount"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!Amount.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight><Color>#006600</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Mode"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!PaymentMode.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Status"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!PaymentStatus.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixColumnHierarchy>
+            <TablixRowHierarchy><TablixMembers><TablixMember/><TablixMember><Group Name="PaymentDetails"/></TablixMember></TablixMembers></TablixRowHierarchy>
+          </Tablix>
+        </ReportItems>
+        <Height>3.5in</Height>
+      </Body>
+      <Width>8.5in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight><PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.25in</LeftMargin><RightMargin>0.25in</RightMargin><TopMargin>0.5in</TopMargin><BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BuilderProDataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=localhost\SQLEXPRESS;Initial Catalog=BuilderProDB;Integrated Security=True</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>e1a2b3c4-0006-4000-8000-000000000006</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="UserRoleAuditDataSet">
+      <Query>
+        <DataSourceName>BuilderProDataSource</DataSourceName>
+        <CommandType>StoredProcedure</CommandType>
+        <CommandText>sp_Rpt_UserRoleAudit</CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@Role"><Value>=Parameters!Role.Value</Value></QueryParameter>
+          <QueryParameter Name="@Search"><Value>=Parameters!Search.Value</Value></QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="UserId"><DataField>UserId</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="FullName"><DataField>FullName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Email"><DataField>Email</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Role"><DataField>Role</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Permissions"><DataField>Permissions</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="AssociatedPartnerFirm"><DataField>AssociatedPartnerFirm</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CreatedAt"><DataField>CreatedAt</DataField><rd:TypeName>System.DateTime</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="Role"><DataType>String</DataType><Nullable>true</Nullable><Prompt>System Role</Prompt></ReportParameter>
+    <ReportParameter Name="Search"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Search Keyword</Prompt></ReportParameter>
+  </ReportParameters>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="HeaderTitle">
+            <Top>0.2in</Top><Left>0.2in</Left><Height>0.35in</Height><Width>8.0in</Width>
+            <Paragraphs><Paragraph><TextRuns><TextRun><Value>USER ACCESS, ROLES &amp; SECURITY PERMISSIONS AUDIT</Value><Style><FontFamily>Segoe UI</FontFamily><FontSize>16pt</FontSize><FontWeight>Bold</FontWeight><Color>#B8860B</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs>
+          </Textbox>
+          <Tablix Name="UserTablix">
+            <Top>0.7in</Top><Left>0.2in</Left><Height>0.6in</Height><Width>8.0in</Width>
+            <DataSetName>UserRoleAuditDataSet</DataSetName>
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.4in</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="H_Name"><Paragraphs><Paragraph><TextRuns><TextRun><Value>User Name</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Email"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Email</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Role"><Paragraphs><Paragraph><TextRuns><TextRun><Value>System Role</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Firm"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Channel Partner</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Created"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Created Date</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="D_Name"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!FullName.Value</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Email"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Email.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Role"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Role.Value</Value><Style><FontFamily>Segoe UI</FontFamily><Color>#B8860B</Color><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Firm"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!AssociatedPartnerFirm.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Created"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!CreatedAt.Value, "dd-MMM-yyyy")</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixColumnHierarchy>
+            <TablixRowHierarchy><TablixMembers><TablixMember/><TablixMember><Group Name="UserDetails"/></TablixMember></TablixMembers></TablixRowHierarchy>
+          </Tablix>
+        </ReportItems>
+        <Height>3.5in</Height>
+      </Body>
+      <Width>8.5in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight><PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.25in</LeftMargin><RightMargin>0.25in</RightMargin><TopMargin>0.5in</TopMargin><BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

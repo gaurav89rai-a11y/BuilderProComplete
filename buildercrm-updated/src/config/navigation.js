@@ -75,12 +75,6 @@ export const NAV = [
     ]
   },
   {
-    sec: "Channel Partners",
-    id: "partners",
-    icon: Handshake,
-    isGroup: false
-  },
-  {
     sec: "Customer Support",
     id: "tickets",
     icon: Headphones,

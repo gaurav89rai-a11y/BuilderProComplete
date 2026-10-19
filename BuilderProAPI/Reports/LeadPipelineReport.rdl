@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="BuilderProDataSource">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=localhost\SQLEXPRESS;Initial Catalog=BuilderProDB;Integrated Security=True</ConnectString>
+        <IntegratedSecurity>true</IntegratedSecurity>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>e1a2b3c4-0002-4000-8000-000000000002</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="LeadPipelineDataSet">
+      <Query>
+        <DataSourceName>BuilderProDataSource</DataSourceName>
+        <CommandType>StoredProcedure</CommandType>
+        <CommandText>sp_Rpt_LeadConversionPipeline</CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@ProjectId"><Value>=Parameters!ProjectId.Value</Value></QueryParameter>
+          <QueryParameter Name="@Stage"><Value>=Parameters!Stage.Value</Value></QueryParameter>
+          <QueryParameter Name="@AssignedTo"><Value>=Parameters!AssignedTo.Value</Value></QueryParameter>
+          <QueryParameter Name="@FromDate"><Value>=Parameters!FromDate.Value</Value></QueryParameter>
+          <QueryParameter Name="@ToDate"><Value>=Parameters!ToDate.Value</Value></QueryParameter>
+          <QueryParameter Name="@Search"><Value>=Parameters!Search.Value</Value></QueryParameter>
+        </QueryParameters>
+      </Query>
+      <Fields>
+        <Field Name="LeadId"><DataField>LeadId</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="LeadName"><DataField>LeadName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Email"><DataField>Email</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Phone"><DataField>Phone</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Source"><DataField>Source</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Stage"><DataField>Stage</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Score"><DataField>Score</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="Budget"><DataField>Budget</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="AssignedAgent"><DataField>AssignedAgent</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ProjectName"><DataField>ProjectName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="ChannelPartnerName"><DataField>ChannelPartnerName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="LeadDate"><DataField>LeadDate</DataField><rd:TypeName>System.DateTime</rd:TypeName></Field>
+        <Field Name="ConversionStatus"><DataField>ConversionStatus</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportParameters>
+    <ReportParameter Name="ProjectId"><DataType>Integer</DataType><Nullable>true</Nullable><Prompt>Project ID</Prompt></ReportParameter>
+    <ReportParameter Name="Stage"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Stage</Prompt></ReportParameter>
+    <ReportParameter Name="AssignedTo"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Assigned Agent</Prompt></ReportParameter>
+    <ReportParameter Name="FromDate"><DataType>DateTime</DataType><Nullable>true</Nullable><Prompt>From Date</Prompt></ReportParameter>
+    <ReportParameter Name="ToDate"><DataType>DateTime</DataType><Nullable>true</Nullable><Prompt>To Date</Prompt></ReportParameter>
+    <ReportParameter Name="Search"><DataType>String</DataType><Nullable>true</Nullable><Prompt>Search Keyword</Prompt></ReportParameter>
+  </ReportParameters>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Textbox Name="HeaderTitle">
+            <Top>0.2in</Top><Left>0.2in</Left><Height>0.35in</Height><Width>8.0in</Width>
+            <Paragraphs><Paragraph><TextRuns><TextRun><Value>LEAD CONVERSION &amp; SALES PIPELINE REPORT</Value><Style><FontFamily>Segoe UI</FontFamily><FontSize>16pt</FontSize><FontWeight>Bold</FontWeight><Color>#B8860B</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs>
+          </Textbox>
+          <Tablix Name="LeadTablix">
+            <Top>0.7in</Top><Left>0.2in</Left><Height>0.6in</Height><Width>8.0in</Width>
+            <DataSetName>LeadPipelineDataSet</DataSetName>
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>1.8in</Width></TablixColumn>
+                <TablixColumn><Width>1.1in</Width></TablixColumn>
+                <TablixColumn><Width>1.4in</Width></TablixColumn>
+                <TablixColumn><Width>1.1in</Width></TablixColumn>
+                <TablixColumn><Width>1.2in</Width></TablixColumn>
+                <TablixColumn><Width>1.4in</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="H_Lead"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Prospect Name</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Phone"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Phone</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Project"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Project</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Stage"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Stage</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Budget"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Budget (₹)</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="H_Agent"><Paragraphs><Paragraph><TextRuns><TextRun><Value>Assigned Agent</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>Bold</FontWeight><Color>#FFFFFF</Color></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><BackgroundColor>#1A1D24</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                <TablixRow>
+                  <Height>0.3in</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="D_Lead"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!LeadName.Value</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns></Paragraph></Paragraphs><Style><PaddingLeft>4pt</PaddingLeft></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Phone"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Phone.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Project"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!ProjectName.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Stage"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!Stage.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns><TextAlign>Center</TextAlign></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Budget"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Format(Fields!Budget.Value, "##,##,##,##0.00")</Value><Style><FontFamily>Segoe UI</FontFamily><FontWeight>SemiBold</FontWeight></Style></TextRun></TextRuns><TextAlign>Right</TextAlign></Paragraph></Paragraphs><Style><PaddingRight>4pt</PaddingRight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="D_Agent"><Paragraphs><Paragraph><TextRuns><TextRun><Value>=Fields!AssignedAgent.Value</Value><Style><FontFamily>Segoe UI</FontFamily></Style></TextRun></TextRuns></Paragraph></Paragraphs></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixColumnHierarchy>
+            <TablixRowHierarchy><TablixMembers><TablixMember/><TablixMember><Group Name="LeadDetails"/></TablixMember></TablixMembers></TablixRowHierarchy>
+          </Tablix>
+        </ReportItems>
+        <Height>3.5in</Height>
+      </Body>
+      <Width>8.5in</Width>
+      <Page>
+        <PageHeight>11.0in</PageHeight><PageWidth>8.5in</PageWidth>
+        <LeftMargin>0.25in</LeftMargin><RightMargin>0.25in</RightMargin><TopMargin>0.5in</TopMargin><BottomMargin>0.5in</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+</Report>

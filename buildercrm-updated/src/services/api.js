@@ -1394,6 +1394,72 @@ const mockApi = {
     });
     return grouped;
   },
+
+  // Reporting Module Mock Fallbacks
+  getReportCategories: async () => [
+    { id: "dashboard", name: "Executive & Dashboard", description: "High-level portfolio performance, revenue velocity and operational indicators.", icon: "LayoutDashboard" },
+    { id: "sales", name: "Sales & CRM Reports", description: "Lead progression, conversion funnel, site visit tracking and sales representative activity.", icon: "Target" },
+    { id: "financial", name: "Financial & Accounts", description: "Collections realization, payment ledgers, receivables aging and project revenue analysis.", icon: "DollarSign" },
+    { id: "partners", name: "Channel Partner Reports", description: "Partner deal closures, commission calculations, payout statuses and sourcing rankings.", icon: "Handshake" },
+    { id: "operations", name: "Operational & Inventory", description: "Unit inventory matrix, availability by project/typology and construction progress.", icon: "Building2" },
+    { id: "governance", name: "Security & Governance", description: "User accounts, role permission mappings, access control matrix and system audit logs.", icon: "Shield" }
+  ],
+  getReportCatalog: async () => {
+    const role = localStorage.getItem("current_user_role") || "Super Admin";
+    const cpId = localStorage.getItem("current_channel_partner_id");
+    if (role === "Channel Partner") {
+      return [{
+        id: "partner-commission",
+        title: "Channel Partner Performance & Commission Ledger",
+        description: "Channel partner sourcing productivity, booked transactions, contracted commission rates, paid disbursements, and payable balances.",
+        categoryId: "partners",
+        allowedRoles: ["Channel Partner"]
+      }];
+    }
+    return [
+      { id: "executive-summary", title: "Executive Portfolio & Financial Summary", description: "Overview of construction projects, unit availability, total booked revenue, realized collections, and outstanding receivables.", categoryId: "dashboard", allowedRoles: ["Super Admin", "Manager"] },
+      { id: "lead-pipeline", title: "Lead Conversion & Sales Pipeline Funnel", description: "Lead progression audit analyzing lead sources, current stages, budget qualification, assigned agents, and conversion outcomes.", categoryId: "sales", allowedRoles: ["Super Admin", "Manager", "Sales Agent"] },
+      { id: "financial-collections", title: "Collections & Financial Realization Ledger", description: "Detailed payment receipt transactions, payment instruments (NEFT, Cheque, Cash), linked customers, and realization status.", categoryId: "financial", allowedRoles: ["Super Admin", "Manager", "Accounts"] },
+      { id: "partner-commission", title: "Channel Partner Performance & Commission Ledger", description: "Channel partner sourcing productivity, booked transactions, contracted commission rates, and payouts.", categoryId: "partners", allowedRoles: ["Super Admin", "Manager", "Channel Partner"] },
+      { id: "unit-inventory", title: "Unit Inventory & Availability Matrix", description: "Project unit matrix covering typology, carpet area, base pricing, floor level, and booking availability status.", categoryId: "operations", allowedRoles: ["Super Admin", "Manager", "Sales Agent"] },
+      { id: "user-role-audit", title: "User Security, Roles & Permissions Audit", description: "Enterprise security directory documenting active user accounts, system role assignments, and granular permissions.", categoryId: "governance", allowedRoles: ["Super Admin"] }
+    ];
+  },
+  getReportParameters: async () => [],
+  renderReport: async ({ reportId }) => ({
+    reportId,
+    reportTitle: reportId.replace("-", " ").toUpperCase(),
+    category: "general",
+    generatedAt: new Date().toISOString(),
+    executionEngine: "Enterprise Mock Fallback Engine",
+    kpis: [{ label: "Records", value: "12", subtext: "Active items", color: "gold" }],
+    columns: [{ key: "name", label: "Item", dataType: "string", align: "left" }, { key: "value", label: "Amount (₹)", dataType: "currency", align: "right" }],
+    rows: [{ name: "Sample Item 1", value: 450000 }, { name: "Sample Item 2", value: 1200000 }],
+    totalRows: 2
+  }),
+  getReportHealth: async () => ({
+    isConnected: false,
+    serverUrl: "http://localhost/ReportServer",
+    message: "SSRS Fallback Engine active",
+    isFallbackActive: true
+  }),
+  getReportExportUrl: (id, params = {}, format = "PDF") => `/api/reports/${id}/export?format=${format}`,
+  downloadReportFile: async (reportId, params = {}, format = "PDF") => {
+    const extMap = { PDF: "pdf", EXCEL: "xls", XLSX: "xls", WORD: "doc", DOCX: "doc", CSV: "csv" };
+    const ext = extMap[format.toUpperCase()] || format.toLowerCase();
+    const filename = `BuilderPro_${reportId}_mock.${ext}`;
+    const content = `BuilderPro Mock Report: ${reportId}\nExport Format: ${format}\nGenerated At: ${new Date().toISOString()}`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    return { success: true, filename };
+  },
 };
 
 // ─── INTEGRATED API EXPORTS ────────────────────────────────────
@@ -1552,6 +1618,103 @@ const realApi = {
   getBrands: () => req("GET", "/materials/brands"),
 
   getSystemConfigs: () => req("GET", "/systemconfigs"),
+
+  // SSRS & Enterprise Reporting Module
+  getReportCategories: () => req("GET", "/reports/categories"),
+  getReportCatalog: () => req("GET", "/reports/catalog"),
+  getReportParameters: (id) => req("GET", `/reports/${id}/parameters`),
+  renderReport: (data) => req("POST", "/reports/render", data),
+  getReportHealth: () => req("GET", "/reports/health"),
+  getReportExportUrl: (id, params = {}, format = "PDF") => {
+    const role = localStorage.getItem("current_user_role") || "Super Admin";
+    const channelPartnerId = localStorage.getItem("current_channel_partner_id");
+    const qs = new URLSearchParams({ format, role, ...(channelPartnerId ? { channelPartnerId } : {}), ...params }).toString();
+    return `${currentBaseUrl}/reports/${id}/export?${qs}`;
+  },
+  downloadReportFile: async (reportId, params = {}, format = "PDF") => {
+    const cleanParams = {};
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") {
+          cleanParams[k] = v;
+        }
+      });
+    }
+
+    const role = localStorage.getItem("current_user_role") || "Super Admin";
+    const channelPartnerId = localStorage.getItem("current_channel_partner_id");
+    const name = localStorage.getItem("current_user_name");
+    const uid = localStorage.getItem("current_user_id");
+
+    const query = new URLSearchParams({
+      format,
+      role,
+      ...(channelPartnerId ? { channelPartnerId } : {}),
+      ...cleanParams
+    }).toString();
+
+    const headers = {};
+    if (role) headers["X-User-Role"] = role;
+    if (name) headers["X-User-Name"] = name;
+    if (uid) headers["X-User-Id"] = uid;
+    if (channelPartnerId) headers["X-Channel-Partner-Id"] = channelPartnerId;
+
+    let res;
+    try {
+      res = await fetch(`${currentBaseUrl}/reports/${reportId}/export?${query}`, {
+        method: "GET",
+        headers
+      });
+    } catch (netErr) {
+      const altUrl = getAlternativeBaseUrl(currentBaseUrl);
+      if (altUrl) {
+        currentBaseUrl = altUrl;
+        res = await fetch(`${currentBaseUrl}/reports/${reportId}/export?${query}`, {
+          method: "GET",
+          headers
+        });
+      } else {
+        throw netErr;
+      }
+    }
+
+    if (!res.ok) {
+      let errorMsg = `Server error (${res.status})`;
+      try {
+        const errJson = await res.json();
+        errorMsg = errJson.error || errJson.details || errJson.message || errorMsg;
+      } catch {
+        const errText = await res.text().catch(() => "");
+        if (errText) errorMsg = errText.slice(0, 150);
+      }
+      throw new Error(errorMsg);
+    }
+
+    let filename = "";
+    const disposition = res.headers.get("Content-Disposition");
+    if (disposition) {
+      const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1].trim());
+      }
+    }
+    if (!filename) {
+      const extMap = { PDF: "pdf", EXCEL: "xls", XLSX: "xls", WORD: "doc", DOCX: "doc", CSV: "csv" };
+      const ext = extMap[format.toUpperCase()] || format.toLowerCase();
+      filename = `BuilderPro_${reportId}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+    }
+
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    return { success: true, filename };
+  },
 };
 
 // Create fallback API wrapper
